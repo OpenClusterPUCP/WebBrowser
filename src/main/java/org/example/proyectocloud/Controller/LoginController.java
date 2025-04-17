@@ -1,10 +1,14 @@
-package org.example.proyectocloud;
+package org.example.proyectocloud.Controller;
 
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
+import org.example.proyectocloud.Dao.AuthDao;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.io.InputStream;
@@ -12,7 +16,8 @@ import java.util.LinkedHashMap;
 
 @Controller
 public class LoginController {
-
+    @Autowired
+    AuthDao authDao;
     @GetMapping({"/", "/login", "/login/"})
     public String login() {
         return "index";
@@ -61,6 +66,13 @@ public class LoginController {
             e.printStackTrace();
         }
         return response;
+    }
+
+
+    @PostMapping("/Logearse")
+    @ResponseBody
+    public String verToken(@RequestBody LinkedHashMap<String  , Object > credentials){
+        return authDao.autenticarYObtenerJwt(credentials.get("username").toString() , credentials.get("password").toString());
     }
 
 
