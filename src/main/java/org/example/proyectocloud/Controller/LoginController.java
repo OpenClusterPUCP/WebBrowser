@@ -3,9 +3,12 @@ package org.example.proyectocloud.Controller;
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
+import jakarta.servlet.http.HttpSession;
 import org.example.proyectocloud.Dao.AuthDao;
 import org.example.proyectocloud.Service.SliceService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,14 +22,22 @@ import java.util.LinkedHashMap;
 public class LoginController {
     @Autowired
     AuthDao authDao;
-
     @Autowired
     SliceService sliceService;
-    @GetMapping({"/", "/login", "/login/"})
-    public String login() {
-        return "index";
-    }
 
+
+    //Visualizar vistas
+    @GetMapping({"/", "/login", "/login/"})
+    public String login(HttpSession session) {
+        return "index";}
+
+
+
+    //Servicios para extraer datos a las vistas
+
+
+
+    //Extras
     @GetMapping("/connectSsh")
     @ResponseBody
     public Object ssh (){
@@ -71,18 +82,47 @@ public class LoginController {
         }
         return response;
     }
-
-
     @PostMapping("/Logearse")
     @ResponseBody
-    public String verToken(@RequestBody LinkedHashMap<String  , Object > credentials){
-        return authDao.autenticarYObtenerJwt(credentials.get("username").toString() , credentials.get("password").toString());
+    public Object verToken(@RequestBody LinkedHashMap<String  , Object > credentials , HttpSession session){
+        LinkedHashMap<String , Object >  response=  new LinkedHashMap<>();
+        String jwtToken =  authDao.autenticarYObtenerJwt(credentials.get("username").toString() , credentials.get("password").toString());
+        if(jwtToken.equals("ERROR_SERVICIO_NO_DISPONIBLE")){
+            response.put("status" ,"error" );
+            return ResponseEntity
+                    .status(HttpStatus.FORBIDDEN).body(response);
+        }else{
+            session.setAttribute("jwtToken" , jwtToken);
+            response.put("status" ,"ok" );
+            return ResponseEntity
+                    .status(HttpStatus.OK).body(response);
+        }
     }
 
-    @GetMapping("/test")
+    @GetMapping("/testAdmin")
     @ResponseBody
-    public Object consultaProtegida(){
-        return sliceService.consumirApiProtegida();
+    public Object consultaProtegidaAdmin(HttpSession session){
+        LinkedHashMap<String , Object > response =  new LinkedHashMap<>();
+        if(session.getAttribute("jwtToken") ==  null ){
+            response.put("status" ,  "error");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        }else{
+            String jwt = session.getAttribute("jwtToken").toString();
+            return sliceService.consumirApiProtegidaAdmin(jwt);
+        }
+    }
+
+    @GetMapping("/testAlumno")
+    @ResponseBody
+    public Object consultaProtegidaAlumno(HttpSession session){
+        LinkedHashMap<String , Object > response =  new LinkedHashMap<>();
+        if(session.getAttribute("jwtToken") ==  null ){
+            response.put("status" ,  "error");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        }else{
+            String jwt = session.getAttribute("jwtToken").toString();
+            return sliceService.consumirApiProtegidaAlumno(jwt);
+        }
     }
 
 

@@ -11,9 +11,8 @@ import org.springframework.web.client.RestTemplate;
 @Configuration
 public class AppConfig {
     @Bean
-    public RestTemplate restTemplate(TokenProvider tokenProvider) {
+    public RestTemplate restTemplate() {
         RestTemplate restTemplate = new RestTemplate();
-        restTemplate.getInterceptors().add(new JwtInterceptor(tokenProvider));
         return restTemplate;
     }
 }
