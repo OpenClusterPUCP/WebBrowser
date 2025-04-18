@@ -2,6 +2,7 @@ package org.example.proyectocloud.Dao;
 
 import org.example.proyectocloud.DTO.JwtResponse;
 import org.example.proyectocloud.DTO.LoginRequest;
+import org.example.proyectocloud.DTO.TokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.MediaType;
@@ -24,27 +25,25 @@ import org.springframework.web.client.RestTemplate;
 public class AuthDao {
     @Autowired
     private RestTemplate restTemplate;
-    public String autenticarYObtenerJwt(String username, String password) {
-        String url = "http://localhost:8090/ayudenme"; // cambia el puerto si es necesario
 
-        // Crear el body del request
+    @Autowired
+    private TokenProvider tokenProvider;
+
+    public String autenticarYObtenerJwt(String username, String password) {
+        String url = "http://localhost:8090/ayudenme";
         LoginRequest request = new LoginRequest(username, password);
 
-        // Encabezados
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        // Request completo (body + headers)
         HttpEntity<LoginRequest> entity = new HttpEntity<>(request, headers);
 
-        // Consumir el POST
-        ResponseEntity<JwtResponse> response = restTemplate.postForEntity(
-                url,
-                entity,
-                JwtResponse.class
-        );
+        ResponseEntity<JwtResponse> response = restTemplate.postForEntity(url, entity, JwtResponse.class);
 
-        // Devolver el token
-        return response.getBody().getToken();
+        String token = response.getBody().getToken();
+        tokenProvider.setToken(token); // Guardamos el token aquí
+
+        return token;
     }
+
 }

@@ -4,6 +4,7 @@ import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
 import org.example.proyectocloud.Dao.AuthDao;
+import org.example.proyectocloud.Service.SliceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,6 +19,9 @@ import java.util.LinkedHashMap;
 public class LoginController {
     @Autowired
     AuthDao authDao;
+
+    @Autowired
+    SliceService sliceService;
     @GetMapping({"/", "/login", "/login/"})
     public String login() {
         return "index";
@@ -73,6 +77,12 @@ public class LoginController {
     @ResponseBody
     public String verToken(@RequestBody LinkedHashMap<String  , Object > credentials){
         return authDao.autenticarYObtenerJwt(credentials.get("username").toString() , credentials.get("password").toString());
+    }
+
+    @GetMapping("/test")
+    @ResponseBody
+    public Object consultaProtegida(){
+        return sliceService.consumirApiProtegida();
     }
 
 
