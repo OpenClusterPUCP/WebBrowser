@@ -29,7 +29,8 @@ public class LoginController {
     //Visualizar vistas
     @GetMapping({"/", "/login", "/login/"})
     public String login(HttpSession session) {
-        return "index";}
+        return "index";
+    }
 
 
 
@@ -91,12 +92,24 @@ public class LoginController {
             response.put("status" ,"error" );
             return ResponseEntity
                     .status(HttpStatus.FORBIDDEN).body(response);
-        }else{
+        } else if (jwtToken.equals("ERROR_UNAUTHORIZED")) {
+            response.put("status" ,"error" );
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED).body(response);
+        }
+        else{
             session.setAttribute("jwtToken" , jwtToken);
+            session.setAttribute("role" , "Admin");
             response.put("status" ,"ok" );
+            response.put("content" , "Admin");
             return ResponseEntity
                     .status(HttpStatus.OK).body(response);
         }
+    }
+
+    @GetMapping("/DashboardAdmin")
+    public String dashboard(){
+        return "icons";
     }
 
     @GetMapping("/testAdmin")
