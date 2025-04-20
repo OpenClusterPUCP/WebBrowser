@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Prueba de Usuarios</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+<h1>Lista de Usuarios - Prueba</h1>
+<div id="result">Cargando...</div>
+
+<script>
+    $(document).ready(function() {
+        $.ajax({
+            url: '/Admin/api/users',
+            type: 'GET',
+            success: function(data) {
+                console.log("Datos recibidos:", data);
+
+                let html = '<ul>';
+                if (Array.isArray(data)) {
+                    data.forEach(function(user) {
+                        html += `<li>${user.id} - ${user.name || ''} ${user.lastname || ''} (${user.username || ''})</li>`;
+                    });
+                } else {
+                    html += '<li>Formato de datos inesperado</li>';
+                }
+                html += '</ul>';
+
+                $('#result').html(html);
+            },
+            error: function(xhr, status, error) {
+                console.error("Error:", error);
+                console.error("Status:", status);
+                console.error("Response:", xhr.responseText);
+
+                $('#result').html('Error al cargar datos: ' + error);
+            }
+        });
+    });
+</script>
+</body>
+</html>
