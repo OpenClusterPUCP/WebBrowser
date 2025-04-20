@@ -1,0 +1,1487 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenCluster - Gestión de Slices</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Variables y configuración global */
+        :root {
+            --primary-color: #4361ee;
+            --primary-dark: #3a56d4;
+            --primary-light: #4895ef;
+            --secondary-color: #3f37c9;
+            --accent-color: #4cc9f0;
+            --dark-color: #2b2d42;
+            --light-color: #f8f9fa;
+            --success-color: #06d6a0;
+            --warning-color: #ffd166;
+            --danger-color: #ef476f;
+            --text-color: #2b2d42;
+            --text-muted: #6c757d;
+            --border-color: #dee2e6;
+            --sidebar-width: 260px;
+            --header-height: 60px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+            --transition-speed: 0.3s;
+            --border-radius: 8px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Roboto', sans-serif;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            color: var(--text-color);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Layout principal */
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            position: fixed;
+            z-index: 1000;
+            box-shadow: var(--shadow-md);
+            transition: transform var(--transition-speed) ease;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+        }
+
+        .sidebar.hidden {
+            transform: translateX(-100%);
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo i {
+            font-size: 24px;
+        }
+
+        .logo-text {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .logo-text span {
+            font-weight: 300;
+        }
+
+        .sidebar-toggle {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background var(--transition-speed);
+        }
+
+        .sidebar-toggle:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .sidebar-section {
+            padding: 12px 24px 8px;
+            opacity: 0.7;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+            margin-top: 16px;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0 12px;
+        }
+
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            text-decoration: none;
+            color: white;
+            border-radius: var(--border-radius);
+            transition: background var(--transition-speed);
+            margin: 4px 0;
+            position: relative;
+        }
+
+        .sidebar-menu a:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-menu a.active {
+            background: rgba(255, 255, 255, 0.2);
+            font-weight: 500;
+        }
+
+        .sidebar-menu a.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background-color: white;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .sidebar-menu i {
+            width: 24px;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+
+        /* Contenido principal */
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            transition: margin var(--transition-speed) ease;
+            width: calc(100% - var(--sidebar-width));
+        }
+
+        .main-content.full-width {
+            margin-left: 0;
+            width: 100%;
+        }
+
+        /* Header */
+        .header {
+            height: var(--header-height);
+            background: white;
+            box-shadow: var(--shadow-sm);
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: var(--text-color);
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            transition: background var(--transition-speed);
+        }
+
+        .menu-toggle:hover {
+            background: var(--light-color);
+        }
+
+        .main-content.full-width .menu-toggle {
+            display: block;
+        }
+
+        .page-title {
+            font-weight: 600;
+            font-size: 1.2rem;
+            color: var(--text-color);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .search-box {
+            position: relative;
+            width: 300px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 16px 10px 40px;
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color var(--transition-speed), box-shadow var(--transition-speed);
+        }
+
+        .search-box input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        .user-profile {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .user-details {
+            display: none;
+        }
+
+        .user-dropdown {
+            position: absolute;
+            right: 0;
+            top: 100%;
+            margin-top: 8px;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+            width: 200px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: all var(--transition-speed);
+            z-index: 100;
+        }
+
+        .user-profile:hover .user-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .user-dropdown-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .user-dropdown-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .user-dropdown-role {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .user-dropdown-items {
+            padding: 8px 0;
+        }
+
+        .user-dropdown-item {
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-color);
+            text-decoration: none;
+            transition: background var(--transition-speed);
+        }
+
+        .user-dropdown-item:hover {
+            background: var(--light-color);
+        }
+
+        .user-dropdown-item i {
+            color: var(--text-muted);
+            width: 20px;
+            text-align: center;
+        }
+
+        .logout-item {
+            border-top: 1px solid var(--border-color);
+            margin-top: 4px;
+            padding-top: 8px;
+            color: var(--danger-color);
+        }
+
+        .logout-item i {
+            color: var(--danger-color);
+        }
+
+        /* Contenido de página */
+        .page-content {
+            padding: 24px;
+        }
+
+        .content-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .content-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            border-radius: var(--border-radius);
+            border: none;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-outline {
+            background: white;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-outline:hover {
+            background: var(--light-color);
+        }
+
+        .btn-icon {
+            padding: 10px;
+            width: 40px;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .card-tabs {
+            display: flex;
+            background: var(--light-color);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-tab {
+            padding: 14px 24px;
+            font-weight: 500;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+            position: relative;
+        }
+
+        .card-tab:hover {
+            color: var(--primary-color);
+        }
+
+        .card-tab.active {
+            color: var(--primary-color);
+            background: white;
+        }
+
+        .card-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--primary-color);
+        }
+
+        .tab-content {
+            padding: 24px;
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .tab-search {
+            margin-bottom: 24px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .tab-search input {
+            flex: 1;
+            padding: 10px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            font-size: 0.9rem;
+        }
+
+        .tab-search input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+
+        /* Gráfico */
+        .chart-container {
+            height: 300px;
+            margin-bottom: 24px;
+        }
+
+        /* Tabla */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+        }
+
+        th {
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+        }
+
+        th i {
+            margin-left: 4px;
+            font-size: 0.7rem;
+        }
+
+        td {
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        tbody tr {
+            transition: background var(--transition-speed);
+        }
+
+        tbody tr:hover {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge-active {
+            background: rgba(6, 214, 160, 0.1);
+            color: var(--success-color);
+        }
+
+        .badge-inactive {
+            background: rgba(108, 117, 125, 0.1);
+            color: var(--text-muted);
+        }
+
+        .badge-warning {
+            background: rgba(255, 209, 102, 0.1);
+            color: var(--warning-color);
+        }
+
+        .badge-danger {
+            background: rgba(239, 71, 111, 0.1);
+            color: var(--danger-color);
+        }
+
+        .badge-primary {
+            background: rgba(67, 97, 238, 0.1);
+            color: var(--primary-color);
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            color: var(--text-muted);
+            transition: color var(--transition-speed);
+            font-size: 1rem;
+        }
+
+        .action-btn:hover {
+            color: var(--primary-color);
+        }
+
+        .action-btn.delete:hover {
+            color: var(--danger-color);
+        }
+
+        /* Paginación */
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .pagination-info {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .pagination-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .pagination-btn {
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all var(--transition-speed);
+        }
+
+        .pagination-btn:hover {
+            background: var(--light-color);
+        }
+
+        .pagination-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            overflow: auto;
+        }
+
+        .modal-content {
+            background: white;
+            margin: 80px auto;
+            max-width: 600px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-lg);
+            animation: modal-fade 0.3s;
+        }
+
+        @keyframes modal-fade {
+            from { opacity: 0; transform: translateY(-40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-muted);
+            line-height: 1;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            font-size: 0.95rem;
+            transition: all var(--transition-speed);
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+            outline: none;
+        }
+
+        select.form-control {
+            appearance: none;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236c757d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat;
+            background-position: right 16px center;
+            background-size: 16px;
+            padding-right: 40px;
+        }
+
+        textarea.form-control {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        /* Responsive */
+        @media (max-width: 992px) {
+            .user-details {
+                display: none;
+            }
+            
+            .search-box {
+                width: 200px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.visible {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .menu-toggle {
+                display: block;
+            }
+            
+            .search-box {
+                display: none;
+            }
+            
+            .header-actions .btn-text {
+                display: none;
+            }
+            
+            .header-actions .btn {
+                padding: 10px;
+                width: 40px;
+                height: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-cubes"></i>
+                    <div class="logo-text">Open<span>Cluster</span></div>
+                </div>
+                <button class="sidebar-toggle">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            </div>
+            
+            <div class="sidebar-section">Principal</div>
+            <ul class="sidebar-menu">
+                <li>
+                    <a href="#">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="active" data-section="slices">
+                        <i class="fas fa-layer-group"></i>
+                        <span>Slices</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-section="users">
+                        <i class="fas fa-users"></i>
+                        <span>Usuarios</span>
+                    </a>
+                </li>
+            </ul>
+            
+            <div class="sidebar-section">Administración</div>
+            <ul class="sidebar-menu">
+                <li>
+                    <a href="#" data-section="flavors">
+                        <i class="fas fa-server"></i>
+                        <span>Flavors</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-section="images">
+                        <i class="fas fa-images"></i>
+                        <span>Imágenes</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-section="sketch">
+                        <i class="fas fa-pencil-alt"></i>
+                        <span>Sketch</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-section="requests">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>Solicitudes</span>
+                    </a>
+                </li>
+            </ul>
+            
+            <div class="sidebar-section">Sistema</div>
+            <ul class="sidebar-menu">
+                <li>
+                    <a href="#">
+                        <i class="fas fa-cog"></i>
+                        <span>Configuración</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Monitorización</span>
+                    </a>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Contenido principal -->
+        <main class="main-content">
+            <header class="header">
+                <div class="header-left">
+                    <button class="menu-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1 class="page-title">Slices</h1>
+                </div>
+                
+                <div class="header-right">                    
+                    <div class="user-profile">
+                        <div class="user-info">
+                            <div class="avatar">JD</div>
+                            <div class="user-details">
+                                <div class="user-name">Juan Díaz</div>
+                                <div class="user-role">Administrador</div>
+                            </div>
+                        </div>
+                        
+                        <div class="user-dropdown">
+                            <div class="user-dropdown-header">
+                                <div class="user-dropdown-name">Juan Díaz</div>
+                                <div class="user-dropdown-role">Administrador</div>
+                            </div>
+                            <div class="user-dropdown-items">
+                                <a href="#" class="user-dropdown-item">
+                                    <i class="fas fa-user"></i>
+                                    <span>Mi Perfil</span>
+                                </a>
+                                <a href="#" class="user-dropdown-item">
+                                    <i class="fas fa-cog"></i>
+                                    <span>Configuración</span>
+                                </a>
+                                <a href="#" class="user-dropdown-item logout-item">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                    <span>Cerrar Sesión</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <section class="page-content">
+                <div class="content-header">
+                    <h2 class="content-title">Listado de Slices Asignados</h2>
+                    <div class="header-actions">
+                        <button class="btn btn-outline" id="btnFilter">
+                            <i class="fas fa-filter"></i>
+                            <span class="btn-text">Filtrar</span>
+                        </button>
+                        <button class="btn btn-primary" id="btnCreateSlice">
+                            <i class="fas fa-plus"></i>
+                            <span class="btn-text">Nuevo Slice</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-tabs">
+                        <div class="card-tab active" data-tab="own-slices">Propios</div>
+                        <div class="card-tab" data-tab="others-slices">De Otros</div>
+                        <div class="card-tab" data-tab="shared-slices">Compartidos</div>
+                    </div>
+
+                    <!-- Contenido de la pestaña Propios -->
+                    <div class="tab-content active" id="own-slices">
+                        <div class="tab-search">
+                            <input type="text" id="search-own" placeholder="Buscar por nombre o ID...">
+                            <button class="btn btn-primary btn-icon">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>ID <i class="fas fa-sort"></i></th>
+                                        <th>Nombre <i class="fas fa-sort"></i></th>
+                                        <th>Usuario <i class="fas fa-sort"></i></th>
+                                        <th>Topología <i class="fas fa-sort"></i></th>
+                                        <th>Recursos <i class="fas fa-sort"></i></th>
+                                        <th>Fecha de creación <i class="fas fa-sort"></i></th>
+                                        <th>Estado <i class="fas fa-sort"></i></th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>#SL-1024</td>
+                                        <td>Kubernetes Demo</td>
+                                        <td>miguel.lopez@empresa.com</td>
+                                        <td>K8s Single Cluster</td>
+                                        <td>4 vCPU, 8GB RAM</td>
+                                        <td>10/04/2025</td>
+                                        <td><span class="badge badge-active">Activo</span></td>
+                                        <td class="actions">
+                                            <button class="action-btn" title="Ver">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="action-btn" title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="action-btn delete" title="Eliminar">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>#SL-1023</td>
+                                        <td>Desarrollo Web</td>
+                                        <td>ana.martinez@empresa.com</td>
+                                        <td>LAMP Stack</td>
+                                        <td>2 vCPU, 4GB RAM</td>
+                                        <td>08/04/2025</td>
+                                        <td><span class="badge badge-active">Activo</span></td>
+                                        <td class="actions">
+                                            <button class="action-btn" title="Ver">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="action-btn" title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="action-btn delete" title="Eliminar">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>#SL-1022</td>
+                                        <td>Data Science</td>
+                                        <td>pablo.gomez@empresa.com</td>
+                                        <td>ML Cluster</td>
+                                        <td>8 vCPU, 16GB RAM</td>
+                                        <td>01/04/2025</td>
+                                        <td><span class="badge badge-active">Activo</span></td>
+                                        <td class="actions">
+                                            <button class="action-btn" title="Ver">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="action-btn" title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="action-btn delete" title="Eliminar">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="pagination">
+                            <div class="pagination-info">
+                                Mostrando 1-3 de 3 elementos
+                            </div>
+                            <div class="pagination-controls">
+                                <button class="pagination-btn" disabled>Anterior</button>
+                                <button class="pagination-btn active">1</button>
+                                <button class="pagination-btn" disabled>Siguiente</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contenido de la pestaña De Otros -->
+                    <div class="tab-content" id="others-slices">
+                        <div class="tab-search">
+                            <input type="text" id="search-others" placeholder="Buscar por nombre o ID...">
+                            <button class="btn btn-primary btn-icon">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        
+                        <h3 style="margin-bottom: 16px; font-size: 1.1rem; color: var(--dark-color);">Agrupados (donde no estás tú)</h3>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>ID <i class="fas fa-sort"></i></th>
+                                        <th>Nombre <i class="fas fa-sort"></i></th>
+                                        <th>Propietario <i class="fas fa-sort"></i></th>
+                                        <th>Topología <i class="fas fa-sort"></i></th>
+                                        <th>Recursos <i class="fas fa-sort"></i></th>
+                                        <th>Estado <i class="fas fa-sort"></i></th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>#SL-985</td>
+                                        <td>Slice-Team-A-001</td>
+                                        <td>Equipo A</td>
+                                        <td>OpenStack</td>
+                                        <td>8 vCPU, 16GB RAM</td>
+                                        <td><span class="badge badge-active">Activo</span></td>
+                                        <td class="actions">
+                                            <button class="action-btn" title="Ver">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>#SL-962</td>
+                                        <td>Slice-Team-B-002</td>
+                                        <td>Equipo B</td>
+                                        <td>AWS</td>
+                                        <td>4 vCPU, 8GB RAM</td>
+                                        <td><span class="badge badge-active">Activo</span></td>
+                                        <td class="actions">
+                                            <button class="action-btn" title="Ver">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <h3 style="margin: 24px 0 16px; font-size: 1.1rem; color: var(--dark-color);">Personales de Usuarios (No Admin)</h3>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>ID <i class="fas fa-sort"></i></th>
+                                        <th>Nombre <i class="fas fa-sort"></i></th>
+                                        <th>Usuario <i class="fas fa-sort"></i></th>
+                                        <th>Topología <i class="fas fa-sort"></i></th>
+                                        <th>Recursos <i class="fas fa-sort"></i></th>
+                                        <th>Estado <i class="fas fa-sort"></i></th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>#SL-854</td>
+                                        <td>Dev-Environment</td>
+                                        <td>Maria González</td>
+                                        <td>LinuxCluster</td>
+                                        <td>2 vCPU, 4GB RAM</td>
+                                        <td><span class="badge badge-active">Activo</span></td>
+                                        <td class="actions">
+                                            <button class="action-btn" title="Ver">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>#SL-842</td>
+                                        <td>Testing-Environment</td>
+                                        <td>Carlos Rodríguez</td>
+                                        <td>OpenStack</td>
+                                        <td>1 vCPU, 2GB RAM</td>
+                                        <td><span class="badge badge-active">Activo</span></td>
+                                        <td class="actions">
+                                            <button class="action-btn" title="Ver">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Contenido de la pestaña Compartidos -->
+                    <div class="tab-content" id="shared-slices">
+                        <div class="tab-search">
+                            <input type="text" id="search-shared" placeholder="Buscar por nombre o ID...">
+                            <button class="btn btn-primary btn-icon">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>ID <i class="fas fa-sort"></i></th>
+                                        <th>Nombre <i class="fas fa-sort"></i></th>
+                                        <th>Propietario <i class="fas fa-sort"></i></th>
+                                        <th>Topología <i class="fas fa-sort"></i></th>
+                                        <th>Recursos <i class="fas fa-sort"></i></th>
+                                        <th>Estado <i class="fas fa-sort"></i></th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>#SL-738</td>
+                                        <td>Project-Alpha</td>
+                                        <td>Laura Martínez</td>
+                                        <td>OpenStack</td>
+                                        <td>6 vCPU, 12GB RAM</td>
+                                        <td><span class="badge badge-active">Activo</span></td>
+                                        <td class="actions">
+                                            <button class="action-btn" title="Ver">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>#SL-712</td>
+                                        <td>Project-Beta</td>
+                                        <td>Pedro Sánchez</td>
+                                        <td>AWS</td>
+                                        <td>4 vCPU, 8GB RAM</td>
+                                        <td><span class="badge badge-active">Activo</span></td>
+                                        <td class="actions">
+                                            <button class="action-btn" title="Ver">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="pagination">
+                            <div class="pagination-info">
+                                Mostrando 1-2 de 2 elementos
+                            </div>
+                            <div class="pagination-controls">
+                                <button class="pagination-btn" disabled>Anterior</button>
+                                <button class="pagination-btn active">1</button>
+                                <button class="pagination-btn" disabled>Siguiente</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <!-- Modal para crear slice -->
+    <div class="modal" id="createSliceModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Crear Nuevo Slice</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" for="sliceName">Nombre del Slice</label>
+                    <input type="text" id="sliceName" class="form-control" placeholder="Ingrese nombre del slice">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="sliceDeployment">Gestor de Despliegue</label>
+                    <select id="sliceDeployment" class="form-control">
+                        <option value="OpenStack">OpenStack</option>
+                        <option value="LinuxCluster">LinuxCluster</option>
+                        <option value="AWS">AWS</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="sliceDescription">Descripción</label>
+                    <textarea id="sliceDescription" class="form-control" placeholder="Ingrese descripción del slice"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="sliceVMs">Número de VM's</label>
+                    <input type="number" id="sliceVMs" class="form-control" min="1" value="1">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="cancelSlice">Cancelar</button>
+                <button class="btn btn-primary" id="saveSlice">Guardar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Referencias de elementos DOM
+            const sidebar = document.querySelector('.sidebar');
+            const mainContent = document.querySelector('.main-content');
+            const sidebarToggle = document.querySelector('.sidebar-toggle');
+            const menuToggle = document.querySelector('.menu-toggle');
+            const pageTitle = document.querySelector('.page-title');
+            const sectionLinks = document.querySelectorAll('.sidebar-menu a[data-section]');
+            const modal = document.getElementById('createSliceModal');
+            const btnCreateSlice = document.getElementById('btnCreateSlice');
+            const modalClose = document.querySelector('.modal-close');
+            const cancelSlice = document.getElementById('cancelSlice');
+            const saveSlice = document.getElementById('saveSlice');
+            const cardTabs = document.querySelectorAll('.card-tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+            const searchInputs = document.querySelectorAll('input[id^="search-"]');
+            
+            // Ocultar sidebar
+            function toggleSidebar() {
+                sidebar.classList.toggle('hidden');
+                mainContent.classList.toggle('full-width');
+            }
+            
+            sidebarToggle.addEventListener('click', toggleSidebar);
+            menuToggle.addEventListener('click', toggleSidebar);
+            
+            // Navegación entre secciones
+            sectionLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Actualizar clase activa en menú
+                    sectionLinks.forEach(item => item.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Actualizar título de página
+                    const sectionTitle = this.querySelector('span').textContent;
+                    pageTitle.textContent = sectionTitle;
+                    
+                    // En dispositivos móviles, cerrar sidebar al navegar
+                    if (window.innerWidth <= 768) {
+                        toggleSidebar();
+                    }
+                });
+            });
+            
+            // Modal
+            function openModal() {
+                modal.style.display = 'block';
+            }
+            
+            function closeModal() {
+                modal.style.display = 'none';
+            }
+            
+            btnCreateSlice.addEventListener('click', openModal);
+            modalClose.addEventListener('click', closeModal);
+            cancelSlice.addEventListener('click', closeModal);
+            
+            window.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+            
+            saveSlice.addEventListener('click', function() {
+                const sliceName = document.getElementById('sliceName').value;
+                const deployment = document.getElementById('sliceDeployment').value;
+                
+                if (sliceName && deployment) {
+                    alert('Slice creado con éxito: ' + sliceName);
+                    closeModal();
+                    
+                    document.getElementById('sliceName').value = '';
+                    document.getElementById('sliceDescription').value = '';
+                    document.getElementById('sliceVMs').value = '1';
+                } else {
+                    alert('Por favor complete los campos requeridos');
+                }
+            });
+            
+            // Pestañas
+            cardTabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabId = this.getAttribute('data-tab');
+                    
+                    cardTabs.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(c => c.classList.remove('active'));
+                    
+                    this.classList.add('active');
+                    document.getElementById(tabId).classList.add('active');
+                });
+            });
+            
+            // Búsqueda en tablas
+            searchInputs.forEach(input => {
+                input.addEventListener('keyup', function() {
+                    const searchValue = this.value.toLowerCase();
+                    const tabId = this.id.split('-')[1]; // 'own', 'others', or 'shared'
+                    const tableRows = document.querySelectorAll(`#${tabId}-slices tbody tr`);
+                    
+                    tableRows.forEach(row => {
+                        const text = row.textContent.toLowerCase();
+                        if (text.includes(searchValue)) {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+                });
+            });
+            
+            // Crear gráfico
+            /*
+            const ctx = document.getElementById('resourcesChart');
+            if (ctx) {
+                const resourcesChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Kubernetes Demo', 'Desarrollo Web', 'Data Science'],
+                        datasets: [
+                            {
+                                label: 'vCPU Asignadas',
+                                data: [4, 2, 8],
+                                backgroundColor: 'rgba(67, 97, 238, 0.7)',
+                                borderColor: 'rgba(67, 97, 238, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'RAM (GB) Asignada',
+                                data: [8, 4, 16],
+                                backgroundColor: 'rgba(76, 201, 240, 0.7)',
+                                borderColor: 'rgba(76, 201, 240, 1)',
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Distribución de Recursos por Slice',
+                                font: {
+                                    size: 16,
+                                    weight: 600
+                                },
+                                color: '#2b2d42',
+                                padding: {
+                                    bottom: 20
+                                }
+                            },
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 15,
+                                    font: {
+                                        size: 12
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                titleColor: '#2b2d42',
+                                bodyColor: '#2b2d42',
+                                bodyFont: {
+                                    size: 13
+                                },
+                                titleFont: {
+                                    size: 14,
+                                    weight: 'bold'
+                                },
+                                borderColor: '#dee2e6',
+                                borderWidth: 1,
+                                padding: 12,
+                                boxPadding: 6,
+                                usePointStyle: true
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Cantidad',
+                                    font: {
+                                        size: 13,
+                                        weight: 500
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                },
+                                ticks: {
+                                    font: {
+                                        size: 12
+                                    }
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Slices',
+                                    font: {
+                                        size: 13,
+                                        weight: 500
+                                    }
+                                },
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    font: {
+                                        size: 12
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            */
+        });
+        console.log("ADMIN");
+    </script>
