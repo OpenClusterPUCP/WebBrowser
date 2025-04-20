@@ -23,7 +23,7 @@ public class Error implements org.springframework.boot.web.servlet.error.ErrorCo
                 System.out.println("Error interno del servidor (500)");
                 return "ErrorPages/error-500";
             }else if(statusCode == 403){
-                return "ErrorPages/error-403";
+                return "ErrorPages/error-503";
             }
         }
         return "ErrorPages/error-404";

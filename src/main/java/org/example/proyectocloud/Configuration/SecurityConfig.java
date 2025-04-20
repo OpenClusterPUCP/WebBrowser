@@ -38,7 +38,7 @@ public class SecurityConfig {
                 .authenticationEntryPoint(authenticationEntryPoint)
                 .accessDeniedHandler(accessDeniedHandler)
             ).authorizeHttpRequests(authorize -> authorize
-                .requestMatchers("/" , "InicioSesion" , "recuperarContraseña" , "/Logearse").permitAll()
+                .requestMatchers("/" , "/InicioSesion" , "/recuperarContraseña" , "/Logearse").permitAll()
                 .requestMatchers("/Admin/**" , "Admin/*").hasRole("Admin")
                 .requestMatchers("/User/**", "User/*").hasAnyRole("User")
                 .anyRequest().authenticated()

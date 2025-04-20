@@ -37,8 +37,7 @@ public class SecurityAccessDeniedHandler implements AccessDeniedHandler {
             request.setAttribute("status", HttpServletResponse.SC_FORBIDDEN);
             request.setAttribute("error", "Forbidden");
             request.setAttribute("message", "No tienes permiso para acceder a este recurso");
-            RequestDispatcher dispatcher = request.getRequestDispatcher("/ErrorPages/error-503");
-
+            RequestDispatcher dispatcher = request.getRequestDispatcher("/error-503");
             dispatcher.forward(request, response);
         }
     }

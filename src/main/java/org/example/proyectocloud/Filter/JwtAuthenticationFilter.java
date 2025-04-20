@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import org.example.proyectocloud.Bean.UserInfo;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -36,17 +38,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (session != null) {
             try {
                 // Retrieve JWT token and user info from session
-                String token = (String) session.getAttribute("jwtToken");
-                String username = (String) session.getAttribute("jwtToken");
-                @SuppressWarnings("unchecked")
-                List<String> roles = (List<String>) session.getAttribute("roles");
-                
-                if (token != null && username != null && roles != null) {
-                    // Map roles to Spring Security authorities
-                    List<SimpleGrantedAuthority> authorities = roles.stream()
-                            .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
-                            .collect(Collectors.toList());
-                    
+                String token = ( (UserInfo) session.getAttribute("userInfo")).getJwt();
+                String username = (  (UserInfo) session.getAttribute("userInfo")  ) .getUsername();
+                String role = (  (UserInfo) session.getAttribute("userInfo")  ) .getRole();
+                String roleWithPrefix = role.startsWith("ROLE_") ? role : "ROLE_" + role;
+
+
+                if (token != null && username != null && role != null) {
+                    List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(roleWithPrefix));
                     // Create authentication token
                     UsernamePasswordAuthenticationToken authToken = 
                             new UsernamePasswordAuthenticationToken(username, null, authorities);

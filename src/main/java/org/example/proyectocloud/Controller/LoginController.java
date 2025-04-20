@@ -1,33 +1,27 @@
 package org.example.proyectocloud.Controller;
 
-import com.jcraft.jsch.ChannelExec;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import org.example.proyectocloud.Bean.UserInfo;
 import org.example.proyectocloud.Dao.AuthDao;
 import org.example.proyectocloud.Service.AuthService;
 import org.example.proyectocloud.Service.SliceService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.io.InputStream;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Controller
 public class LoginController {
@@ -40,68 +34,31 @@ public class LoginController {
     @Autowired
     SliceService sliceService;
     //Ver frontEnd
-    @GetMapping({"/"  })
-    public String login() {
-        return "/AuthPages/login";
-    }
-
-
-    @GetMapping({"/error-403"})
-    public String Error403() {
-        return "/ErrorPages/error-403";
-    }
-
-
-
-
-    @PostMapping("/auth/login")
-    @ResponseBody
-    public ResponseEntity<?> authenticateUser(@RequestBody LinkedHashMap<String, Object> loginRequest,
-                                              HttpServletRequest request) {
-        try {
-            // Validate required fields
-            if (loginRequest.get("username") == null || loginRequest.get("password") == null) {
-                LinkedHashMap<String, Object> response = new LinkedHashMap<>();
-                response.put("success", false);
-                response.put("message", "Username or password cannot be empty");
-
-                return ResponseEntity
-                        .status(HttpStatus.BAD_REQUEST)
-                        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                        .body(response);
+    @GetMapping({"/" })
+    public String login(HttpSession http) {
+        if (http.getAttribute("usuario") != null) {
+            UserInfo userSession = (UserInfo) http.getAttribute("usuario");
+            String rol = userSession.getRole();
+            if (rol.equals("Admin")) {
+                return "redirect:/Admin/slices";
             }
-
-            // Call authentication service
-            LinkedHashMap<String, Object> authResponse = authService.authenticate(loginRequest);
-
-            // Check if authentication was successful
-            if (authResponse.containsKey("token")) {
-                // Store JWT in session
-                HttpSession session = request.getSession(true);
-                session.setAttribute("jwt_token", authResponse.get("token"));
-                session.setAttribute("username", authResponse.get("username"));
-                session.setAttribute("roles", authResponse.get("roles"));
-
-                return ResponseEntity.ok()
-                        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                        .body(authResponse);
-            } else {
-                return ResponseEntity
-                        .status(HttpStatus.UNAUTHORIZED)
-                        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                        .body(authResponse);
+            if (rol.equals("User")) {
+                return "redirect:/Alumno/slices";
             }
-        } catch (Exception e) {
-            LinkedHashMap<String, Object> response = new LinkedHashMap<>();
-            response.put("success", false);
-            response.put("message", "Authentication error: " + e.getMessage());
-
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                    .body(response);
         }
+        return "AuthPages/login";
     }
+
+
+    @GetMapping({"/error-503"})
+    public String Error403() {
+        return "/ErrorPages/error-503";
+    }
+
+
+
+
+
     @GetMapping("/logout")
     public String logout(HttpServletRequest request) {
         // Invalidate session
@@ -125,14 +82,7 @@ public class LoginController {
         // Intentar autenticar al usuario
         Object authResult = authDao.autenticarYObtenerJwt(
                 credentials.get("username").toString(),
-                credentials.get("password").toString()
-        );
-
-
-
-
-
-        // Procesar la respuesta según su tipo
+                credentials.get("password").toString());
         if (authResult instanceof ResponseEntity) {
             ResponseEntity<?> authResponse = (ResponseEntity<?>) authResult;
             HttpStatus status = (HttpStatus) authResponse.getStatusCode();
@@ -142,38 +92,31 @@ public class LoginController {
                 System.out.println("OKK");
                 // Autenticación exitosa, guardar token en sesión
                 LinkedHashMap<String, Object> tokenData = (LinkedHashMap<String, Object>) authResponse.getBody();
-
-                List<SimpleGrantedAuthority> authorities = ((List<String>) tokenData.get("roles")).stream()
-                        .map(role -> {
-                            // Añadir el prefijo ROLE_ solo si aún no lo tiene
-                            String roleWithPrefix = role.startsWith("ROLE_") ? role : "ROLE_" + role;
-                            return new SimpleGrantedAuthority(roleWithPrefix);
-                        })
-                        .collect(Collectors.toList());
-
+                // Assuming tokenData.get("roles") contains a single String value
+                String role = (String) tokenData.get("role");
+// Add ROLE_ prefix if needed
+                String roleWithPrefix = role.startsWith("ROLE_") ? role : "ROLE_" + role;
+// Create a list with a single authority
+                List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(roleWithPrefix));
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         credentials.get("username"), null, authorities);
 
-// Guardar en el contexto de seguridad
                 SecurityContext context = SecurityContextHolder.getContext();
                 context.setAuthentication(authToken);
                 SecurityContextHolder.setContext(context);
                 // Guardar el token JWT y los roles en la sesión
-                session.setAttribute("jwtToken", tokenData.get("token"));
                 // Si hay roles disponibles, guardarlos también
-                if (tokenData.containsKey("roles")) {
-                    List<String> roles = (List<String>) tokenData.get("roles");
-                    session.setAttribute("roles", roles);
-                    // Para compatibilidad con el código anterior
-                    if (roles.contains("Admin")) {
-                        session.setAttribute("role", "Admin");
-                    } else if (roles.contains("User")) {
-                        session.setAttribute("role", "User");
-                    }
-                } else {
-                    // Si no hay información de roles, usar el valor predeterminado
-                    session.setAttribute("role", "Admin");
-                }
+                UserInfo userInfo =  new UserInfo();
+                userInfo.setId((Integer) tokenData.get("id"));
+                userInfo.setName((String) tokenData.get("name"));
+                userInfo.setLastname((String) tokenData.get("lastname"));
+                userInfo.setUsername((String) tokenData.get("username"));
+                userInfo.setJwt((String) tokenData.get("jwt"));
+                userInfo.setRole(role); // Store the original role without prefix
+                // Save UserInfo to session
+                session.setAttribute("userInfo", userInfo);
+                // Para compatibilidad con el código anterior
+
 
                 // Guardar username si está disponible
                 if (tokenData.containsKey("username")) {
