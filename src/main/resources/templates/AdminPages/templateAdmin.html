@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenCluster - Blank Template</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Aquí irían tus estilos CSS encapsulados -->
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+</head>
+<body>
+<div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-cubes"></i>
+                <div class="logo-text">Open<span>Cluster</span></div>
+            </div>
+            <button class="sidebar-toggle">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+        </div>
+
+        <div class="sidebar-section">Principal</div>
+        <ul class="sidebar-menu">
+            <!-- Elementos de menú principal -->
+        </ul>
+
+        <div class="sidebar-section">Administración</div>
+        <ul class="sidebar-menu">
+            <!-- Elementos de menú de administración -->
+        </ul>
+
+        <div class="sidebar-section">Sistema</div>
+        <ul class="sidebar-menu">
+            <!-- Elementos de menú de sistema -->
+        </ul>
+    </aside>
+
+    <!-- Contenido principal -->
+    <main class="main-content">
+        <header class="header">
+            <div class="header-left">
+                <button class="menu-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 class="page-title">Título de Página</h1>
+            </div>
+
+            <div class="header-right">
+                <div class="user-profile">
+                    <!-- Perfil de usuario -->
+                </div>
+            </div>
+        </header>
+
+        <section class="page-content">
+            <!-- Contenido específico de la página -->
+        </section>
+    </main>
+</div>
+
+<!-- Modal -->
+<div class="modal" id="genericModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Título del Modal</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <!-- Contenido del modal -->
+        </div>
+        <div class="modal-footer">
+            <!-- Botones del modal -->
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+<script  th:src="@{/js/admin.js}"></script>
+</body>
+</html>

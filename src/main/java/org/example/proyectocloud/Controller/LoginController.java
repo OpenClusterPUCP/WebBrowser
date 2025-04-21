@@ -36,8 +36,8 @@ public class LoginController {
     //Ver frontEnd
     @GetMapping({"/" })
     public String login(HttpSession http) {
-        if (http.getAttribute("usuario") != null) {
-            UserInfo userSession = (UserInfo) http.getAttribute("usuario");
+        if (http.getAttribute("userInfo") != null) {
+            UserInfo userSession = (UserInfo) http.getAttribute("userInfo");
             String rol = userSession.getRole();
             if (rol.equals("Admin")) {
                 return "redirect:/Admin/slices";

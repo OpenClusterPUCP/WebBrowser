@@ -31,7 +31,10 @@ public class AdminController {
         return "/AdminPages/UsersList";
     }
 
-
+    @GetMapping("/template")
+    public String verTemplate(){
+        return "/AdminPages/templateAdmin";
+    }
     @GetMapping("/api/users")
     @ResponseBody
     public ResponseEntity<?> getUsersData(HttpSession session) {
