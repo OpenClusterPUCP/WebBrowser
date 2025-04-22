@@ -1,42 +1,371 @@
 <!DOCTYPE html>
-<html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Prueba de Usuarios</title>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenCluster - Gestión de Usuarios</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" th:href="@{/css/admin-styles.css}">
 </head>
 <body>
-<h1>Lista de Usuarios - Prueba</h1>
-<div id="result">Cargando...</div>
+<div class="app-container">
+    <!-- Sidebar -->
+    <div th:replace="~{Fragments/Admin/sidebar :: sidebar('users')}"></div>
 
-<script>
-    $(document).ready(function() {
-        $.ajax({
-            url: '/Admin/api/users',
-            type: 'GET',
-            success: function(data) {
-                console.log("Datos recibidos:", data);
+    <!-- Contenido principal -->
+    <main class="main-content">
+        <!-- Header -->
+        <div th:replace="~{Fragments/Admin/header :: header(title='Usuarios')}"></div>
 
-                let html = '<ul>';
-                if (Array.isArray(data)) {
-                    data.forEach(function(user) {
-                        html += `<li>${user.id} - ${user.name || ''} ${user.lastname || ''} (${user.username || ''})</li>`;
-                    });
-                } else {
-                    html += '<li>Formato de datos inesperado</li>';
-                }
-                html += '</ul>';
+        <section class="page-content">
+            <div class="content-header">
+                <h2 class="content-title">Gestión de Usuarios</h2>
+                <div class="header-actions">
+                    <button class="btn btn-outline" id="btnFilter">
+                        <i class="fas fa-filter"></i>
+                        <span class="btn-text">Filtrar</span>
+                    </button>
+                    <button class="btn btn-primary" id="btnCreateUser">
+                        <i class="fas fa-user-plus"></i>
+                        <span class="btn-text">Nuevo Usuario</span>
+                    </button>
+                    <button class="btn btn-outline" id="btnImportUsers">
+                        <i class="fas fa-file-import"></i>
+                        <span class="btn-text">Importar</span>
+                    </button>
+                </div>
+            </div>
 
-                $('#result').html(html);
-            },
-            error: function(xhr, status, error) {
-                console.error("Error:", error);
-                console.error("Status:", status);
-                console.error("Response:", xhr.responseText);
+            <div class="card">
+                <div class="card-body">
+                    <table id="usersTable" class="table table-striped" style="width:100%">
+                        <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Usuario</th>
+                            <th>Código</th>
+                            <th>Rol</th>
+                            <th>Estado</th>
+                            <th>Recursos</th>
+                            <th>Acciones</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <!-- Datos de usuarios -->
+                        <tr th:each="user : ${usersData}">
+                            <td th:text="${user.id}"></td>
+                            <td th:text="${user.fullName != null ? user.fullName : user.name + ' ' + user.lastname}"></td>
+                            <td th:text="${user.username}"></td>
+                            <td th:text="${user.code}"></td>
+                            <td th:text="${user.role != null ? user.role : 'Usuario'}"></td>
+                            <td>
+                                <span th:if="${user.state == 'active'}" class="badge badge-active">Activo</span>
+                                <span th:if="${user.state == 'banned'}" class="badge badge-danger">Suspendido</span>
+                                <span th:if="${user.state != 'active' && user.state != 'banned'}" class="badge badge-warning" th:text="${user.state}"></span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline resource-btn" th:attr="data-userid=${user.id}">
+                                    <i class="fas fa-cog"></i> Gestionar
+                                </button>
+                            </td>
+                            <td class="actions">
+                                <button class="action-btn view-btn" title="Ver" th:attr="data-userid=${user.id}">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="action-btn edit-btn" title="Editar" th:attr="data-userid=${user.id}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="action-btn ban-btn" title="Suspender" th:if="${user.state != 'banned'}" th:attr="data-userid=${user.id}">
+                                    <i class="fas fa-ban"></i>
+                                </button>
+                                <button class="action-btn restore-btn" title="Restaurar" th:if="${user.state == 'banned'}" th:attr="data-userid=${user.id}">
+                                    <i class="fas fa-undo"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
 
-                $('#result').html('Error al cargar datos: ' + error);
-            }
-        });
-    });
-</script>
+        <!-- Footer -->
+        <div th:replace="~{Fragments/Admin/footer :: footer}"></div>
+    </main>
+</div>
+
+<!-- Modal para crear usuario -->
+<div class="modal" id="createUserModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Crear Nuevo Usuario</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="userForm">
+                <div class="form-group">
+                    <label class="form-label" for="userName">Nombre</label>
+                    <input type="text" id="userName" name="name" class="form-control" placeholder="Ingrese nombre" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="userLastName">Apellido</label>
+                    <input type="text" id="userLastName" name="lastname" class="form-control" placeholder="Ingrese apellido" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="userUsername">Nombre de usuario</label>
+                    <input type="text" id="userUsername" name="username" class="form-control" placeholder="Ingrese nombre de usuario" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="userCode">Código</label>
+                    <input type="text" id="userCode" name="code" class="form-control" placeholder="Ingrese código" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="userRole">Rol</label>
+                    <select id="userRole" name="role" class="form-control" required>
+                        <option value="1">Administrador</option>
+                        <option value="2" selected>Usuario</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="userPassword">Contraseña</label>
+                    <input type="password" id="userPassword" name="password" class="form-control" placeholder="Ingrese contraseña" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="userState">Estado</label>
+                    <select id="userState" name="state" class="form-control" required>
+                        <option value="active" selected>Activo</option>
+                        <option value="banned">Suspendido</option>
+                        <option value="pending">Pendiente</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" id="cancelUser">Cancelar</button>
+            <button class="btn btn-primary" id="saveUser">Guardar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para importar usuarios -->
+<div class="modal" id="importUsersModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Importar Usuarios</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="import-instructions">
+                <p>Para importar usuarios de forma masiva, sube un archivo CSV con los siguientes campos:</p>
+                <ul>
+                    <li>Nombre</li>
+                    <li>Apellido</li>
+                    <li>Nombre de usuario</li>
+                    <li>Código</li>
+                    <li>Contraseña</li>
+                    <li>Rol (Opcional, por defecto: Usuario)</li>
+                </ul>
+                <p><a href="#" class="text-primary"><i class="fas fa-download"></i> Descargar plantilla CSV</a></p>
+            </div>
+            <div class="upload-area">
+                <div class="upload-dropzone" id="uploadDropzone">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Arrastra y suelta tu archivo CSV aquí o haz clic para seleccionar</p>
+                    <input type="file" id="fileInput" accept=".csv" style="display: none;">
+                </div>
+                <div class="file-info" id="fileInfo" style="display: none;">
+                    <div class="file-preview">
+                        <i class="fas fa-file-csv"></i>
+                        <div class="file-details">
+                            <p class="file-name" id="fileName">filename.csv</p>
+                            <p class="file-size" id="fileSize">0 KB</p>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-outline" id="removeFile"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+            <div class="import-options">
+                <div class="form-check">
+                    <input type="checkbox" id="sendCredentials" class="form-check-input">
+                    <label for="sendCredentials" class="form-check-label">Enviar credenciales por correo electrónico</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="skipDuplicates" class="form-check-input" checked>
+                    <label for="skipDuplicates" class="form-check-label">Omitir usuarios duplicados</label>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" id="cancelImport">Cancelar</button>
+            <button class="btn btn-primary" id="processImport">Importar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para gestionar recursos -->
+<div class="modal" id="resourcesModal">
+    <div class="modal-content modal-lg">
+        <div class="modal-header">
+            <h3 class="modal-title">Gestionar Recursos de Usuario</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="user-resource-info">
+                <div class="user-avatar">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <div class="user-details">
+                    <h4 id="resourceUserName">Nombre del Usuario</h4>
+                    <p id="resourceUserEmail">usuario@dominio.com</p>
+                    <p id="resourceUserRole">Rol: Usuario Estándar</p>
+                </div>
+            </div>
+
+            <hr class="divider">
+
+            <div class="resource-tabs">
+                <div class="resource-tab active" data-tab="quota">Cuotas</div>
+                <div class="resource-tab" data-tab="usage">Uso Actual</div>
+                <div class="resource-tab" data-tab="history">Historial</div>
+            </div>
+
+            <div class="resource-content active" id="quota">
+                <div class="form-group">
+                    <label class="form-label">CPU Virtual (vCPU)</label>
+                    <div class="resource-slider-container">
+                        <input type="range" id="vcpuSlider" min="1" max="16" value="4" class="resource-slider">
+                        <div class="resource-value">
+                            <input type="number" id="vcpuValue" min="1" max="16" value="4" class="form-control form-control-sm">
+                            <span class="resource-unit">vCPU</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Memoria RAM</label>
+                    <div class="resource-slider-container">
+                        <input type="range" id="ramSlider" min="1" max="32" value="8" class="resource-slider">
+                        <div class="resource-value">
+                            <input type="number" id="ramValue" min="1" max="32" value="8" class="form-control form-control-sm">
+                            <span class="resource-unit">GB</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Almacenamiento</label>
+                    <div class="resource-slider-container">
+                        <input type="range" id="storageSlider" min="10" max="500" value="100" step="10" class="resource-slider">
+                        <div class="resource-value">
+                            <input type="number" id="storageValue" min="10" max="500" value="100" step="10" class="form-control form-control-sm">
+                            <span class="resource-unit">GB</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Número máximo de Slices</label>
+                    <div class="resource-slider-container">
+                        <input type="range" id="slicesSlider" min="1" max="10" value="3" class="resource-slider">
+                        <div class="resource-value">
+                            <input type="number" id="slicesValue" min="1" max="10" value="3" class="form-control form-control-sm">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="resource-content" id="usage">
+                <div class="resource-usage-charts">
+                    <div class="resource-chart">
+                        <h5>CPU Utilizada</h5>
+                        <canvas id="cpuChart" width="200" height="200"></canvas>
+                        <div class="usage-stats">
+                            <div class="usage-stat">
+                                <span class="stat-label">Asignado:</span>
+                                <span class="stat-value">4 vCPU</span>
+                            </div>
+                            <div class="usage-stat">
+                                <span class="stat-label">Utilizado:</span>
+                                <span class="stat-value">2.5 vCPU (62.5%)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="resource-chart">
+                        <h5>Memoria Utilizada</h5>
+                        <canvas id="ramChart" width="200" height="200"></canvas>
+                        <div class="usage-stats">
+                            <div class="usage-stat">
+                                <span class="stat-label">Asignado:</span>
+                                <span class="stat-value">8 GB</span>
+                            </div>
+                            <div class="usage-stat">
+                                <span class="stat-label">Utilizado:</span>
+                                <span class="stat-value">5.2 GB (65%)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="resource-chart">
+                        <h5>Almacenamiento Utilizado</h5>
+                        <canvas id="storageChart" width="200" height="200"></canvas>
+                        <div class="usage-stats">
+                            <div class="usage-stat">
+                                <span class="stat-label">Asignado:</span>
+                                <span class="stat-value">100 GB</span>
+                            </div>
+                            <div class="usage-stat">
+                                <span class="stat-label">Utilizado:</span>
+                                <span class="stat-value">42 GB (42%)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="resource-content" id="history">
+                <div class="history-filters">
+                    <div class="form-group">
+                        <label class="form-label">Periodo</label>
+                        <select id="historyPeriod" class="form-control">
+                            <option value="7">Última semana</option>
+                            <option value="30" selected>Último mes</option>
+                            <option value="90">Últimos 3 meses</option>
+                            <option value="180">Últimos 6 meses</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Recurso</label>
+                        <select id="historyResource" class="form-control">
+                            <option value="all" selected>Todos</option>
+                            <option value="cpu">CPU</option>
+                            <option value="ram">Memoria</option>
+                            <option value="storage">Almacenamiento</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="history-chart-container">
+                    <canvas id="resourceHistoryChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" id="cancelResources">Cancelar</button>
+            <button class="btn btn-primary" id="saveResources">Guardar Cambios</button>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script th:src="@{/js/admin/users-management.js}"></script>
 </body>
 </html>

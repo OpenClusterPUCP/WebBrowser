@@ -1,20 +1,21 @@
 package org.example.proyectocloud.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.proyectocloud.DTO.Admin.Users.UserDTO;
 import org.example.proyectocloud.Dao.AuthDao;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.*;
 
 @Service
 public class UsersService {
@@ -25,6 +26,8 @@ public class UsersService {
     private RestTemplate restTemplate;
 
     private boolean autenticado = false;
+
+    private ObjectMapper objectMapper = new ObjectMapper();
 
     public void consumirApiProtegidaA() {
         if (!autenticado) {
@@ -37,7 +40,9 @@ public class UsersService {
         System.out.println("Respuesta: " + response.getBody());
     }
 
-    public Object consumirApiProtegidaAdmin(String token) {
+    // Método para obtener usuarios
+    public List<UserDTO> consumirApiProtegidaAdmin(String token) {
+        // Ajustamos la URL según tu configuración de gateway
         String url = "http://localhost:8090/listaUsuarios";
 
         HttpHeaders headers = new HttpHeaders();
@@ -52,49 +57,146 @@ public class UsersService {
                     String.class
             );
 
-            // Intentar convertir la respuesta a JSON si viene en ese formato
+            List<UserDTO> usersList = new ArrayList<>();
             try {
-                ObjectMapper mapper = new ObjectMapper();
-                return mapper.readValue(response.getBody(), Object.class);
+                // Intentar deserializar como lista de usuarios
+                usersList = objectMapper.readValue(
+                        response.getBody(),
+                        objectMapper.getTypeFactory().constructCollectionType(List.class, UserDTO.class)
+                );
+                return usersList;
             } catch (Exception e) {
-                // Si no se puede convertir, devolver el texto plano
+                System.err.println("Error deserializando usuarios: " + e.getMessage());
+                return Collections.emptyList();
+            }
+        } catch (Exception ex) {
+            System.err.println("Error al consumir API: " + ex.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    // Método auxiliar para convertir valores a Integer
+    private Integer convertToInteger(Object value) {
+        if (value == null) return null;
+        if (value instanceof Integer) return (Integer) value;
+        if (value instanceof Number) return ((Number) value).intValue();
+        if (value instanceof String) {
+            try {
+                return Integer.parseInt((String) value);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+
+    // Método para crear usuario
+    public Object createUser(UserDTO userDTO, String token) {
+        // Usar la ruta correcta según tu configuración de gateway
+        String url = "http://localhost:8090/createUser";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        // Crear el objeto Role con el ID seleccionado
+        Map<String, Object> roleMap = new HashMap<>();
+        roleMap.put("id", userDTO.getRoleId());
+
+        // Crear el body de la petición
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("username", userDTO.getUsername());
+        requestBody.put("password", userDTO.getPassword());
+        requestBody.put("code", userDTO.getCode());
+        requestBody.put("role", roleMap);
+        requestBody.put("state", "1");
+        requestBody.put("name", userDTO.getName());
+        requestBody.put("lastname", userDTO.getLastname());
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    entity,
+                    String.class
+            );
+
+            try {
+                return objectMapper.readValue(response.getBody(), Object.class);
+            } catch (Exception e) {
                 return response.getBody();
             }
-
-        } catch (HttpClientErrorException ex) {
-            // Errores del lado del cliente: 400, 401, 403, etc.
-            Map<String, Object> error = new HashMap<>();
-            error.put("status", ex.getStatusCode().value());
-            error.put("message", "Error del cliente: " + ex.getStatusCode());
-            error.put("details", ex.getResponseBodyAsString());
-            return error;
-
-        } catch (HttpServerErrorException ex) {
-            // Errores del servidor: 500, 502, 503, etc.
-            Map<String, Object> error = new HashMap<>();
-            error.put("status", ex.getStatusCode().value());
-            error.put("message", "Error del servidor: " + ex.getStatusCode());
-            error.put("details", ex.getResponseBodyAsString());
-            return error;
-
-        } catch (ResourceAccessException ex) {
-            // Fallo de red o timeout
-            Map<String, Object> error = new HashMap<>();
-            error.put("status", 503);
-            error.put("message", "No se pudo conectar con el servidor");
-            error.put("details", ex.getMessage());
-            return error;
-
         } catch (Exception ex) {
-            // Otros errores no esperados
             Map<String, Object> error = new HashMap<>();
             error.put("status", 500);
-            error.put("message", "Ocurrió un error inesperado");
+            error.put("message", "Error inesperado");
             error.put("details", ex.getMessage());
             return error;
         }
     }
 
+    // Método para suspender usuario
+    public Object banUser(Integer userId, String token) {
+        String url = "http://localhost:8090/banUser/" + userId;
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    entity,
+                    String.class
+            );
+
+            try {
+                return objectMapper.readValue(response.getBody(), Object.class);
+            } catch (Exception e) {
+                return response.getBody();
+            }
+        } catch (Exception ex) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("status", 500);
+            error.put("message", "Error al suspender usuario");
+            error.put("details", ex.getMessage());
+            return error;
+        }
+    }
+
+    // Método para restaurar usuario
+    public Object restoreUser(Integer userId, String token) {
+        String url = "http://localhost:8090/restoreUser/" + userId;
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    entity,
+                    String.class
+            );
+
+            try {
+                return objectMapper.readValue(response.getBody(), Object.class);
+            } catch (Exception e) {
+                return response.getBody();
+            }
+        } catch (Exception ex) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("status", 500);
+            error.put("message", "Error al restaurar usuario");
+            error.put("details", ex.getMessage());
+            return error;
+        }
+    }
 
 
 

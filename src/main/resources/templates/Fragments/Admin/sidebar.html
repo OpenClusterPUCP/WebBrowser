@@ -1,11 +1,16 @@
-<!-- /fragments/admin/sidebar.html -->
-<aside class="sidebar">
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+<aside th:fragment="sidebar(activeMenu)" class="sidebar">
     <div class="sidebar-header">
         <div class="logo">
             <i class="fas fa-cubes"></i>
             <div class="logo-text">Open<span>Cluster</span></div>
         </div>
-        <button class="sidebar-toggle" id="sidebarToggle">
+        <button class="sidebar-toggle">
             <i class="fas fa-chevron-left"></i>
         </button>
     </div>
@@ -13,19 +18,19 @@
     <div class="sidebar-section">Principal</div>
     <ul class="sidebar-menu">
         <li>
-            <a href="/Admin/dashboard">
+            <a th:href="@{/Admin/dashboard}" th:classappend="${activeMenu == 'dashboard' ? 'active' : ''}">
                 <i class="fas fa-tachometer-alt"></i>
                 <span>Dashboard</span>
             </a>
         </li>
         <li>
-            <a href="/Admin/slices">
+            <a th:href="@{/Admin/slices}" th:classappend="${activeMenu == 'slices' ? 'active' : ''}" data-section="slices">
                 <i class="fas fa-layer-group"></i>
                 <span>Slices</span>
             </a>
         </li>
         <li>
-            <a href="/Admin/users">
+            <a th:href="@{/Admin/users}" th:classappend="${activeMenu == 'users' ? 'active' : ''}" data-section="users">
                 <i class="fas fa-users"></i>
                 <span>Usuarios</span>
             </a>
@@ -35,25 +40,25 @@
     <div class="sidebar-section">Administración</div>
     <ul class="sidebar-menu">
         <li>
-            <a href="/Admin/flavors">
+            <a th:href="@{/Admin/flavors}" th:classappend="${activeMenu == 'flavors' ? 'active' : ''}" data-section="flavors">
                 <i class="fas fa-server"></i>
                 <span>Flavors</span>
             </a>
         </li>
         <li>
-            <a href="/Admin/images">
+            <a th:href="@{/Admin/images}" th:classappend="${activeMenu == 'images' ? 'active' : ''}" data-section="images">
                 <i class="fas fa-images"></i>
                 <span>Imágenes</span>
             </a>
         </li>
         <li>
-            <a href="/Admin/sketch">
+            <a th:href="@{/Admin/sketch}" th:classappend="${activeMenu == 'sketch' ? 'active' : ''}" data-section="sketch">
                 <i class="fas fa-pencil-alt"></i>
                 <span>Sketch</span>
             </a>
         </li>
         <li>
-            <a href="/Admin/requests">
+            <a th:href="@{/Admin/requests}" th:classappend="${activeMenu == 'requests' ? 'active' : ''}" data-section="requests">
                 <i class="fas fa-clipboard-list"></i>
                 <span>Solicitudes</span>
             </a>
@@ -63,16 +68,18 @@
     <div class="sidebar-section">Sistema</div>
     <ul class="sidebar-menu">
         <li>
-            <a href="/Admin/settings">
+            <a th:href="@{/Admin/settings}" th:classappend="${activeMenu == 'settings' ? 'active' : ''}">
                 <i class="fas fa-cog"></i>
                 <span>Configuración</span>
             </a>
         </li>
         <li>
-            <a href="/Admin/monitoring">
+            <a th:href="@{/Admin/monitoring}" th:classappend="${activeMenu == 'monitoring' ? 'active' : ''}">
                 <i class="fas fa-chart-line"></i>
                 <span>Monitorización</span>
             </a>
         </li>
     </ul>
 </aside>
+</body>
+</html>

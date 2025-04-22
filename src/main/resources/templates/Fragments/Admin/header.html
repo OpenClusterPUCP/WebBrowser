@@ -1,10 +1,15 @@
-<!-- /fragments/admin/header.html -->
-<header class="header">
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+<header th:fragment="header(title)" class="header">
     <div class="header-left">
-        <button class="menu-toggle" id="menuToggle">
+        <button class="menu-toggle">
             <i class="fas fa-bars"></i>
         </button>
-        <h1 class="page-title">Título de la Página</h1>
+        <h1 class="page-title" th:text="${title}">Título de la página</h1>
     </div>
 
     <div class="header-right">
@@ -15,28 +20,28 @@
 
         <div class="user-profile">
             <div class="user-info">
-                <div class="avatar" id="userInitials">JD</div>
+                <div class="avatar">JD</div>
                 <div class="user-details">
-                    <div class="user-name" id="userName">Nombre Usuario</div>
-                    <div class="user-role" id="userRole">Rol</div>
+                    <div class="user-name">Juan Díaz</div>
+                    <div class="user-role">Administrador</div>
                 </div>
             </div>
 
             <div class="user-dropdown">
                 <div class="user-dropdown-header">
-                    <div class="user-dropdown-name" id="dropdownUserName">Nombre Usuario</div>
-                    <div class="user-dropdown-role" id="dropdownUserRole">Rol</div>
+                    <div class="user-dropdown-name">Juan Díaz</div>
+                    <div class="user-dropdown-role">Administrador</div>
                 </div>
                 <div class="user-dropdown-items">
-                    <a href="/Admin/profile" class="user-dropdown-item">
+                    <a href="#" class="user-dropdown-item">
                         <i class="fas fa-user"></i>
                         <span>Mi Perfil</span>
                     </a>
-                    <a href="/Admin/settings" class="user-dropdown-item">
+                    <a href="#" class="user-dropdown-item">
                         <i class="fas fa-cog"></i>
                         <span>Configuración</span>
                     </a>
-                    <a href="#" class="user-dropdown-item logout-item" id="logoutBtn">
+                    <a href="#" class="user-dropdown-item logout-item">
                         <i class="fas fa-sign-out-alt"></i>
                         <span>Cerrar Sesión</span>
                     </a>
@@ -44,30 +49,6 @@
             </div>
         </div>
     </div>
-
-    <script>
-        // Cargar datos del usuario desde localStorage
-        document.addEventListener('DOMContentLoaded', function() {
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            if (user.name) {
-                const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase();
-                document.getElementById('userInitials').textContent = initials;
-                document.getElementById('userName').textContent = user.name;
-                document.getElementById('dropdownUserName').textContent = user.name;
-
-                // Establecer rol
-                const role = user.role || 'Usuario';
-                document.getElementById('userRole').textContent = role;
-                document.getElementById('dropdownUserRole').textContent = role;
-            }
-
-            // Manejador de logout
-            document.getElementById('logoutBtn').addEventListener('click', function(e) {
-                e.preventDefault();
-                localStorage.removeItem('authToken');
-                localStorage.removeItem('user');
-                window.location.href = '/login';
-            });
-        });
-    </script>
 </header>
+</body>
+</html>
