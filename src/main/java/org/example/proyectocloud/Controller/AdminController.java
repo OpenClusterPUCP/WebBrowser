@@ -38,6 +38,17 @@ public class AdminController {
         return "/AdminPages/UsersList";
     }
 
+    @GetMapping("/usersApi")
+    public Object Api(Model model, HttpSession session) {
+        UserInfo userInfo = (UserInfo) session.getAttribute("userInfo");
+        List<UserDTO> usersData = usersService.consumirApiProtegidaAdmin(userInfo.getJwt());
+        model.addAttribute("usersData", usersData);
+
+        model.addAttribute("activeMenu", "users");
+
+        return "/AdminPages/UsersList";
+    }
+
     // Endpoint REST para crear usuario
     @PostMapping("/api/users/create")
     @ResponseBody
