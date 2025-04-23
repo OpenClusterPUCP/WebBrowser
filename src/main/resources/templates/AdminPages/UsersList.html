@@ -207,7 +207,7 @@
 
 <!-- Modal para gestionar recursos -->
 <div class="modal" id="resourcesModal">
-    <div class="modal-content modal-lg">
+    <div class="modal-content">
         <div class="modal-header">
             <h3 class="modal-title">Gestionar Recursos de Usuario</h3>
             <button class="modal-close">&times;</button>
@@ -226,131 +226,53 @@
 
             <hr class="divider">
 
-            <div class="resource-tabs">
-                <div class="resource-tab active" data-tab="quota">Cuotas</div>
-                <div class="resource-tab" data-tab="usage">Uso Actual</div>
-                <div class="resource-tab" data-tab="history">Historial</div>
-            </div>
-
-            <div class="resource-content active" id="quota">
-                <div class="form-group">
-                    <label class="form-label">CPU Virtual (vCPU)</label>
-                    <div class="resource-slider-container">
-                        <input type="range" id="vcpuSlider" min="1" max="16" value="4" class="resource-slider">
-                        <div class="resource-value">
-                            <input type="number" id="vcpuValue" min="1" max="16" value="4" class="form-control form-control-sm">
-                            <span class="resource-unit">vCPU</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Memoria RAM</label>
-                    <div class="resource-slider-container">
-                        <input type="range" id="ramSlider" min="1" max="32" value="8" class="resource-slider">
-                        <div class="resource-value">
-                            <input type="number" id="ramValue" min="1" max="32" value="8" class="form-control form-control-sm">
-                            <span class="resource-unit">GB</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Almacenamiento</label>
-                    <div class="resource-slider-container">
-                        <input type="range" id="storageSlider" min="10" max="500" value="100" step="10" class="resource-slider">
-                        <div class="resource-value">
-                            <input type="number" id="storageValue" min="10" max="500" value="100" step="10" class="form-control form-control-sm">
-                            <span class="resource-unit">GB</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Número máximo de Slices</label>
-                    <div class="resource-slider-container">
-                        <input type="range" id="slicesSlider" min="1" max="10" value="3" class="resource-slider">
-                        <div class="resource-value">
-                            <input type="number" id="slicesValue" min="1" max="10" value="3" class="form-control form-control-sm">
-                        </div>
+            <div class="form-group">
+                <label class="form-label">CPU Virtual (vCPU)</label>
+                <div class="resource-slider-container">
+                    <input type="range" id="vcpuSlider" min="1" max="16" value="4" class="resource-slider">
+                    <div class="resource-value">
+                        <input type="number" id="vcpuValue" min="1" max="16" value="4" class="form-control form-control-sm">
+                        <span class="resource-unit">vCPU</span>
                     </div>
                 </div>
             </div>
 
-            <div class="resource-content" id="usage">
-                <div class="resource-usage-charts">
-                    <div class="resource-chart">
-                        <h5>CPU Utilizada</h5>
-                        <canvas id="cpuChart" width="200" height="200"></canvas>
-                        <div class="usage-stats">
-                            <div class="usage-stat">
-                                <span class="stat-label">Asignado:</span>
-                                <span class="stat-value">4 vCPU</span>
-                            </div>
-                            <div class="usage-stat">
-                                <span class="stat-label">Utilizado:</span>
-                                <span class="stat-value">2.5 vCPU (62.5%)</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="resource-chart">
-                        <h5>Memoria Utilizada</h5>
-                        <canvas id="ramChart" width="200" height="200"></canvas>
-                        <div class="usage-stats">
-                            <div class="usage-stat">
-                                <span class="stat-label">Asignado:</span>
-                                <span class="stat-value">8 GB</span>
-                            </div>
-                            <div class="usage-stat">
-                                <span class="stat-label">Utilizado:</span>
-                                <span class="stat-value">5.2 GB (65%)</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="resource-chart">
-                        <h5>Almacenamiento Utilizado</h5>
-                        <canvas id="storageChart" width="200" height="200"></canvas>
-                        <div class="usage-stats">
-                            <div class="usage-stat">
-                                <span class="stat-label">Asignado:</span>
-                                <span class="stat-value">100 GB</span>
-                            </div>
-                            <div class="usage-stat">
-                                <span class="stat-label">Utilizado:</span>
-                                <span class="stat-value">42 GB (42%)</span>
-                            </div>
-                        </div>
+            <div class="form-group">
+                <label class="form-label">Memoria RAM</label>
+                <div class="resource-slider-container">
+                    <input type="range" id="ramSlider" min="1" max="32" value="8" class="resource-slider">
+                    <div class="resource-value">
+                        <input type="number" id="ramValue" min="1" max="32" value="8" class="form-control form-control-sm">
+                        <span class="resource-unit">GB</span>
                     </div>
                 </div>
             </div>
 
-            <div class="resource-content" id="history">
-                <div class="history-filters">
-                    <div class="form-group">
-                        <label class="form-label">Periodo</label>
-                        <select id="historyPeriod" class="form-control">
-                            <option value="7">Última semana</option>
-                            <option value="30" selected>Último mes</option>
-                            <option value="90">Últimos 3 meses</option>
-                            <option value="180">Últimos 6 meses</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Recurso</label>
-                        <select id="historyResource" class="form-control">
-                            <option value="all" selected>Todos</option>
-                            <option value="cpu">CPU</option>
-                            <option value="ram">Memoria</option>
-                            <option value="storage">Almacenamiento</option>
-                        </select>
+            <div class="form-group">
+                <label class="form-label">Almacenamiento</label>
+                <div class="resource-slider-container">
+                    <input type="range" id="storageSlider" min="10" max="500" value="100" step="10" class="resource-slider">
+                    <div class="resource-value">
+                        <input type="number" id="storageValue" min="10" max="500" value="100" step="10" class="form-control form-control-sm">
+                        <span class="resource-unit">GB</span>
                     </div>
                 </div>
+            </div>
 
-                <div class="history-chart-container">
-                    <canvas id="resourceHistoryChart" width="400" height="300"></canvas>
+            <div class="form-group">
+                <label class="form-label">Número máximo de Slices</label>
+                <div class="resource-slider-container">
+                    <input type="range" id="slicesSlider" min="1" max="10" value="3" class="resource-slider">
+                    <div class="resource-value">
+                        <input type="number" id="slicesValue" min="1" max="10" value="3" class="form-control form-control-sm">
+                    </div>
                 </div>
+            </div>
+
+            <div class="mt-4 text-center">
+                <a href="#" class="btn btn-outline" id="btnViewDetailedMetrics">
+                    <i class="fas fa-chart-line"></i> Ver métricas detalladas
+                </a>
             </div>
         </div>
         <div class="modal-footer">
