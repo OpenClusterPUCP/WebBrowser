@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenCluster - Gestión de Flavors</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" th:href="@{/css/admin-styles.css}">
+</head>
+<body>
+<div class="app-container">
+    <!-- Sidebar -->
+    <div th:replace="~{Fragments/Admin/sidebar :: sidebar('flavors')}"></div>
+
+    <!-- Contenido principal -->
+    <main class="main-content">
+        <!-- Header -->
+        <div th:replace="~{Fragments/Admin/header :: header(title='Flavors')}"></div>
+
+        <section class="page-content">
+            <div class="content-header">
+                <h2 class="content-title">Gestión de Flavors</h2>
+                <div class="header-actions">
+                    <button class="btn btn-primary" id="btnCreateFlavor">
+                        <i class="fas fa-plus-circle"></i>
+                        <span class="btn-text">Nuevo Flavor</span>
+                    </button>
+                    <button class="btn btn-outline" id="btnImportFlavors">
+                        <i class="fas fa-file-import"></i>
+                        <span class="btn-text">Importar</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mensajes de alerta -->
+            <div id="alertContainer" class="alert-container" style="display: none;">
+                <div id="alertMessage" class="alert"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <table id="flavorsTable" class="table table-striped" style="width:100%">
+                        <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>vCPU</th>
+                            <th>RAM (GB)</th>
+                            <th>Almacenamiento (GB)</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <!-- Los datos se cargarán con AJAX -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <div th:replace="~{Fragments/Admin/footer :: footer}"></div>
+    </main>
+</div>
+
+<!-- Modal para crear flavor -->
+<div class="modal" id="createFlavorModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Crear Nuevo Flavor</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="flavorForm">
+                <div class="form-group">
+                    <label class="form-label" for="flavorName">Nombre</label>
+                    <input type="text" id="flavorName" name="name" class="form-control" placeholder="Ingrese nombre del flavor" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="flavorVcpu">CPU Virtual (vCPU)</label>
+                    <input type="number" id="flavorVcpu" name="vcpu" class="form-control" min="1" placeholder="Ingrese cantidad de vCPUs" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="flavorRam">Memoria RAM (GB)</label>
+                    <input type="number" id="flavorRam" name="ram" class="form-control" min="1" placeholder="Ingrese cantidad de RAM" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="flavorStorage">Almacenamiento (GB)</label>
+                    <input type="number" id="flavorStorage" name="storage" class="form-control" min="10" placeholder="Ingrese capacidad de almacenamiento" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="flavorState">Estado</label>
+                    <select id="flavorState" name="state" class="form-control" required>
+                        <option value="private" selected>Privado</option>
+                        <option value="public">Público</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" id="cancelFlavor">Cancelar</button>
+            <button class="btn btn-primary" id="saveFlavor">Guardar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para importar flavors -->
+<div class="modal" id="importFlavorsModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Importar Flavors</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="import-instructions">
+                <p>Para importar flavors de forma masiva, sube un archivo CSV con los siguientes campos:</p>
+                <ul>
+                    <li>Nombre</li>
+                    <li>vCPU</li>
+                    <li>RAM (GB)</li>
+                    <li>Almacenamiento (GB)</li>
+                    <li>Estado (Opcional, por defecto: Activo)</li>
+                </ul>
+                <p><a href="#" class="text-primary" id="downloadTemplate"><i class="fas fa-download"></i> Descargar plantilla CSV</a></p>
+            </div>
+            <div class="upload-area">
+                <div class="upload-dropzone" id="uploadDropzone">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Arrastra y suelta tu archivo CSV aquí o haz clic para seleccionar</p>
+                    <input type="file" id="fileInput" accept=".csv" style="display: none;">
+                </div>
+                <div class="file-info" id="fileInfo" style="display: none;">
+                    <div class="file-preview">
+                        <i class="fas fa-file-csv"></i>
+                        <div class="file-details">
+                            <p class="file-name" id="fileName">filename.csv</p>
+                            <p class="file-size" id="fileSize">0 KB</p>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-outline" id="removeFile"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+            <div class="import-options">
+                <div class="form-check">
+                    <input type="checkbox" id="skipDuplicates" class="form-check-input" checked>
+                    <label for="skipDuplicates" class="form-check-label">Omitir flavors duplicados</label>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" id="cancelImport">Cancelar</button>
+            <button class="btn btn-primary" id="processImport">Importar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script th:src="@{/js/admin/flavors-management.js}"></script>
+</body>
+</html>
