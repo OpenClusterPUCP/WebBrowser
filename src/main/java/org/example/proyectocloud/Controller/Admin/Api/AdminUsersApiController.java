@@ -4,7 +4,8 @@ import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.example.proyectocloud.Bean.UserInfo;
 import org.example.proyectocloud.DTO.Admin.Users.UserDTO;
-import org.example.proyectocloud.Service.UsersService;
+
+import org.example.proyectocloud.Service.Admin.AdminUsersService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +28,7 @@ public class AdminUsersApiController {
     
 
     @Autowired
-    private UsersService usersService;
+    private AdminUsersService adminUsersService;
 
     /**
      * Método auxiliar para validar la sesión del usuario.
@@ -57,7 +58,7 @@ public class AdminUsersApiController {
         try {
             log.info("API: Solicitando listado de todos los usuarios");
             UserInfo userInfo = validateSession(session);
-            List<UserDTO> users = usersService.getAllUsers(userInfo.getJwt());
+            List<UserDTO> users = adminUsersService.getAllUsers(userInfo.getJwt());
 
             // Convertir estado si es necesario
             users.forEach(user -> {
@@ -93,7 +94,7 @@ public class AdminUsersApiController {
         try {
             log.info("API: Solicitando información del usuario ID: {}", id);
             UserInfo userInfo = validateSession(session);
-            UserDTO user = usersService.getUserById(id, userInfo.getJwt());
+            UserDTO user = adminUsersService.getUserById(id, userInfo.getJwt());
 
             if (user == null) {
                 log.warn("No se encontró el usuario con ID: {}", id);
@@ -141,7 +142,13 @@ public class AdminUsersApiController {
                 userDTO.setState("0");
             }
 
-            Object result = usersService.createUser(userDTO, userInfo.getJwt());
+            // Verificar si se debe generar contraseña automáticamente
+            if (userDTO.getPassword() == null || userDTO.getPassword().isEmpty()) {
+                userDTO.setGeneratePassword(true);
+                log.info("Configurando generación automática de contraseña para usuario: {}", userDTO.getUsername());
+            }
+
+            Object result = adminUsersService.createUser(userDTO, userInfo.getJwt());
             log.info("Usuario creado exitosamente: {}", userDTO.getUsername());
             return ResponseEntity.ok(result);
         } catch (ResponseStatusException e) {
@@ -179,7 +186,7 @@ public class AdminUsersApiController {
                 userDTO.setState("0");
             }
 
-            Map<String, Object> result = usersService.updateUser(userDTO, userInfo.getJwt());
+            Map<String, Object> result = adminUsersService.updateUser(userDTO, userInfo.getJwt());
             log.info("Usuario ID {} actualizado exitosamente", id);
             return ResponseEntity.ok(result);
         } catch (ResponseStatusException e) {
@@ -205,7 +212,7 @@ public class AdminUsersApiController {
         try {
             log.info("API: Eliminando usuario ID: {}", id);
             UserInfo userInfo = validateSession(session);
-            Map<String, Object> result = usersService.deleteUser(id, userInfo.getJwt());
+            Map<String, Object> result = adminUsersService.deleteUser(id, userInfo.getJwt());
             log.info("Usuario ID {} eliminado exitosamente", id);
             return ResponseEntity.ok(result);
         } catch (ResponseStatusException e) {
@@ -231,7 +238,7 @@ public class AdminUsersApiController {
         try {
             log.info("API: Suspendiendo usuario ID: {}", id);
             UserInfo userInfo = validateSession(session);
-            Map<String, Object> result = usersService.banUser(id, userInfo.getJwt());
+            Map<String, Object> result = adminUsersService.banUser(id, userInfo.getJwt());
 
             // Convertir resultado a formato compatible con la UI
             if (result != null && result.containsKey("state") && "0".equals(result.get("state"))) {
@@ -263,7 +270,7 @@ public class AdminUsersApiController {
         try {
             log.info("API: Reactivando usuario ID: {}", id);
             UserInfo userInfo = validateSession(session);
-            Map<String, Object> result = usersService.unbanUser(id, userInfo.getJwt());
+            Map<String, Object> result = adminUsersService.unbanUser(id, userInfo.getJwt());
 
             // Convertir resultado a formato compatible con la UI
             if (result != null && result.containsKey("state") && "1".equals(result.get("state"))) {
@@ -295,7 +302,7 @@ public class AdminUsersApiController {
         try {
             log.info("API: Solicitando usuarios con rol ID: {}", roleId);
             UserInfo userInfo = validateSession(session);
-            List<UserDTO> users = usersService.getUsersByRole(roleId, userInfo.getJwt());
+            List<UserDTO> users = adminUsersService.getUsersByRole(roleId, userInfo.getJwt());
 
             // Convertir estado si es necesario
             users.forEach(user -> {

@@ -23,10 +23,6 @@
             <div class="content-header">
                 <h2 class="content-title">Gestión de Usuarios</h2>
                 <div class="header-actions">
-                    <button class="btn btn-outline" id="btnFilter">
-                        <i class="fas fa-filter"></i>
-                        <span class="btn-text">Filtrar</span>
-                    </button>
                     <button class="btn btn-primary" id="btnCreateUser">
                         <i class="fas fa-user-plus"></i>
                         <span class="btn-text">Nuevo Usuario</span>
@@ -36,6 +32,11 @@
                         <span class="btn-text">Importar</span>
                     </button>
                 </div>
+            </div>
+
+            <!-- Mensajes de alerta -->
+            <div id="alertContainer" class="alert-container" style="display: none;">
+                <div id="alertMessage" class="alert"></div>
             </div>
 
             <div class="card">
@@ -62,9 +63,8 @@
                             <td th:text="${user.code}"></td>
                             <td th:text="${user.role != null ? user.role : 'Usuario'}"></td>
                             <td>
-                                <span th:if="${user.state == 'active'}" class="badge badge-active">Activo</span>
-                                <span th:if="${user.state == 'banned'}" class="badge badge-danger">Suspendido</span>
-                                <span th:if="${user.state != 'active' && user.state != 'banned'}" class="badge badge-warning" th:text="${user.state}"></span>
+                                <span th:if="${user.state == 'active' || user.state == '1'}" class="badge badge-active">Activo</span>
+                                <span th:if="${user.state == 'banned' || user.state == '0'}" class="badge badge-danger">Suspendido</span>
                             </td>
                             <td>
                                 <button class="btn btn-sm btn-outline resource-btn" th:attr="data-userid=${user.id}">
@@ -78,10 +78,10 @@
                                 <button class="action-btn edit-btn" title="Editar" th:attr="data-userid=${user.id}">
                                     <i class="fas fa-edit"></i>
                                 </button>
-                                <button class="action-btn ban-btn" title="Suspender" th:if="${user.state != 'banned'}" th:attr="data-userid=${user.id}">
+                                <button class="action-btn ban-btn" title="Suspender" th:if="${user.state != 'banned' && user.state != '0'}" th:attr="data-userid=${user.id}">
                                     <i class="fas fa-ban"></i>
                                 </button>
-                                <button class="action-btn restore-btn" title="Restaurar" th:if="${user.state == 'banned'}" th:attr="data-userid=${user.id}">
+                                <button class="action-btn restore-btn" title="Restaurar" th:if="${user.state == 'banned' || user.state == '0'}" th:attr="data-userid=${user.id}">
                                     <i class="fas fa-undo"></i>
                                 </button>
                             </td>
@@ -115,7 +115,7 @@
                     <input type="text" id="userLastName" name="lastname" class="form-control" placeholder="Ingrese apellido" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label" for="userUsername">Nombre de usuario</label>
+                    <label class="form-label" for="userUsername">Nombre de usuario (correo)</label>
                     <input type="text" id="userUsername" name="username" class="form-control" placeholder="Ingrese nombre de usuario" required>
                 </div>
                 <div class="form-group">
@@ -130,15 +130,16 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label" for="userPassword">Contraseña</label>
-                    <input type="password" id="userPassword" name="password" class="form-control" placeholder="Ingrese contraseña" required>
+                    <label class="form-label">Contraseña</label>
+                    <div class="password-info">
+                        <p><i class="fas fa-info-circle"></i> La contraseña será generada automáticamente y mostrada en los logs del servidor.</p>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="userState">Estado</label>
                     <select id="userState" name="state" class="form-control" required>
                         <option value="active" selected>Activo</option>
                         <option value="banned">Suspendido</option>
-                        <option value="pending">Pendiente</option>
                     </select>
                 </div>
             </form>
@@ -168,7 +169,7 @@
                     <li>Contraseña</li>
                     <li>Rol (Opcional, por defecto: Usuario)</li>
                 </ul>
-                <p><a href="#" class="text-primary"><i class="fas fa-download"></i> Descargar plantilla CSV</a></p>
+                <p><a href="#" class="text-primary" id="downloadTemplate"><i class="fas fa-download"></i> Descargar plantilla CSV</a></p>
             </div>
             <div class="upload-area">
                 <div class="upload-dropzone" id="uploadDropzone">
@@ -219,8 +220,8 @@
                 </div>
                 <div class="user-details">
                     <h4 id="resourceUserName">Nombre del Usuario</h4>
-                    <p id="resourceUserEmail">usuario@dominio.com</p>
-                    <p id="resourceUserRole">Rol: Usuario Estándar</p>
+                    <p id="resourceUserCode">Código: <span></span></p>
+                    <p id="resourceUserRole">Rol: <span></span></p>
                 </div>
             </div>
 
@@ -269,6 +270,26 @@
                 </div>
             </div>
 
+            <div class="resource-usage-summary">
+                <h5>Resumen de asignación</h5>
+                <div class="resource-summary-item">
+                    <div class="resource-name">CPU:</div>
+                    <div class="resource-value"><span id="vcpuUsed">0</span> / <span id="vcpuTotal">0</span> vCPU</div>
+                </div>
+                <div class="resource-summary-item">
+                    <div class="resource-name">RAM:</div>
+                    <div class="resource-value"><span id="ramUsed">0</span> / <span id="ramTotal">0</span> GB</div>
+                </div>
+                <div class="resource-summary-item">
+                    <div class="resource-name">Almacenamiento:</div>
+                    <div class="resource-value"><span id="storageUsed">0</span> / <span id="storageTotal">0</span> GB</div>
+                </div>
+                <div class="resource-summary-item">
+                    <div class="resource-name">Slices:</div>
+                    <div class="resource-value"><span id="slicesUsed">0</span> / <span id="slicesTotal">0</span></div>
+                </div>
+            </div>
+
             <div class="mt-4 text-center">
                 <a href="#" class="btn btn-outline" id="btnViewDetailedMetrics">
                     <i class="fas fa-chart-line"></i> Ver métricas detalladas
@@ -288,6 +309,7 @@
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script th:src="@{/js/admin/users-management.js}"></script>
 </body>
 </html>

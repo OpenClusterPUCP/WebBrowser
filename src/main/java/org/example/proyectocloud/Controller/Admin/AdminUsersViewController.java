@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.example.proyectocloud.Bean.UserInfo;
 import org.example.proyectocloud.DTO.Admin.Users.UserDTO;
+import org.example.proyectocloud.Service.Admin.AdminUsersService;
 import org.example.proyectocloud.Service.UsersService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -24,7 +25,7 @@ import java.util.List;
 public class AdminUsersViewController {
 
     @Autowired
-    private UsersService usersService;
+    private AdminUsersService adminUsersService;
 
     /**
      * Muestra el listado de todos los usuarios.
@@ -37,7 +38,7 @@ public class AdminUsersViewController {
     public String listarUsuarios(Model model, HttpSession session) {
         log.info("Cargando listado de usuarios");
         UserInfo userInfo = (UserInfo) session.getAttribute("userInfo");
-        List<UserDTO> usersData = usersService.getAllUsers(userInfo.getJwt());
+        List<UserDTO> usersData = adminUsersService.getAllUsers(userInfo.getJwt());
 
         log.debug("Se encontraron {} usuarios", usersData.size());
 
@@ -84,7 +85,7 @@ public class AdminUsersViewController {
     public String mostrarFormularioEdicion(@PathVariable Integer id, Model model, HttpSession session) {
         log.info("Mostrando formulario de edición para usuario ID: {}", id);
         UserInfo userInfo = (UserInfo) session.getAttribute("userInfo");
-        UserDTO user = usersService.getUserById(id, userInfo.getJwt());
+        UserDTO user = adminUsersService.getUserById(id, userInfo.getJwt());
 
         if (user == null) {
             log.warn("No se encontró el usuario con ID: {}", id);
@@ -117,7 +118,7 @@ public class AdminUsersViewController {
     public String verDetalleUsuario(@PathVariable Integer id, Model model, HttpSession session) {
         log.info("Mostrando detalles del usuario ID: {}", id);
         UserInfo userInfo = (UserInfo) session.getAttribute("userInfo");
-        UserDTO user = usersService.getUserById(id, userInfo.getJwt());
+        UserDTO user = adminUsersService.getUserById(id, userInfo.getJwt());
 
         if (user == null) {
             log.warn("No se encontró el usuario con ID: {}", id);
@@ -149,7 +150,7 @@ public class AdminUsersViewController {
     public String verMetricasUsuario(@PathVariable Integer id, Model model, HttpSession session) {
         log.info("Mostrando métricas para usuario ID: {}", id);
         UserInfo userInfo = (UserInfo) session.getAttribute("userInfo");
-        UserDTO user = usersService.getUserById(id, userInfo.getJwt());
+        UserDTO user = adminUsersService.getUserById(id, userInfo.getJwt());
 
         if (user == null) {
             log.warn("No se encontró el usuario con ID: {}", id);
@@ -181,7 +182,7 @@ public class AdminUsersViewController {
     public String listarUsuariosPorRol(@PathVariable Integer roleId, Model model, HttpSession session) {
         log.info("Cargando usuarios filtrados por rol ID: {}", roleId);
         UserInfo userInfo = (UserInfo) session.getAttribute("userInfo");
-        List<UserDTO> usersData = usersService.getUsersByRole(roleId, userInfo.getJwt());
+        List<UserDTO> usersData = adminUsersService.getUsersByRole(roleId, userInfo.getJwt());
 
         log.debug("Se encontraron {} usuarios con rol ID: {}", usersData.size(), roleId);
 

@@ -17,6 +17,7 @@ public class UserDTO {
     private Integer roleId; // Para la creación
     private String state;
     private String password; // Para la creación
+    private boolean generatePassword; // Para la creación
 
 
     // Constructor para datos existentes
