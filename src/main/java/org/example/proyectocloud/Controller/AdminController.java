@@ -29,7 +29,7 @@ public class AdminController {
     @GetMapping("/users")
     public String verUsuarios(Model model, HttpSession session) {
         UserInfo userInfo = (UserInfo) session.getAttribute("userInfo");
-        List<UserDTO> usersData = usersService.consumirApiProtegidaAdmin(userInfo.getJwt());
+        List<UserDTO> usersData = usersService.getAllUsers(userInfo.getJwt());
         model.addAttribute("usersData", usersData);
 
         model.addAttribute("activeMenu", "users");
