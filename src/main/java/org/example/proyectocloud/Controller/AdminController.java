@@ -10,7 +10,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 
@@ -29,17 +28,6 @@ public class AdminController {
 
     @GetMapping("/users")
     public String verUsuarios(Model model, HttpSession session) {
-        UserInfo userInfo = (UserInfo) session.getAttribute("userInfo");
-        List<UserDTO> usersData = usersService.consumirApiProtegidaAdmin(userInfo.getJwt());
-        model.addAttribute("usersData", usersData);
-
-        model.addAttribute("activeMenu", "users");
-
-        return "/AdminPages/UsersList";
-    }
-
-    @GetMapping("/usersApi")
-    public Object Api(Model model, HttpSession session) {
         UserInfo userInfo = (UserInfo) session.getAttribute("userInfo");
         List<UserDTO> usersData = usersService.consumirApiProtegidaAdmin(userInfo.getJwt());
         model.addAttribute("usersData", usersData);
@@ -73,4 +61,6 @@ public class AdminController {
 
 
     //Si quieres crear apis  usa  /api/"Lo q quieras"
+
+
 }

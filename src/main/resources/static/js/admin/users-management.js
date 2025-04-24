@@ -617,6 +617,15 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("Inicialización de gráficos completada");
     }
 
+    // Gestionar el botón para ver métricas detalladas
+    const btnViewDetailedMetrics = document.getElementById('btnViewDetailedMetrics');
+    if (btnViewDetailedMetrics) {
+        btnViewDetailedMetrics.addEventListener('click', function() {
+            const userId = document.getElementById('resourceUserName').textContent.replace('Usuario #', '');
+            window.location.href = `/Admin/users/${userId}/metrics`;
+        });
+    }
+
     // Cambiar período del historial
     const historyPeriod = document.getElementById('historyPeriod');
     if (historyPeriod) {

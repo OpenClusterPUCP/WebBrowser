@@ -1,5 +1,6 @@
 package org.example.proyectocloud.Service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.proyectocloud.DTO.Admin.Users.UserDTO;
 import org.example.proyectocloud.Dao.AuthDao;
@@ -7,14 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.*;
 
 @Service
@@ -29,21 +24,14 @@ public class UsersService {
 
     private ObjectMapper objectMapper = new ObjectMapper();
 
-    public void consumirApiProtegidaA() {
-        if (!autenticado) {
-            authDao.autenticarYObtenerJwt("usuario", "clave");
-            autenticado = true;
-        }
+    // URL base para el API Gateway
+    private static final String API_GATEWAY_URL = "http://localhost:8090";
 
-        String url = "http://localhost:8090/listaUsuarios";
-        ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-        System.out.println("Respuesta: " + response.getBody());
-    }
-
-    // Método para obtener usuarios
-    public List<UserDTO> consumirApiProtegidaAdmin(String token) {
-        // Ajustamos la URL según tu configuración de gateway
-        String url = "http://localhost:8090/listaUsuarios";
+    /**
+     * Método para obtener la lista de todos los usuarios (como administrador)
+     */
+    public List<UserDTO> getAllUsers(String token) {
+        String url = API_GATEWAY_URL + "/api/admin/users";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
@@ -59,7 +47,6 @@ public class UsersService {
 
             List<UserDTO> usersList = new ArrayList<>();
             try {
-                // Intentar deserializar como lista de usuarios
                 usersList = objectMapper.readValue(
                         response.getBody(),
                         objectMapper.getTypeFactory().constructCollectionType(List.class, UserDTO.class)
@@ -75,26 +62,11 @@ public class UsersService {
         }
     }
 
-    // Método auxiliar para convertir valores a Integer
-    private Integer convertToInteger(Object value) {
-        if (value == null) return null;
-        if (value instanceof Integer) return (Integer) value;
-        if (value instanceof Number) return ((Number) value).intValue();
-        if (value instanceof String) {
-            try {
-                return Integer.parseInt((String) value);
-            } catch (NumberFormatException e) {
-                return null;
-            }
-        }
-        return null;
-    }
-
-
-    // Método para crear usuario
+    /**
+     * Método para crear un nuevo usuario
+     */
     public Object createUser(UserDTO userDTO, String token) {
-        // Usar la ruta correcta según tu configuración de gateway
-        String url = "http://localhost:8090/createUser";
+        String url = API_GATEWAY_URL + "/api/admin/users";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
@@ -138,71 +110,11 @@ public class UsersService {
         }
     }
 
-    // Método para suspender usuario
-    public Object banUser(Integer userId, String token) {
-        String url = "http://localhost:8090/banUser/" + userId;
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(token);
-        HttpEntity<Void> entity = new HttpEntity<>(headers);
-
-        try {
-            ResponseEntity<String> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.POST,
-                    entity,
-                    String.class
-            );
-
-            try {
-                return objectMapper.readValue(response.getBody(), Object.class);
-            } catch (Exception e) {
-                return response.getBody();
-            }
-        } catch (Exception ex) {
-            Map<String, Object> error = new HashMap<>();
-            error.put("status", 500);
-            error.put("message", "Error al suspender usuario");
-            error.put("details", ex.getMessage());
-            return error;
-        }
-    }
-
-    // Método para restaurar usuario
-    public Object restoreUser(Integer userId, String token) {
-        String url = "http://localhost:8090/restoreUser/" + userId;
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(token);
-        HttpEntity<Void> entity = new HttpEntity<>(headers);
-
-        try {
-            ResponseEntity<String> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.POST,
-                    entity,
-                    String.class
-            );
-
-            try {
-                return objectMapper.readValue(response.getBody(), Object.class);
-            } catch (Exception e) {
-                return response.getBody();
-            }
-        } catch (Exception ex) {
-            Map<String, Object> error = new HashMap<>();
-            error.put("status", 500);
-            error.put("message", "Error al restaurar usuario");
-            error.put("details", ex.getMessage());
-            return error;
-        }
-    }
-
-
-
-
-    public Object consumirApiProtegidaAlumno(String token) {
-        String url = "http://localhost:8090/listaUsuarios";
+    /**
+     * Obtiene un usuario por su ID
+     */
+    public UserDTO getUserById(Integer userId, String token) {
+        String url = API_GATEWAY_URL + "/api/admin/users/" + userId;
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
@@ -215,28 +127,283 @@ public class UsersService {
                     entity,
                     String.class
             );
-            System.out.println("Respuesta exitosa: " + response.getBody());
-            return response.getBody();
 
-        } catch (HttpClientErrorException ex) {
-            // Errores del lado del cliente: 400, 401, 403, etc.
-            System.err.println("Error del cliente: " + ex.getStatusCode() + " - " + ex.getResponseBodyAsString());
-            return "Error del cliente: " + ex.getStatusCode();
+            try {
+                Map<String, Object> userData = objectMapper.readValue(response.getBody(),
+                        new TypeReference<Map<String, Object>>() {});
 
-        } catch (HttpServerErrorException ex) {
-            // Errores del servidor: 500, 502, 503, etc.
-            System.err.println("Error del servidor: " + ex.getStatusCode() + " - " + ex.getResponseBodyAsString());
-            return "Error del servidor: " + ex.getStatusCode();
+                UserDTO userDTO = new UserDTO();
+                userDTO.setId((Integer) userData.get("id"));
+                userDTO.setUsername((String) userData.get("username"));
+                userDTO.setName((String) userData.get("name"));
+                userDTO.setLastname((String) userData.get("lastname"));
+                userDTO.setCode((String) userData.get("code"));
+                userDTO.setRole((String) userData.get("role"));
+                userDTO.setRoleId((Integer) userData.get("roleId"));
+                userDTO.setState((String) userData.get("state"));
 
-        } catch (ResourceAccessException ex) {
-            // Fallo de red o timeout
-            System.err.println("Error de red o tiempo de espera: " + ex.getMessage());
-            return "No se pudo conectar con el servidor";
-
+                return userDTO;
+            } catch (Exception e) {
+                System.err.println("Error deserializando usuario: " + e.getMessage());
+                return null;
+            }
         } catch (Exception ex) {
-            // Otros errores no esperados
-            System.err.println("Error inesperado: " + ex.getMessage());
-            return "Ocurrió un error inesperado";
+            System.err.println("Error al obtener usuario: " + ex.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Elimina un usuario por su ID
+     */
+    public Map<String, Object> deleteUser(Integer userId, String token) {
+        String url = API_GATEWAY_URL + "/api/admin/users/" + userId;
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.DELETE,
+                    entity,
+                    String.class
+            );
+
+            try {
+                return objectMapper.readValue(response.getBody(), new TypeReference<Map<String, Object>>() {});
+            } catch (Exception e) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("status", 500);
+                error.put("message", "Error al procesar la respuesta");
+                error.put("details", e.getMessage());
+                return error;
+            }
+        } catch (HttpClientErrorException ex) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("status", ex.getStatusCode().value());
+            error.put("message", "Error al eliminar usuario");
+            error.put("details", ex.getResponseBodyAsString());
+            return error;
+        } catch (Exception ex) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("status", 500);
+            error.put("message", "Error inesperado al eliminar usuario");
+            error.put("details", ex.getMessage());
+            return error;
+        }
+    }
+
+    /**
+     * Actualiza un usuario existente
+     */
+    public Map<String, Object> updateUser(UserDTO userDTO, String token) {
+        String url = API_GATEWAY_URL + "/api/admin/users/" + userDTO.getId();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("username", userDTO.getUsername());
+        requestBody.put("name", userDTO.getName());
+        requestBody.put("lastname", userDTO.getLastname());
+        requestBody.put("code", userDTO.getCode());
+
+        // Solo incluir password si no está vacío
+        if (userDTO.getPassword() != null && !userDTO.getPassword().isEmpty()) {
+            requestBody.put("password", userDTO.getPassword());
+        }
+
+        // Solo incluir role si el roleId existe
+        if (userDTO.getRoleId() != null) {
+            Map<String, Object> roleMap = new HashMap<>();
+            roleMap.put("id", userDTO.getRoleId());
+            requestBody.put("role", roleMap);
+        }
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.PUT,
+                    entity,
+                    String.class
+            );
+
+            try {
+                return objectMapper.readValue(response.getBody(), new TypeReference<Map<String, Object>>() {});
+            } catch (Exception e) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("status", 500);
+                error.put("message", "Error al procesar la respuesta");
+                error.put("details", e.getMessage());
+                return error;
+            }
+        } catch (HttpClientErrorException ex) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("status", ex.getStatusCode().value());
+            error.put("message", "Error al actualizar usuario");
+            error.put("details", ex.getResponseBodyAsString());
+            return error;
+        } catch (Exception ex) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("status", 500);
+            error.put("message", "Error inesperado al actualizar usuario");
+            error.put("details", ex.getMessage());
+            return error;
+        }
+    }
+
+    /**
+     * Banea a un usuario
+     */
+    public Map<String, Object> banUser(Integer userId, String token) {
+        String url = API_GATEWAY_URL + "/api/admin/users/" + userId + "/ban";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.PUT,
+                    entity,
+                    String.class
+            );
+
+            try {
+                return objectMapper.readValue(response.getBody(), new TypeReference<Map<String, Object>>() {});
+            } catch (Exception e) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("status", 500);
+                error.put("message", "Error al procesar la respuesta");
+                error.put("details", e.getMessage());
+                return error;
+            }
+        } catch (HttpClientErrorException ex) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("status", ex.getStatusCode().value());
+            error.put("message", "Error al banear usuario");
+            error.put("details", ex.getResponseBodyAsString());
+            return error;
+        } catch (Exception ex) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("status", 500);
+            error.put("message", "Error inesperado al banear usuario");
+            error.put("details", ex.getMessage());
+            return error;
+        }
+    }
+
+    /**
+     * Desbanea a un usuario
+     */
+    public Map<String, Object> unbanUser(Integer userId, String token) {
+        String url = API_GATEWAY_URL + "/api/admin/users/" + userId + "/unban";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.PUT,
+                    entity,
+                    String.class
+            );
+
+            try {
+                return objectMapper.readValue(response.getBody(), new TypeReference<Map<String, Object>>() {});
+            } catch (Exception e) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("status", 500);
+                error.put("message", "Error al procesar la respuesta");
+                error.put("details", e.getMessage());
+                return error;
+            }
+        } catch (HttpClientErrorException ex) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("status", ex.getStatusCode().value());
+            error.put("message", "Error al desbanear usuario");
+            error.put("details", ex.getResponseBodyAsString());
+            return error;
+        } catch (Exception ex) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("status", 500);
+            error.put("message", "Error inesperado al desbanear usuario");
+            error.put("details", ex.getMessage());
+            return error;
+        }
+    }
+
+    /**
+     * Obtiene usuarios por rol
+     */
+    public List<UserDTO> getUsersByRole(Integer roleId, String token) {
+        String url = API_GATEWAY_URL + "/api/admin/users/role/" + roleId;
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    String.class
+            );
+
+            try {
+                return objectMapper.readValue(
+                        response.getBody(),
+                        objectMapper.getTypeFactory().constructCollectionType(List.class, UserDTO.class)
+                );
+            } catch (Exception e) {
+                System.err.println("Error deserializando usuarios por rol: " + e.getMessage());
+                return Collections.emptyList();
+            }
+        } catch (Exception ex) {
+            System.err.println("Error al obtener usuarios por rol: " + ex.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Obtener usuarios (para usuarios regulares)
+     */
+    public List<UserDTO> getUsersList(String token) {
+        String url = API_GATEWAY_URL + "/api/users";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    String.class
+            );
+
+            try {
+                return objectMapper.readValue(
+                        response.getBody(),
+                        objectMapper.getTypeFactory().constructCollectionType(List.class, UserDTO.class)
+                );
+            } catch (Exception e) {
+                System.err.println("Error deserializando lista de usuarios: " + e.getMessage());
+                return Collections.emptyList();
+            }
+        } catch (Exception ex) {
+            System.err.println("Error al obtener lista de usuarios: " + ex.getMessage());
+            return Collections.emptyList();
         }
     }
 }
