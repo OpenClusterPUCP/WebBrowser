@@ -845,6 +845,7 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 <div class="page-container">
     <!-- Brand side -->
     <div class="brand-side">
@@ -867,7 +868,6 @@
                     <svg viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <!-- Elemento base - círculo con gradiente -->
                         <circle cx="32" cy="30" r="20" fill="url(#baseGradient)" />
-
                         <!-- Elementos del cluster -->
                         <circle cx="32" cy="30" r="8" fill="#4cd1a9" />
                         <circle cx="20" cy="20" r="4.5" fill="white" />
@@ -945,10 +945,7 @@
                 <span id="errorText"></span>
             </div>
 
-            <div class="success-message" id="successMessage">
-                <i class="fas fa-check-circle" style="margin-right: 8px;"></i>
-                <span id="successText"></span>
-            </div>
+
 
             <form id="loginForm">
                 <div class="input-group" id="emailGroup">
@@ -971,33 +968,13 @@
                 </div>
 
                 <div class="remember-forgot">
-                    <div class="remember-me">
-                        <input type="checkbox" id="remember" checked>
-                        <span class="checkmark"></span>
-                        <label for="remember">Recordarme</label>
-                    </div>
-                    <a href="#" class="forgot-password" id="forgotPassword">¿Olvidaste tu contraseña?</a>
+
+                    <a  class="forgot-password" id="forgotPassword">¿Olvidaste tu contraseña?</a>
                 </div>
 
                 <button type="submit" class="submit-btn" id="submitBtn">
                     <span id="buttonText">Iniciar Sesión</span>
                 </button>
-
-                <div class="alternate-login">
-                    <p>O inicia sesión con</p>
-                    <div class="alternate-options">
-                        <div class="alternate-option" id="googleLogin">
-                            <i class="fab fa-google"></i>
-                        </div>
-                        <div class="alternate-option" id="microsoftLogin">
-                            <i class="fab fa-microsoft"></i>
-                            <span class="notification-dot"></span>
-                        </div>
-                        <div class="alternate-option" id="githubLogin">
-                            <i class="fab fa-github"></i>
-                        </div>
-                    </div>
-                </div>
             </form>
         </div>
     </div>
@@ -1030,379 +1007,553 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    // Primero, añadimos SweetAlert al HTML (antes de cerrar el body)
+    document.addEventListener('DOMContentLoaded', function() {
+        // Configuración de los entornos
+        const environments = {
+            development: {
+                apiUrl: 'http://localhost:8095',
+                debug: true
+            },
+            production: {
+                apiUrl: 'https://api.openclustter.com',
+                debug: false
+            }
+        };
 
-// Reemplazar el script existente con esta implementación
-document.addEventListener('DOMContentLoaded', function() {
-// Configuración de los entornos
-const environments = {
-development: {
-apiUrl: 'http://localhost:8095', // URL de tu Spring Boot app
-debug: true
-},
-production: {
-apiUrl: 'https://api.openclustter.com',
-debug: false
-}
-};
+        // Usar entorno de desarrollo para pruebas locales
+        const config = environments.development;
 
-// Usar entorno de desarrollo para pruebas locales
-const config = environments.development;
+        // DOM Elements - Verificando que existan
+        const loginForm = document.getElementById('loginForm');
+        const emailInput = loginForm ? document.getElementById('email') : null;
+        const passwordInput = loginForm ? document.getElementById('password') : null;
+        const submitBtn = loginForm ? document.getElementById('submitBtn') : null;
+        const buttonText = submitBtn ? document.getElementById('buttonText') : null;
+        const togglePassword = document.getElementById('togglePassword');
+        const forgotPassword = document.getElementById('forgotPassword');
+        const resetPasswordForm = document.getElementById('resetPasswordForm');
+        const passwordResetModal = document.getElementById('passwordResetModal');
 
-// DOM Elements
-const loginForm = document.getElementById('loginForm');
-const emailInput = document.getElementById('email');
-const passwordInput = document.getElementById('password');
-const submitBtn = document.getElementById('submitBtn');
-const buttonText = document.getElementById('buttonText');
-const togglePassword = document.getElementById('togglePassword');
-const forgotPassword = document.getElementById('forgotPassword');
-const resetPasswordForm = document.getElementById('resetPasswordForm');
-const passwordResetModal = document.getElementById('passwordResetModal');
+        // Social login buttons - Verificando que existan
+        const googleLogin = document.getElementById('googleLogin');
+        const microsoftLogin = document.getElementById('microsoftLogin');
+        const githubLogin = document.getElementById('githubLogin');
 
-// Social login buttons
-const googleLogin = document.getElementById('googleLogin');
-const microsoftLogin = document.getElementById('microsoftLogin');
-const githubLogin = document.getElementById('githubLogin');
+        // Agregar estilo CSS para los mensajes
+        const style = document.createElement('style');
+        style.textContent = `
+    .error-banner {
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+        padding: 10px 15px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        width: 100%;
+        box-sizing: border-box;
+    }
 
-// Input focus events
-const inputGroups = document.querySelectorAll('.input-group');
-inputGroups.forEach(group => {
-const input = group.querySelector('input');
+    .error-banner i {
+        margin-right: 8px;
+        font-size: 16px;
+    }
 
-input.addEventListener('focus', () => {
-group.classList.add('focused');
-group.classList.add('active');
-});
+    .success-message {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+        padding: 10px 15px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        width: 100%;
+        box-sizing: border-box;
+    }
 
-input.addEventListener('blur', () => {
-group.classList.remove('focused');
-if (input.value === '') {
-group.classList.remove('active');
-}
+    .success-message i {
+        margin-right: 8px;
+        font-size: 16px;
+    }
 
-// Validate on blur
-validateInput(input);
-});
-});
+    .form-error-message {
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+        padding: 10px 15px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        width: 100%;
+        box-sizing: border-box;
+    }
 
-// Toggle password visibility
-togglePassword.addEventListener('click', () => {
-const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-passwordInput.setAttribute('type', type);
-togglePassword.querySelector('i').className = type === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
-});
+    .loading-spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        margin-right: 8px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: #ffffff;
+        animation: spin 1s ease-in-out infinite;
+        vertical-align: middle;
+    }
 
-// Create particles for background effect
-function createParticles() {
-const particlesContainer = document.querySelector('.floating-particles');
-if (!particlesContainer) return;
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    `;
+        document.head.appendChild(style);
 
-const particleCount = 30;
+        // Input focus events
+        const inputGroups = document.querySelectorAll('.input-group');
+        inputGroups.forEach(group => {
+            const input = group.querySelector('input');
+            if (!input) return;
 
-for (let i = 0; i < particleCount; i++) {
-const particle = document.createElement('div');
-particle.classList.add('particle');
+            let errorMessage = group.querySelector('.error-message');
+            if (!errorMessage) {
+                errorMessage = document.createElement('div');
+                errorMessage.className = 'error-message';
+                group.appendChild(errorMessage);
+            }
 
-// Random size
-const size = Math.random() * 6 + 2;
-particle.style.width = `${size}px`;
-particle.style.height = `${size}px`;
+            input.addEventListener('focus', () => {
+                group.classList.add('focused');
+                group.classList.add('active');
+            });
 
-// Random position
-particle.style.left = `${Math.random() * 100}%`;
-particle.style.top = `${Math.random() * 100}%`;
+            input.addEventListener('blur', () => {
+                group.classList.remove('focused');
+                if (input.value === '') {
+                    group.classList.remove('active');
+                }
 
-// Random opacity
-particle.style.opacity = Math.random() * 0.5 + 0.1;
+                // Validate on blur
+                validateInput(input);
+            });
+        });
 
-// Random animation
-const duration = Math.random() * 20 + 10;
-const delay = Math.random() * 5;
-particle.style.animation = `float ${duration}s ${delay}s infinite linear`;
+        // Toggle password visibility
+        if (togglePassword && passwordInput) {
+            togglePassword.addEventListener('click', () => {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                const icon = togglePassword.querySelector('i');
+                if (icon) {
+                    icon.className = type === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
+                }
+            });
+        }
 
-particlesContainer.appendChild(particle);
-}
-}
+        // Create particles for background effect
+        function createParticles() {
+            const particlesContainer = document.querySelector('.floating-particles');
+            if (!particlesContainer) return;
 
-// Call create particles on load
-createParticles();
+            const particleCount = 30;
 
-// Form validation
-function validateEmail(email) {
-const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-return re.test(String(email).toLowerCase());
-}
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
 
-function validatePassword(password) {
-return password.length >= 6;
-}
+                // Random size
+                const size = Math.random() * 6 + 2;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
 
-function validateInput(input) {
-const inputGroup = input.parentElement;
+                // Random position
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.top = `${Math.random() * 100}%`;
 
-if (input.id === 'email') {
-if (input.value && !validateEmail(input.value)) {
-inputGroup.classList.add('error');
-return false;
-} else {
-inputGroup.classList.remove('error');
-return true;
-}
-}
+                // Random opacity
+                particle.style.opacity = Math.random() * 0.5 + 0.1;
 
-if (input.id === 'password') {
-if (input.value && !validatePassword(input.value)) {
-inputGroup.classList.add('error');
-return false;
-} else {
-inputGroup.classList.remove('error');
-return true;
-}
-}
+                // Random animation
+                const duration = Math.random() * 20 + 10;
+                const delay = Math.random() * 5;
+                particle.style.animation = `float ${duration}s ${delay}s infinite linear`;
 
-return true;
-}
+                particlesContainer.appendChild(particle);
+            }
+        }
 
-// NUEVA IMPLEMENTACIÓN: Función para realizar la petición de login
-async function performLogin(username, password) {
-try {
-const response = await fetch(`${config.apiUrl}/InicioSesion`, {
-method: 'POST',
-headers: {
-'Content-Type': 'application/json'
-},
-body: JSON.stringify({
-username: username,
-password: password
-}),
-credentials: 'include' // Importante para incluir cookies de sesión
-});
+        // Call create particles on load
+        createParticles();
 
-const data = await response.json();
+        // Form validation
+        function validateEmail(email) {
+            const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+            return re.test(String(email).toLowerCase());
+        }
 
-// Retornar objeto con datos de la respuesta
-return {
-success: response.ok,
-status: response.status,
-data: data
-};
-} catch (error) {
-console.error('Error en la petición de login:', error);
-return {
-success: false,
-status: 0,
-data: {
-status: 'error',
-message: 'Error de conexión con el servidor'
-}
-};
-}
-}
+        function validatePassword(password) {
+            return password.length >= 6;
+        }
 
-// Form submission - ACTUALIZADO
-loginForm.addEventListener('submit', async (e) => {
-e.preventDefault();
+        function validateInput(input) {
+            const inputGroup = input.parentElement;
+            if (!inputGroup) return true;
 
-const emailValid = validateInput(emailInput);
-const passwordValid = validateInput(passwordInput);
+            let errorMessage = inputGroup.querySelector('.error-message');
+            if (!errorMessage) {
+                errorMessage = document.createElement('div');
+                errorMessage.className = 'error-message';
+                inputGroup.appendChild(errorMessage);
+            }
 
-if (!emailValid || !passwordValid) {
-shake(loginForm);
-Swal.fire({
-icon: 'error',
-title: 'Error de validación',
-text: 'Por favor corrige los errores en el formulario',
-confirmButtonColor: '#3452a5'
-});
-return;
-}
+            if (input.id === 'email' || input.id === 'resetEmail') {
+                if (input.value && !validateEmail(input.value)) {
+                    inputGroup.classList.add('error');
+                    errorMessage.textContent = 'Ingresa un email válido';
+                    return false;
+                } else {
+                    inputGroup.classList.remove('error');
+                    errorMessage.textContent = '';
+                    return true;
+                }
+            }
 
-// Show loading state
-submitBtn.disabled = true;
-buttonText.innerHTML = '<span class="loading-spinner"></span>Iniciando sesión...';
+            if (input.id === 'password') {
+                if (input.value && !validatePassword(input.value)) {
+                    inputGroup.classList.add('error');
+                    errorMessage.textContent = 'La contraseña debe tener al menos 6 caracteres';
+                    return false;
+                } else {
+                    inputGroup.classList.remove('error');
+                    errorMessage.textContent = '';
+                    return true;
+                }
+            }
 
-// Realizar la petición real
-const result = await performLogin(emailInput.value, passwordInput.value);
+            return true;
+        }
 
-// Procesar respuesta
-if (result.success) {
-// Autenticación exitosa
-Swal.fire({
-icon: 'success',
-title: '¡Bienvenido!',
-text: 'Inicio de sesión exitoso',
-confirmButtonColor: '#4cd1a9'
-});
+        // NUEVA IMPLEMENTACIÓN: Función para realizar la petición de login con AJAX
+        function performLogin(username, password, onSuccess, onError) {
+            fetch(`${config.apiUrl}/InicioSesion`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password
+                }),
+                credentials: 'include'
+            })
+                .then(response => {
+                    const status = response.status;
+                    return response.json().then(data => {
+                        return { data, status };
+                    });
+                })
+                .then(({ data, status }) => {
+                    if (status === 200) {
+                        onSuccess(data);
+                        window.location.reload();
+                    } else {
+                        onError({
+                            status: status,
+                            data: data
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error en la petición de login:', error);
+                    onError({
+                        success: false,
+                        status: 0,
+                        data: {
+                            status: 'error',
+                            message: 'Error de conexión con el servidor'
+                        }
+                    });
+                });
+        }
 
-// Aquí podrías redirigir al usuario a la página principal
-// window.location.href = '/dashboard';
-} else {
-// Manejo de errores según el código HTTP
-let errorMessage = 'Ha ocurrido un error inesperado';
-let errorTitle = 'Error';
-let action = '';
+        // Form submission - ACTUALIZADO (ELIMINADO EL DUPLICADO)
+        if (loginForm && emailInput && passwordInput && submitBtn && buttonText) {
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
 
-if (result.status === 401) {
-errorTitle = 'Credenciales incorrectas';
-errorMessage = 'El correo o la contraseña son incorrectos';
-action = 'credentials';
-} else if (result.status === 403) {
-errorTitle = 'Acceso denegado';
-errorMessage = 'Tu cuenta no tiene permisos o está deshabilitada';
-action = 'contact_admin';
-} else if (result.status === 503) {
-errorTitle = 'Servicio no disponible';
-errorMessage = 'El servicio de autenticación no está disponible en este momento';
-action = 'try_later';
-}
+                const emailValid = validateInput(emailInput);
+                const passwordValid = validateInput(passwordInput);
 
-// Si la respuesta tiene un mensaje personalizado, usarlo
-if (result.data && result.data.message) {
-errorMessage = result.data.message;
-}
+                if (!emailValid || !passwordValid) {
+                    shake(loginForm);
+                    return;
+                }
 
-// Mostrar mensaje de error con SweetAlert
-Swal.fire({
-icon: 'error',
-title: errorTitle,
-text: errorMessage,
-confirmButtonColor: '#3452a5'
-});
+                // Show loading state
+                submitBtn.disabled = true;
+                buttonText.innerHTML = '<span class="loading-spinner"></span>Iniciando sesión...';
 
-shake(loginForm);
-}
+                // Eliminar mensajes de error previos
+                const oldErrors = loginForm.querySelectorAll('.error-banner, .form-error-message');
+                oldErrors.forEach(err => err.remove());
 
-// Restaurar estado del botón
-submitBtn.disabled = false;
-buttonText.innerHTML = 'Iniciar Sesión';
-});
+                // Realizar la petición con fetch
+                performLogin(
+                    emailInput.value,
+                    passwordInput.value,
+                    function(data) {
+                        // Success handler
+                        // No necesitamos hacer nada aquí porque la página se recargará
+                    },
+                    function(error) {
+                        // Crear mensaje de error con mejor estilo
+                        const errorBanner = document.createElement('div');
+                        errorBanner.className = 'error-banner';
 
-// Forgot password modal
-forgotPassword.addEventListener('click', (e) => {
-e.preventDefault();
-passwordResetModal.classList.add('show');
-document.getElementById('resetEmail').value = emailInput.value;
-document.getElementById('resetEmail').focus();
-});
+                        // Añadir icono (asumiendo que tienes Font Awesome)
+                        const icon = document.createElement('i');
+                        icon.className = 'fas fa-exclamation-circle';
+                        errorBanner.appendChild(icon);
 
-// Multiple ways to close the modal
-passwordResetModal.addEventListener('click', (e) => {
-if (e.target === passwordResetModal) {
-passwordResetModal.classList.remove('show');
-}
-});
+                        // Determinar mensaje de error según el código de estado
+                        let errorMessage = 'Credenciales incorrectas. Por favor, verifica tu correo y contraseña.';
 
-// Close button
-document.getElementById('closeModal').addEventListener('click', () => {
-passwordResetModal.classList.remove('show');
-});
+                        if (error.status === 401) {
+                            errorMessage = 'El correo o la contraseña son incorrectos';
+                        } else if (error.status === 403) {
+                            errorMessage = 'Tu cuenta no tiene permisos o está deshabilitada';
+                        } else if (error.status === 404) {
+                            errorMessage = 'El usuario no existe en nuestros registros';
+                        } else if (error.status === 503) {
+                            errorMessage = 'El servicio de autenticación no está disponible en este momento';
+                        }
 
-// Cancel button
-document.getElementById('cancelResetBtn').addEventListener('click', () => {
-passwordResetModal.classList.remove('show');
-});
+                        // Si la respuesta tiene un mensaje personalizado, usarlo
+                        if (error.data && error.data.message) {
+                            errorMessage = error.data.message;
+                        }
 
-// Close on ESC key
-document.addEventListener('keydown', (e) => {
-if (e.key === 'Escape' && passwordResetModal.classList.contains('show')) {
-passwordResetModal.classList.remove('show');
-}
-});
+                        // Añadir texto de error
+                        const errorText = document.createElement('span');
+                        errorText.textContent = errorMessage;
+                        errorBanner.appendChild(errorText);
 
-// Reset password form submission - ACTUALIZADO
-resetPasswordForm.addEventListener('submit', (e) => {
-e.preventDefault();
+                        // Insertar el banner al inicio del formulario
+                        loginForm.insertBefore(errorBanner, loginForm.firstChild);
 
-const resetEmail = document.getElementById('resetEmail').value;
+                        shake(loginForm);
 
-if (!validateEmail(resetEmail)) {
-shake(resetPasswordForm);
-return;
-}
+                        // Restaurar estado del botón
+                        submitBtn.disabled = false;
+                        buttonText.innerHTML = 'Iniciar Sesión';
+                    }
+                );
+            });
+        }
 
-const sendResetLinkBtn = document.getElementById('sendResetLinkBtn');
+        // Forgot password modal
+        if (forgotPassword && passwordResetModal && emailInput) {
+            forgotPassword.addEventListener('click', (e) => {
+                e.preventDefault();
+                passwordResetModal.classList.add('show');
+                const resetEmailInput = document.getElementById('resetEmail');
+                if (resetEmailInput) {
+                    resetEmailInput.value = emailInput.value || '';
+                    resetEmailInput.focus();
+                }
+            });
 
-// Show loading state
-sendResetLinkBtn.disabled = true;
-sendResetLinkBtn.innerHTML = '<span class="loading-spinner"></span>Enviando...';
+            // Multiple ways to close the modal
+            passwordResetModal.addEventListener('click', (e) => {
+                if (e.target === passwordResetModal) {
+                    passwordResetModal.classList.remove('show');
+                }
+            });
 
-// Simulate API call for now
-setTimeout(() => {
-passwordResetModal.classList.remove('show');
+            // Close button
+            const closeModal = document.getElementById('closeModal');
+            if (closeModal) {
+                closeModal.addEventListener('click', () => {
+                    passwordResetModal.classList.remove('show');
+                });
+            }
 
-Swal.fire({
-icon: 'success',
-title: 'Enlace enviado',
-text: `Se ha enviado un enlace de recuperación a ${resetEmail}`,
-confirmButtonColor: '#4cd1a9'
-});
+            // Cancel button
+            const cancelResetBtn = document.getElementById('cancelResetBtn');
+            if (cancelResetBtn) {
+                cancelResetBtn.addEventListener('click', () => {
+                    passwordResetModal.classList.remove('show');
+                });
+            }
 
-// Reset button state
-sendResetLinkBtn.disabled = false;
-sendResetLinkBtn.textContent = 'Enviar enlace';
-}, 1500);
-});
+            // Close on ESC key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && passwordResetModal.classList.contains('show')) {
+                    passwordResetModal.classList.remove('show');
+                }
+            });
+        }
 
-// Social login handlers - ACTUALIZADOS
-googleLogin.addEventListener('click', () => {
-simulateSocialLogin('Google');
-});
+        // Reset password form submission - ACTUALIZADO PARA USAR FETCH EN LUGAR DE JQUERY
+        if (resetPasswordForm) {
+            resetPasswordForm.addEventListener('submit', (e) => {
+                e.preventDefault();
 
-microsoftLogin.addEventListener('click', () => {
-simulateSocialLogin('Microsoft');
-});
+                const resetEmail = document.getElementById('resetEmail');
+                if (!resetEmail) return;
 
-githubLogin.addEventListener('click', () => {
-simulateSocialLogin('GitHub');
-});
+                const resetEmailValue = resetEmail.value;
+                const resetEmailGroup = resetEmail.parentElement;
+                if (!resetEmailGroup) return;
 
-function simulateSocialLogin(provider) {
-// Show loading state
-submitBtn.disabled = true;
-buttonText.innerHTML = `<span class="loading-spinner"></span>Conectando con ${provider}...`;
+                let resetErrorMessage = resetEmailGroup.querySelector('.error-message');
+                if (!resetErrorMessage) {
+                    resetErrorMessage = document.createElement('div');
+                    resetErrorMessage.className = 'error-message';
+                    resetEmailGroup.appendChild(resetErrorMessage);
+                }
 
-// Simulate API call
-setTimeout(() => {
-Swal.fire({
-icon: 'success',
-title: `Conectado con ${provider}`,
-text: 'Inicio de sesión exitoso',
-confirmButtonColor: '#4cd1a9'
-});
+                if (!validateEmail(resetEmailValue)) {
+                    resetEmailGroup.classList.add('error');
+                    resetErrorMessage.textContent = 'Ingresa un email válido';
+                    shake(resetPasswordForm);
+                    return;
+                } else {
+                    resetEmailGroup.classList.remove('error');
+                    resetErrorMessage.textContent = '';
+                }
 
-// Reset button state
-submitBtn.disabled = false;
-buttonText.innerHTML = 'Iniciar Sesión';
-}, 1500);
-}
+                const sendResetLinkBtn = document.getElementById('sendResetLinkBtn');
+                if (!sendResetLinkBtn) return;
 
-// Shake animation for errors
-function shake(element) {
-element.classList.add('shake');
-setTimeout(() => {
-element.classList.remove('shake');
-}, 600);
-}
+                // Show loading state
+                sendResetLinkBtn.disabled = true;
+                sendResetLinkBtn.innerHTML = '<span class="loading-spinner"></span>Enviando...';
 
-// Autofill animation effect
-setTimeout(() => {
-const inputs = document.querySelectorAll('input');
-inputs.forEach(input => {
-if (input.value !== '') {
-input.parentElement.classList.add('active');
-}
-});
-}, 100);
+                // Implementar con fetch en lugar de jQuery
+                fetch(`${config.apiUrl}/ResetPassword`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: resetEmailValue
+                    })
+                })
+                    .then(response => {
+                        if (response.ok) {
+                            // Crear y mostrar mensaje de éxito
+                            const successMessage = document.createElement('div');
+                            successMessage.className = 'success-message';
 
-// Keyboard shortcut for login (Enter key)
-document.addEventListener('keydown', (e) => {
-if (e.key === 'Enter' && !submitBtn.disabled) {
-loginForm.dispatchEvent(new Event('submit'));
-}
-});
-});
+                            // Añadir icono
+                            const iconSuccess = document.createElement('i');
+                            iconSuccess.className = 'fas fa-check-circle';
+                            successMessage.appendChild(iconSuccess);
 
-</script>
+                            // Añadir texto
+                            const successText = document.createElement('span');
+                            successText.textContent = 'Se ha enviado un enlace a tu correo para restablecer tu contraseña';
+                            successMessage.appendChild(successText);
+
+                            // Eliminar mensajes previos
+                            const oldMessages = resetPasswordForm.querySelectorAll('.success-message, .error-message, .error-banner');
+                            oldMessages.forEach(msg => msg.remove());
+
+                            resetPasswordForm.insertBefore(successMessage, resetPasswordForm.firstChild);
+
+                            // Cerrar modal después de 3 segundos
+                            setTimeout(() => {
+                                passwordResetModal.classList.remove('show');
+                            }, 3000);
+                        } else {
+                            // Manejar error
+                            return response.json().then(errorData => {
+                                throw new Error(errorData.message || 'Error al enviar el correo');
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        // Crear mensaje de error
+                        const errorBanner = document.createElement('div');
+                        errorBanner.className = 'error-banner';
+
+                        // Añadir icono
+                        const iconError = document.createElement('i');
+                        iconError.className = 'fas fa-exclamation-circle';
+                        errorBanner.appendChild(iconError);
+
+                        // Añadir texto
+                        const errorText = document.createElement('span');
+                        errorText.textContent = error.message || 'Error al enviar el correo. Intenta más tarde.';
+                        errorBanner.appendChild(errorText);
+
+                        // Eliminar mensajes previos
+                        const oldMessages = resetPasswordForm.querySelectorAll('.success-message, .error-message, .error-banner');
+                        oldMessages.forEach(msg => msg.remove());
+
+                        resetPasswordForm.insertBefore(errorBanner, resetPasswordForm.firstChild);
+
+                        shake(resetPasswordForm);
+                    })
+                    .finally(() => {
+                        // Restaurar estado del botón
+                        sendResetLinkBtn.disabled = false;
+                        sendResetLinkBtn.innerHTML = 'Enviar enlace';
+                    });
+            });
+        }
+
+        // Social login handlers - ACTUALIZADOS con verificación de existencia
+        if (googleLogin) {
+            googleLogin.addEventListener('click', () => {
+                window.location.href = `${config.apiUrl}/oauth2/authorization/google`;
+            });
+        }
+
+        if (microsoftLogin) {
+            microsoftLogin.addEventListener('click', () => {
+                window.location.href = `${config.apiUrl}/oauth2/authorization/microsoft`;
+            });
+        }
+
+        if (githubLogin) {
+            githubLogin.addEventListener('click', () => {
+                window.location.href = `${config.apiUrl}/oauth2/authorization/github`;
+            });
+        }
+
+        // Shake animation for errors
+        function shake(element) {
+            if (!element) return;
+
+            element.classList.add('shake');
+            setTimeout(() => {
+                element.classList.remove('shake');
+            }, 600);
+        }
+
+        // Autofill animation effect
+        setTimeout(() => {
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => {
+                if (input.value !== '' && input.parentElement) {
+                    input.parentElement.classList.add('active');
+                }
+            });
+        }, 100);
+
+        // Keyboard shortcut for login (Enter key)
+        if (loginForm && submitBtn) {
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !submitBtn.disabled) {
+                    loginForm.dispatchEvent(new Event('submit'));
+                }
+            });
+        }
+    });</script>
 </body>
 </html>
