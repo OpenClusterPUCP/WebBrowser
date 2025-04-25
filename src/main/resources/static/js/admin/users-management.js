@@ -83,28 +83,174 @@ document.addEventListener('DOMContentLoaded', function() {
     // =====================================================================
 
     /**
-     * Muestra un mensaje de alerta al usuario usando SweetAlert
+     * Muestra un mensaje de alerta al usuario usando SweetAlert2
      * @param {string} message - Mensaje a mostrar
      * @param {string} type - Tipo de alerta (success, error, warning, info)
      * @param {number} duration - Duración en milisegundos antes de desaparecer (0 para no desaparecer)
      */
     function showAlert(message, type = 'info', duration = 5000) {
-        Swal.fire.fire({
+        Swal.fire({
             title: type.charAt(0).toUpperCase() + type.slice(1),
             text: message,
             icon: type,
-            buttons: {
-                confirm: {
-                    text: "Aceptar",
-                    value: true,
-                    visible: true,
-                    className: "btn btn-"+type,
-                    closeModal: true
-                }
-            },
+            confirmButtonText: "Aceptar",
+            confirmButtonColor: getBtnColorByType(type),
             timer: duration > 0 ? duration : undefined
         });
     }
+
+    /**
+     * Obtiene el color del botón según el tipo de alerta, utilizando las variables CSS del proyecto
+     * @param {string} type - Tipo de alerta
+     * @return {string} Color en formato hexadecimal
+     */
+    function getBtnColorByType(type) {
+        switch(type) {
+            case 'success': return 'var(--success-color)'; // #06d6a0
+            case 'error': return 'var(--danger-color)';    // #ef476f
+            case 'warning': return 'var(--warning-color)'; // #ffd166
+            case 'info':
+            default: return 'var(--primary-color)';        // #4361ee
+        }
+    }
+
+
+    /**
+     * Muestra un diálogo de confirmación usando SweetAlert2
+     * @param {string} title - Título del diálogo
+     * @param {string} message - Mensaje a mostrar
+     * @param {string} icon - Icono a mostrar (warning, question, info, success, error)
+     * @param {string} confirmText - Texto del botón de confirmación
+     * @param {string} cancelText - Texto del botón de cancelación
+     * @param {Function} confirmCallback - Función a ejecutar si se confirma
+     */
+    function showConfirmation(title, message, icon, confirmText, cancelText, confirmCallback) {
+        // Determinar el color del botón de confirmación basado en el tipo de diálogo
+        let confirmColor;
+        switch(icon) {
+            case 'warning': confirmColor = 'var(--warning-color)'; break;
+            case 'success': confirmColor = 'var(--success-color)'; break;
+            case 'error': confirmColor = 'var(--danger-color)'; break;
+            case 'question':
+            case 'info':
+            default: confirmColor = 'var(--primary-color)'; break;
+        }
+
+        Swal.fire({
+            title: title,
+            text: message,
+            icon: icon,
+            showCancelButton: true,
+            confirmButtonColor: confirmColor,
+            cancelButtonColor: 'var(--text-muted)', // #6c757d
+            confirmButtonText: confirmText,
+            cancelButtonText: cancelText || 'Cancelar',
+            reverseButtons: true,
+            background: 'var(--light-color)',      // #f8f9fa
+            borderRadius: 'var(--border-radius)',  // 8px
+            // Personalización adicional para coincidir con el estilo de la aplicación
+            buttonsStyling: true,
+            customClass: {
+                confirmButton: 'swal-confirm-button',
+                cancelButton: 'swal-cancel-button'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                confirmCallback();
+            }
+        });
+    }
+
+    /**
+     * Muestra un indicador de carga usando SweetAlert2
+     * @param {string} title - Título del indicador
+     * @param {string} message - Mensaje a mostrar
+     */
+    function showLoading(title, message) {
+        Swal.fire({
+            title: title,
+            text: message,
+            icon: 'info',
+            showConfirmButton: false,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            background: 'var(--light-color)',
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+    }
+
+    /**
+     * Agrega estilos CSS personalizados para SweetAlert
+     * Esta función se debe llamar cuando el DOM esté cargado
+     */
+    function applySweetAlertStyles() {
+        // Crear un elemento de estilo
+        const style = document.createElement('style');
+        style.textContent = `
+        /* Estilos personalizados para SweetAlert */
+        .swal2-popup {
+            font-family: 'Segoe UI', 'Roboto', sans-serif;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .swal2-title {
+            color: var(--text-color);
+            font-weight: 600;
+        }
+        
+        .swal2-content {
+            color: var(--text-muted);
+        }
+        
+        .swal2-confirm, .swal2-cancel {
+            font-weight: 500;
+            border-radius: var(--border-radius);
+            padding: 10px 20px;
+            font-size: 0.9rem;
+        }
+        
+        /* Estilos para los iconos */
+        .swal2-icon.swal2-info {
+            color: var(--primary-color) !important;
+            border-color: var(--primary-color) !important;
+        }
+        
+        .swal2-icon.swal2-warning {
+            color: var(--warning-color) !important;
+            border-color: var(--warning-color) !important;
+        }
+        
+        .swal2-icon.swal2-error {
+            color: var(--danger-color) !important;
+            border-color: var(--danger-color) !important;
+        }
+        
+        .swal2-icon.swal2-question {
+            color: var(--secondary-color) !important;
+            border-color: var(--secondary-color) !important;
+        }
+        
+        .swal2-icon.swal2-success {
+            color: var(--success-color) !important;
+            border-color: var(--success-color) !important;
+        }
+        
+        .swal2-icon.swal2-success [class^=swal2-success-line] {
+            background-color: var(--success-color) !important;
+        }
+        
+        .swal2-icon.swal2-success .swal2-success-ring {
+            border-color: var(--success-color) !important;
+        }
+    `;
+
+        // Añadir el estilo al head del documento
+        document.head.appendChild(style);
+    }
+
 
     /**
      * Valida si una cadena es un correo electrónico válido
@@ -581,28 +727,13 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log("Guardando recursos:", resourceData);
 
             // Mostrar diálogo de confirmación
-            Swal.fire({
-                title: "¿Guardar recursos?",
-                text: `¿Está seguro de asignar ${resourceData.vcpu} vCPU, ${resourceData.ram} GB de RAM, ${resourceData.disk} GB de almacenamiento y ${resourceData.maxSlices} slices máximos al usuario?`,
-                icon: "warning",
-                buttons: {
-                    cancel: {
-                        text: "Cancelar",
-                        value: null,
-                        visible: true,
-                        className: "btn btn-light",
-                        closeModal: true
-                    },
-                    confirm: {
-                        text: "Confirmar",
-                        value: true,
-                        visible: true,
-                        className: "btn btn-primary",
-                        closeModal: true
-                    }
-                }
-            }).then((confirmed) => {
-                if (confirmed) {
+            showConfirmation(
+                "¿Guardar recursos?",
+                `¿Está seguro de asignar ${resourceData.vcpu} vCPU, ${resourceData.ram} GB de RAM, ${resourceData.disk} GB de almacenamiento y ${resourceData.maxSlices} slices máximos al usuario?`,
+                "warning",
+                "Confirmar",
+                "Cancelar",
+                function() {
                     // En implementación real, llamar al API
                     // Por ahora, simular operación exitosa
                     setTimeout(() => {
@@ -610,7 +741,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         closeModal(resourcesModal);
                     }, 500);
                 }
-            });
+            );
         });
     }
 
@@ -647,37 +778,15 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log("Datos del formulario:", formData);
 
             // Mostrar diálogo de confirmación
-            Swal.fire({
-                title: "Confirmar creación",
-                text: `¿Crear nuevo usuario con correo ${formData.username}?`,
-                icon: "question",
-                buttons: {
-                    cancel: {
-                        text: "Cancelar",
-                        value: null,
-                        visible: true,
-                        className: "btn btn-light",
-                        closeModal: true
-                    },
-                    confirm: {
-                        text: "Crear",
-                        value: true,
-                        visible: true,
-                        className: "btn btn-primary",
-                        closeModal: true
-                    }
-                }
-            }).then((confirmed) => {
-                if (confirmed) {
+            showConfirmation(
+                "Confirmar creación",
+                `¿Crear nuevo usuario con correo ${formData.username}?`,
+                "question",
+                "Crear",
+                "Cancelar",
+                function() {
                     // Mostrar indicador de carga
-                    Swal.fire({
-                        title: "Procesando",
-                        text: "Creando usuario...",
-                        icon: "info",
-                        buttons: false,
-                        closeOnClickOutside: false,
-                        closeOnEsc: false
-                    });
+                    showLoading("Procesando", "Creando usuario...");
 
                     // Enviar datos al servidor
                     fetch('/Admin/api/users/create', {
@@ -701,15 +810,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 title: "Usuario creado",
                                 text: `Usuario ${formData.name} ${formData.lastname} creado con éxito. La contraseña generada ha sido registrada en los logs del servidor.`,
                                 icon: "success",
-                                buttons: {
-                                    confirm: {
-                                        text: "Aceptar",
-                                        value: true,
-                                        visible: true,
-                                        className: "btn btn-success",
-                                        closeModal: true
-                                    }
-                                }
+                                confirmButtonText: "Aceptar",
+                                confirmButtonColor: "#28a745"
                             }).then(() => {
                                 // Cerrar modal
                                 closeModal(createUserModal);
@@ -724,19 +826,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                 title: "Error",
                                 text: "Error al crear usuario: " + error.message,
                                 icon: "error",
-                                buttons: {
-                                    confirm: {
-                                        text: "Aceptar",
-                                        value: true,
-                                        visible: true,
-                                        className: "btn btn-danger",
-                                        closeModal: true
-                                    }
-                                }
+                                confirmButtonText: "Aceptar",
+                                confirmButtonColor: "#dc3545"
                             });
                         });
                 }
-            });
+            );
         });
     }
 
@@ -751,37 +846,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (fileUploaded) {
                 // Mostrar diálogo de confirmación
-                Swal.fire({
-                    title: "Confirmar importación",
-                    text: "¿Desea proceder con la importación de usuarios?",
-                    icon: "question",
-                    buttons: {
-                        cancel: {
-                            text: "Cancelar",
-                            value: null,
-                            visible: true,
-                            className: "btn btn-light",
-                            closeModal: true
-                        },
-                        confirm: {
-                            text: "Importar",
-                            value: true,
-                            visible: true,
-                            className: "btn btn-primary",
-                            closeModal: true
-                        }
-                    }
-                }).then((confirmed) => {
-                    if (confirmed) {
+                showConfirmation(
+                    "Confirmar importación",
+                    "¿Desea proceder con la importación de usuarios?",
+                    "question",
+                    "Importar",
+                    "Cancelar",
+                    function() {
                         // Mostrar indicador de carga
-                        Swal.fire({
-                            title: "Procesando",
-                            text: "Importando usuarios...",
-                            icon: "info",
-                            buttons: false,
-                            closeOnClickOutside: false,
-                            closeOnEsc: false
-                        });
+                        showLoading("Procesando", "Importando usuarios...");
 
                         const file = fileInputElem.files[0];
                         const formData = new FormData();
@@ -805,15 +878,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                     title: "Importación completada",
                                     text: `Se importaron ${data.imported} usuarios y se omitieron ${data.skipped}.`,
                                     icon: "success",
-                                    buttons: {
-                                        confirm: {
-                                            text: "Aceptar",
-                                            value: true,
-                                            visible: true,
-                                            className: "btn btn-success",
-                                            closeModal: true
-                                        }
-                                    }
+                                    confirmButtonText: "Aceptar",
+                                    confirmButtonColor: "#28a745"
                                 }).then(() => {
                                     // Cerrar modal
                                     closeModal(importUsersModal);
@@ -828,33 +894,19 @@ document.addEventListener('DOMContentLoaded', function() {
                                     title: "Error",
                                     text: "Error al importar usuarios: " + error.message,
                                     icon: "error",
-                                    buttons: {
-                                        confirm: {
-                                            text: "Aceptar",
-                                            value: true,
-                                            visible: true,
-                                            className: "btn btn-danger",
-                                            closeModal: true
-                                        }
-                                    }
+                                    confirmButtonText: "Aceptar",
+                                    confirmButtonColor: "#dc3545"
                                 });
                             });
                     }
-                });
+                );
             } else {
                 Swal.fire({
                     title: "Atención",
                     text: "Por favor, seleccione un archivo CSV",
                     icon: "warning",
-                    buttons: {
-                        confirm: {
-                            text: "Aceptar",
-                            value: true,
-                            visible: true,
-                            className: "btn btn-warning",
-                            closeModal: true
-                        }
-                    }
+                    confirmButtonText: "Aceptar",
+                    confirmButtonColor: "#ffc107"
                 });
             }
         });
@@ -869,8 +921,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 title: "Cargando",
                 text: "Obteniendo detalles del usuario...",
                 icon: "info",
-                buttons: false,
-                timer: 1500
+                timer: 1500,
+                showConfirmButton: false
             });
             window.location.href = `/Admin/users/${userId}`;
         });
@@ -884,8 +936,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 title: "Cargando",
                 text: "Preparando formulario de edición...",
                 icon: "info",
-                buttons: false,
-                timer: 1500
+                timer: 1500,
+                showConfirmButton: false
             });
             window.location.href = `/Admin/users/${userId}/edit`;
         });
@@ -897,37 +949,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const userName = this.closest('tr').querySelector('td:nth-child(2)').textContent;
             console.log("Suspender usuario:", userId);
 
-            Swal.fire({
-                title: "Confirmar suspensión",
-                text: `¿Está seguro que desea suspender al usuario ${userName}?`,
-                icon: "warning",
-                buttons: {
-                    cancel: {
-                        text: "Cancelar",
-                        value: null,
-                        visible: true,
-                        className: "btn btn-light",
-                        closeModal: true
-                    },
-                    confirm: {
-                        text: "Suspender",
-                        value: true,
-                        visible: true,
-                        className: "btn btn-danger",
-                        closeModal: true
-                    }
-                }
-            }).then((confirmed) => {
-                if (confirmed) {
+            showConfirmation(
+                "Confirmar suspensión",
+                `¿Está seguro que desea suspender al usuario ${userName}?`,
+                "warning",
+                "Suspender",
+                "Cancelar",
+                function() {
                     // Mostrar indicador de carga
-                    Swal.fire({
-                        title: "Procesando",
-                        text: "Suspendiendo usuario...",
-                        icon: "info",
-                        buttons: false,
-                        closeOnClickOutside: false,
-                        closeOnEsc: false
-                    });
+                    showLoading("Procesando", "Suspendiendo usuario...");
 
                     // Llamada al servidor para suspender usuario
                     fetch(`/Admin/api/users/${userId}/ban`, {
@@ -948,15 +978,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 title: "Completado",
                                 text: `Usuario ${userName} suspendido correctamente`,
                                 icon: "success",
-                                buttons: {
-                                    confirm: {
-                                        text: "Aceptar",
-                                        value: true,
-                                        visible: true,
-                                        className: "btn btn-success",
-                                        closeModal: true
-                                    }
-                                }
+                                confirmButtonText: "Aceptar",
+                                confirmButtonColor: "#28a745"
                             });
 
                             // Actualizar estado en la interfaz
@@ -980,19 +1003,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                 title: "Error",
                                 text: "Error al suspender usuario: " + error.message,
                                 icon: "error",
-                                buttons: {
-                                    confirm: {
-                                        text: "Aceptar",
-                                        value: true,
-                                        visible: true,
-                                        className: "btn btn-danger",
-                                        closeModal: true
-                                    }
-                                }
+                                confirmButtonText: "Aceptar",
+                                confirmButtonColor: "#dc3545"
                             });
                         });
                 }
-            });
+            );
         });
     });
 
@@ -1002,37 +1018,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const userName = this.closest('tr').querySelector('td:nth-child(2)').textContent;
             console.log("Restaurar usuario:", userId);
 
-            Swal.fire({
-                title: "Confirmar restauración",
-                text: `¿Está seguro que desea restaurar al usuario ${userName}?`,
-                icon: "question",
-                buttons: {
-                    cancel: {
-                        text: "Cancelar",
-                        value: null,
-                        visible: true,
-                        className: "btn btn-light",
-                        closeModal: true
-                    },
-                    confirm: {
-                        text: "Restaurar",
-                        value: true,
-                        visible: true,
-                        className: "btn btn-primary",
-                        closeModal: true
-                    }
-                }
-            }).then((confirmed) => {
-                if (confirmed) {
+            showConfirmation(
+                "Confirmar restauración",
+                `¿Está seguro que desea restaurar al usuario ${userName}?`,
+                "question",
+                "Restaurar",
+                "Cancelar",
+                function() {
                     // Mostrar indicador de carga
-                    Swal.fire({
-                        title: "Procesando",
-                        text: "Restaurando usuario...",
-                        icon: "info",
-                        buttons: false,
-                        closeOnClickOutside: false,
-                        closeOnEsc: false
-                    });
+                    showLoading("Procesando", "Restaurando usuario...");
 
                     // Llamada al servidor para restaurar usuario
                     fetch(`/Admin/api/users/${userId}/unban`, {
@@ -1053,15 +1047,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 title: "Completado",
                                 text: `Usuario ${userName} restaurado correctamente`,
                                 icon: "success",
-                                buttons: {
-                                    confirm: {
-                                        text: "Aceptar",
-                                        value: true,
-                                        visible: true,
-                                        className: "btn btn-success",
-                                        closeModal: true
-                                    }
-                                }
+                                confirmButtonText: "Aceptar",
+                                confirmButtonColor: "#28a745"
                             });
 
                             // Actualizar estado en la interfaz
@@ -1084,37 +1071,15 @@ document.addEventListener('DOMContentLoaded', function() {
                                 const userName = this.closest('tr').querySelector('td:nth-child(2)').textContent;
                                 console.log("Suspender usuario:", userId);
 
-                                Swal.fire({
-                                    title: "Confirmar suspensión",
-                                    text: `¿Está seguro que desea suspender al usuario ${userName}?`,
-                                    icon: "warning",
-                                    buttons: {
-                                        cancel: {
-                                            text: "Cancelar",
-                                            value: null,
-                                            visible: true,
-                                            className: "btn btn-light",
-                                            closeModal: true
-                                        },
-                                        confirm: {
-                                            text: "Suspender",
-                                            value: true,
-                                            visible: true,
-                                            className: "btn btn-danger",
-                                            closeModal: true
-                                        }
-                                    }
-                                }).then((confirmed) => {
-                                    if (confirmed) {
+                                showConfirmation(
+                                    "Confirmar suspensión",
+                                    `¿Está seguro que desea suspender al usuario ${userName}?`,
+                                    "warning",
+                                    "Suspender",
+                                    "Cancelar",
+                                    function() {
                                         // Mostrar indicador de carga
-                                        Swal.fire({
-                                            title: "Procesando",
-                                            text: "Suspendiendo usuario...",
-                                            icon: "info",
-                                            buttons: false,
-                                            closeOnClickOutside: false,
-                                            closeOnEsc: false
-                                        });
+                                        showLoading("Procesando", "Suspendiendo usuario...");
 
                                         // Llamada al servidor para suspender usuario
                                         fetch(`/Admin/api/users/${userId}/ban`, {
@@ -1134,15 +1099,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                                     title: "Completado",
                                                     text: `Usuario ${userName} suspendido correctamente`,
                                                     icon: "success",
-                                                    buttons: {
-                                                        confirm: {
-                                                            text: "Aceptar",
-                                                            value: true,
-                                                            visible: true,
-                                                            className: "btn btn-success",
-                                                            closeModal: true
-                                                        }
-                                                    }
+                                                    confirmButtonText: "Aceptar",
+                                                    confirmButtonColor: "#28a745"
                                                 });
 
                                                 // Actualizar UI
@@ -1165,19 +1123,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                                     title: "Error",
                                                     text: "Error: " + error.message,
                                                     icon: "error",
-                                                    buttons: {
-                                                        confirm: {
-                                                            text: "Aceptar",
-                                                            value: true,
-                                                            visible: true,
-                                                            className: "btn btn-danger",
-                                                            closeModal: true
-                                                        }
-                                                    }
+                                                    confirmButtonText: "Aceptar",
+                                                    confirmButtonColor: "#dc3545"
                                                 });
                                             });
                                     }
-                                });
+                                );
                             });
                         })
                         .catch(error => {
@@ -1186,24 +1137,20 @@ document.addEventListener('DOMContentLoaded', function() {
                                 title: "Error",
                                 text: "Error al restaurar usuario: " + error.message,
                                 icon: "error",
-                                buttons: {
-                                    confirm: {
-                                        text: "Aceptar",
-                                        value: true,
-                                        visible: true,
-                                        className: "btn btn-danger",
-                                        closeModal: true
-                                    }
-                                }
+                                confirmButtonText: "Aceptar",
+                                confirmButtonColor: "#dc3545"
                             });
                         });
                 }
-            });
+            );
         });
     }
-
     // Añadir listener a los botones de restaurar existentes
     restoreButtons.forEach(button => {
         addRestoreListener(button);
     });
+
+    document.addEventListener('DOMContentLoaded', applySweetAlertStyles);
+
 });
+

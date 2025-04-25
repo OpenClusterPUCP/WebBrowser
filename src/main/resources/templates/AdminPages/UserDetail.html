@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenCluster - Detalle de Usuario</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/apexcharts@3.41.0/dist/apexcharts.min.css">
+    <link rel="stylesheet" th:href="@{/css/admin-styles.css}">
+</head>
+<body>
+<div class="app-container">
+    <!-- Sidebar -->
+    <div th:replace="~{Fragments/Admin/sidebar :: sidebar('users')}"></div>
+
+    <!-- Contenido principal -->
+    <main class="main-content">
+        <!-- Header -->
+        <div th:replace="~{Fragments/Admin/header :: header(title='Detalle de Usuario')}"></div>
+
+        <section class="page-content">
+            <!-- Cabecera con acciones -->
+            <div class="content-header">
+                <div class="d-flex align-items-center">
+                    <a href="/Admin/users" class="btn btn-outline me-3">
+                        <i class="fas fa-arrow-left"></i>
+                        <span class="btn-text">Volver</span>
+                    </a>
+                    <h2 class="content-title" th:text="${user.name + ' ' + user.lastname}">Nombre del Usuario</h2>
+                    <span th:if="${user.state == 'active' || user.state == '1'}" class="badge badge-active ms-3">Activo</span>
+                    <span th:if="${user.state == 'banned' || user.state == '0'}" class="badge badge-danger ms-3">Suspendido</span>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-outline btn-resources" th:data-userid="${user.id}">
+                        <i class="fas fa-cog"></i>
+                        <span class="btn-text">Gestionar Recursos</span>
+                    </button>
+                    <button class="btn btn-primary" id="btnEditUser">
+                        <i class="fas fa-edit"></i>
+                        <span class="btn-text">Editar</span>
+                    </button>
+                    <button th:if="${user.state == 'active' || user.state == '1'}" class="btn btn-danger btn-ban" th:data-userid="${user.id}">
+                        <i class="fas fa-ban"></i>
+                        <span class="btn-text">Suspender</span>
+                    </button>
+                    <button th:if="${user.state == 'banned' || user.state == '0'}" class="btn btn-success btn-restore" th:data-userid="${user.id}">
+                        <i class="fas fa-undo"></i>
+                        <span class="btn-text">Restaurar</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Información del Usuario -->
+                <div class="col-lg-4">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="card-title">Información Personal</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="user-profile">
+                                <div class="user-avatar-container">
+                                    <div class="user-avatar">
+                                        <i class="fas fa-user-circle"></i>
+                                    </div>
+                                </div>
+                                <div class="user-info">
+                                    <h4 th:text="${user.name + ' ' + user.lastname}">Nombre completo</h4>
+                                    <p>
+                                        <span class="badge bg-secondary" th:text="${user.role}">Rol</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="user-details">
+                                <div class="detail-item">
+                                    <span class="detail-label">Código:</span>
+                                    <span class="detail-value" th:text="${user.code}">12345678</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Correo:</span>
+                                    <span class="detail-value" th:text="${user.username}">correo@ejemplo.com</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Estado:</span>
+                                    <span class="detail-value">
+                                    <span th:if="${user.state == 'active' || user.state == 1}" class="badge bg-success">Activo</span>
+                                    <span th:if="${user.state == 'banned' || user.state == 0}" class="badge bg-danger">Suspendido</span>
+                                </span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Fecha creación:</span>
+                                    <span class="detail-value" th:text="${user.createdAt != null ? user.createdAt : 'No disponible'}">01/01/2023</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Último acceso:</span>
+                                    <span class="detail-value" th:text="${user.lastLogin != null ? user.lastLogin : 'No disponible'}">01/01/2023 10:30</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recursos Asignados -->
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="card-title">Recursos Asignados</h5>
+                            <button class="btn btn-sm btn-outline btn-resources" th:data-userid="${user.id}">
+                                <i class="fas fa-cog"></i> Gestionar
+                            </button>
+                        </div>
+                        <div class="card-body" id="user-resources">
+                            <div class="resource-item">
+                                <div class="resource-info">
+                                    <span class="resource-name">CPU Virtual (vCPU)</span>
+                                    <span class="resource-value"><span id="vcpu-value">4</span> vCPU</span>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar" id="vcpu-progress" role="progressbar" style="width: 25%;" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">25%</div>
+                                </div>
+                            </div>
+                            <div class="resource-item">
+                                <div class="resource-info">
+                                    <span class="resource-name">Memoria RAM</span>
+                                    <span class="resource-value"><span id="ram-value">8</span> GB</span>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar" id="ram-progress" role="progressbar" style="width: 40%;" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100">40%</div>
+                                </div>
+                            </div>
+                            <div class="resource-item">
+                                <div class="resource-info">
+                                    <span class="resource-name">Almacenamiento</span>
+                                    <span class="resource-value"><span id="storage-value">100</span> GB</span>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar" id="storage-progress" role="progressbar" style="width: 15%;" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100">15%</div>
+                                </div>
+                            </div>
+                            <div class="resource-item">
+                                <div class="resource-info">
+                                    <span class="resource-name">Slices</span>
+                                    <span class="resource-value"><span id="slices-value">3</span> slices</span>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar" id="slices-progress" role="progressbar" style="width: 33%;" aria-valuenow="33" aria-valuemin="0" aria-valuemax="100">33%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel Derecho: Actividad y Métricas -->
+                <div class="col-lg-8">
+                    <!-- Slices Activos -->
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="card-title">Slices Activos</h5>
+                            <a href="#" class="btn btn-sm btn-outline">
+                                <i class="fas fa-external-link-alt"></i> Ver Todos
+                            </a>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Nombre</th>
+                                        <th>Tipo</th>
+                                        <th>VMs</th>
+                                        <th>Creado</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody id="slices-table-body">
+                                    <tr th:if="${#lists.isEmpty(slices)}">
+                                        <td colspan="7" class="text-center">No hay slices activos</td>
+                                    </tr>
+                                    <tr th:each="slice : ${slices}">
+                                        <td th:text="${slice.id}">1</td>
+                                        <td th:text="${slice.name}">Slice Demo</td>
+                                        <td th:text="${slice.type}">Lineal</td>
+                                        <td th:text="${slice.vmCount}">3</td>
+                                        <td th:text="${#dates.format(slice.createdAt, 'dd/MM/yyyy')}">01/01/2023</td>
+                                        <td>
+                                            <span class="badge badge-active" th:if="${slice.status == 'active'}">Activo</span>
+                                            <span class="badge badge-warning" th:if="${slice.status == 'building'}">Creando</span>
+                                            <span class="badge badge-danger" th:if="${slice.status == 'error'}">Error</span>
+                                        </td>
+                                        <td>
+                                            <div class="action-buttons">
+                                                <a href="#" class="action-btn" title="Ver detalles">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <button class="action-btn" title="Detener">
+                                                    <i class="fas fa-stop"></i>
+                                                </button>
+                                                <button class="action-btn text-danger" title="Eliminar">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gráficos de uso de recursos -->
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="card-title">Uso de Recursos</h5>
+                            <div class="period-selector">
+                                <select id="resourcePeriod" class="form-select form-select-sm">
+                                    <option value="day">Último día</option>
+                                    <option value="week" selected>Última semana</option>
+                                    <option value="month">Último mes</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="resourceChart" style="height: 300px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Historial de actividad -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title">Historial de Actividad</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="activity-timeline">
+                                <div class="timeline-item" th:each="activity : ${activities}">
+                                    <div class="timeline-icon" th:classappend="${activity.type == 'create' ? 'icon-create' : activity.type == 'update' ? 'icon-update' : activity.type == 'delete' ? 'icon-delete' : 'icon-info'}">
+                                        <i th:class="${activity.type == 'create' ? 'fas fa-plus' : activity.type == 'update' ? 'fas fa-edit' : activity.type == 'delete' ? 'fas fa-trash' : 'fas fa-info-circle'}"></i>
+                                    </div>
+                                    <div class="timeline-content">
+                                        <h6 class="timeline-title" th:text="${activity.description}">Acción realizada</h6>
+                                        <span class="timeline-date" th:text="${#dates.format(activity.timestamp, 'dd/MM/yyyy HH:mm')}">01/01/2023 10:30</span>
+                                    </div>
+                                </div>
+                                <div class="timeline-item" th:if="${#lists.isEmpty(activities)}">
+                                    <div class="timeline-icon icon-info">
+                                        <i class="fas fa-info-circle"></i>
+                                    </div>
+                                    <div class="timeline-content">
+                                        <h6 class="timeline-title">No hay actividad reciente</h6>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <div th:replace="~{Fragments/Admin/footer :: footer}"></div>
+    </main>
+</div>
+
+<!-- Modal para gestionar recursos -->
+<div class="modal" id="resourcesModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Gestionar Recursos de Usuario</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="user-resource-info">
+                <div class="user-avatar">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <div class="user-details">
+                    <h4 id="resourceUserName" th:text="${user.name + ' ' + user.lastname}">Nombre del Usuario</h4>
+                    <p id="resourceUserCode">Código: <span th:text="${user.code}"></span></p>
+                    <p id="resourceUserRole">Rol: <span th:text="${user.role}"></span></p>
+                </div>
+            </div>
+
+            <hr class="divider">
+
+            <div class="form-group">
+                <label class="form-label">CPU Virtual (vCPU)</label>
+                <div class="resource-slider-container">
+                    <input type="range" id="vcpuSlider" min="1" max="16" value="4" class="resource-slider">
+                    <div class="resource-value">
+                        <input type="number" id="vcpuValue" min="1" max="16" value="4" class="form-control form-control-sm">
+                        <span class="resource-unit">vCPU</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Memoria RAM</label>
+                <div class="resource-slider-container">
+                    <input type="range" id="ramSlider" min="1" max="32" value="8" class="resource-slider">
+                    <div class="resource-value">
+                        <input type="number" id="ramValue" min="1" max="32" value="8" class="form-control form-control-sm">
+                        <span class="resource-unit">GB</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Almacenamiento</label>
+                <div class="resource-slider-container">
+                    <input type="range" id="storageSlider" min="10" max="500" value="100" step="10" class="resource-slider">
+                    <div class="resource-value">
+                        <input type="number" id="storageValue" min="10" max="500" value="100" step="10" class="form-control form-control-sm">
+                        <span class="resource-unit">GB</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Número máximo de Slices</label>
+                <div class="resource-slider-container">
+                    <input type="range" id="slicesSlider" min="1" max="10" value="3" class="resource-slider">
+                    <div class="resource-value">
+                        <input type="number" id="slicesValue" min="1" max="10" value="3" class="form-control form-control-sm">
+                    </div>
+                </div>
+            </div>
+
+            <div class="resource-usage-summary">
+                <h5>Resumen de asignación</h5>
+                <div class="resource-summary-item">
+                    <div class="resource-name">CPU:</div>
+                    <div class="resource-value"><span id="vcpuUsed">0</span> / <span id="vcpuTotal">0</span> vCPU</div>
+                </div>
+                <div class="resource-summary-item">
+                    <div class="resource-name">RAM:</div>
+                    <div class="resource-value"><span id="ramUsed">0</span> / <span id="ramTotal">0</span> GB</div>
+                </div>
+                <div class="resource-summary-item">
+                    <div class="resource-name">Almacenamiento:</div>
+                    <div class="resource-value"><span id="storageUsed">0</span> / <span id="storageTotal">0</span> GB</div>
+                </div>
+                <div class="resource-summary-item">
+                    <div class="resource-name">Slices:</div>
+                    <div class="resource-value"><span id="slicesUsed">0</span> / <span id="slicesTotal">0</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" id="cancelResources">Cancelar</button>
+            <button class="btn btn-primary" id="saveResources">Guardar Cambios</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar usuario -->
+<div class="modal" id="editUserModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Editar Usuario</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="editUserForm">
+                <input type="hidden" id="editUserId" th:value="${user.id}">
+
+                <div class="form-group">
+                    <label class="form-label" for="editUserName">Nombre</label>
+                    <input type="text" id="editUserName" name="name" class="form-control" th:value="${user.name}" placeholder="Ingrese nombre" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="editUserLastName">Apellido</label>
+                    <input type="text" id="editUserLastName" name="lastname" class="form-control" th:value="${user.lastname}" placeholder="Ingrese apellido" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="editUserUsername">Correo electrónico</label>
+                    <input type="email" id="editUserUsername" name="username" class="form-control" th:value="${user.username}" placeholder="Ingrese correo electrónico" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="editUserCode">Código</label>
+                    <input type="text" id="editUserCode" name="code" class="form-control" th:value="${user.code}" placeholder="Ingrese código" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="editUserRole">Rol</label>
+                    <select id="editUserRole" name="role" class="form-control" required>
+                        <option value="1" th:selected="${user.roleId == 1}">Administrador</option>
+                        <option value="2" th:selected="${user.roleId == 2}">Usuario</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="editUserState">Estado</label>
+                    <select id="editUserState" name="state" class="form-control" required>
+                        <option value="active" th:selected="${user.state == 'active' || user.state == '1'}">Activo</option>
+                        <option value="banned" th:selected="${user.state == 'banned' || user.state == '0'}">Suspendido</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="editUserPassword">Nueva contraseña (dejar en blanco para mantener la actual)</label>
+                    <div class="password-info">
+                        <p><i class="fas fa-info-circle"></i> Si se proporciona, se generará una nueva contraseña automática y se mostrará en los logs.</p>
+                    </div>
+                    <div class="password-toggle-container">
+                        <input type="checkbox" id="changePassword" name="changePassword"> Generar nueva contraseña
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" id="cancelEditUser">Cancelar</button>
+            <button class="btn btn-primary" id="saveEditUser">Guardar Cambios</button>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.41.0/dist/apexcharts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script th:src="@{/js/admin/user-detail.js}"></script>
+
+</body>
+</html>

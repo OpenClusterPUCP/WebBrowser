@@ -18,26 +18,31 @@
             <input type="text" placeholder="Buscar...">
         </div>
 
+        <!-- Perfil de usuario -->
         <div class="user-profile">
             <div class="user-info">
-                <div class="avatar">JD</div>
+                <!-- Avatar con iniciales -->
+                <div class="avatar" th:text="${userInitials}">JD</div>
                 <div class="user-details">
-                    <div class="user-name">Juan Díaz</div>
-                    <div class="user-role">Administrador</div>
+                    <!-- Nombre completo del usuario -->
+                    <div class="user-name" th:text="${userName}">Juan Díaz</div>
+                    <!-- Rol del usuario -->
+                    <div class="user-role" th:text="${userRole}">Administrador</div>
                 </div>
             </div>
 
+            <!-- Dropdown del perfil -->
             <div class="user-dropdown">
                 <div class="user-dropdown-header">
-                    <div class="user-dropdown-name">Juan Díaz</div>
-                    <div class="user-dropdown-role">Administrador</div>
+                    <div class="user-dropdown-name" th:text="${userName}">Juan Díaz</div>
+                    <div class="user-dropdown-role" th:text="${userRole}">Administrador</div>
                 </div>
                 <div class="user-dropdown-items">
-                    <a href="#" class="user-dropdown-item">
+                    <a th:href="@{/admin/profile}" class="user-dropdown-item">
                         <i class="fas fa-user"></i>
                         <span>Mi Perfil</span>
                     </a>
-                    <a href="#" class="user-dropdown-item">
+                    <a th:href="@{/admin/settings}" class="user-dropdown-item">
                         <i class="fas fa-cog"></i>
                         <span>Configuración</span>
                     </a>
@@ -45,7 +50,7 @@
                         <i class="fas fa-sign-out-alt"></i>
                         <span>Cerrar Sesión</span>
                     </a>
-                    <form id="logout-form" action="/logout" method="post" style="display: none;"></form>
+                    <form id="logout-form" th:action="@{/logout}" method="post" style="display: none;"></form>
                 </div>
             </div>
         </div>

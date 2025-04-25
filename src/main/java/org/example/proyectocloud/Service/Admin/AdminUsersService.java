@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -28,6 +30,8 @@ public class AdminUsersService {
     private RestTemplate restTemplate;
 
     private ObjectMapper objectMapper = new ObjectMapper();
+
+    DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
     // URL base para el API Gateway
     private static final String API_GATEWAY_URL = "http://localhost:8090";
@@ -237,6 +241,8 @@ public class AdminUsersService {
                 userDTO.setRole((String) userData.get("role"));
                 userDTO.setRoleId((Integer) userData.get("roleId"));
                 userDTO.setState((String) userData.get("state"));
+                userDTO.setCreatedAt((String) userData.get("createdAt"));
+                userDTO.setLastLogin((String) userData.get("lastLogin"));
 
                 log.debug("Usuario ID {} recuperado: {}", userId, userDTO.getUsername());
                 return userDTO;
