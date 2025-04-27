@@ -1,0 +1,1381 @@
+// ==============================================================================
+// | ARCHIVO: creator.js
+// ==============================================================================
+// | DESCRIPCIÓN:
+// | Implementa la lógica principal para crear y gestionar las topologías de red
+// | en el frontend (topology-creator.html), mediante su visualización
+// | y la manipulación de los elementos de red.
+// ==============================================================================
+// | CONTENIDO PRINCIPAL:
+// | 1. CONFIGURACIÓN E INICIALIZACIÓN
+// |    - Importación de dependencias y datos
+// |    - Inicialización de variables globales
+// |    - Configuración de la librería para la gráfica de topologías
+// |
+// | 2. GESTIÓN DE MODALES/POP-UPS
+// |    - Creación/Edición de VMs
+// |    - Creación/Edición de Enlaces
+// |    - Gestión de las Plantillas de Topología
+// |    - Despliegue
+// |
+// | 3. OPERACIONES CRUD
+// |    - Creación de VMs y Enlaces
+// |    - Edición de elementos existentes
+// |    - Eliminación de elemntos
+// |
+// | 4. FUNCIONES DE TOPOLOGÍA
+// |    - Generación de topologías predefinidas (Lineal, Anillo, Malla, Estrella)
+// |    - Organización automática del layout
+// |    - Exportación/Importación de topologías
+// |    - Despliegue de Slices
+// |
+// | 5. UTILIDADES/HELPERS
+// |    - Generación de UUIDs
+// |    - Generación de MACs
+// |    - Mensajes breves de los elementos en la gráfica
+// |    - Helpers para poder manipular datos
+// ==============================================================================
+
+
+// ===================== IMPORTACIONES =====================
+import { AVAILABLE_IMAGES, AVAILABLE_FLAVORS } from './data-auxiliar.js';
+import { TopologyManager, VM, Link, Interface, Flavor, Image, Slice, VisVM, VisLink } from './classes.js';
+
+// ===================== VARIABLES GLOBALES =====================
+let network = null;
+let topologyManager = null;
+let visDataset = {
+    nodes: new vis.DataSet(),
+    edges: new vis.DataSet()
+};
+const container = document.getElementById('network-container');
+let addVMModal = null;
+let addLinkModal = null;
+let deployModal = null;
+let templateModal = null;
+window.addLinearTopology = () => showTemplateModal('linear');
+window.addRingTopology = () => showTemplateModal('ring');
+window.addMeshTopology = () => showTemplateModal('mesh');
+window.addStarTopology = () => showTemplateModal('star');
+
+// ===================== CONFIGURACIÓN PARA LA GRÁFICA DE TOPOLOGÍAS =====================
+const options = {
+    manipulation: {
+        enabled: true,
+        initiallyActive: true,
+        addNode: function(nodeData, callback) {
+            window.currentNetworkCallback = callback;
+            window.currentNodeData = {
+                ...nodeData,
+                x: nodeData.x,
+                y: nodeData.y
+            };
+            window.isEditMode = false;
+            showAddVMModal(callback);
+        },
+        addEdge: function(edgeData, callback) {
+            if (edgeData.from === edgeData.to) {
+                Swal.fire({
+                    title: 'Acción No Permitida',
+                    text: 'No se pueden crear enlaces que conecten una VM consigo misma',
+                    icon: 'warning',
+                    confirmButtonText: 'Entendido',
+                    customClass: {
+                        confirmButton: 'btn bg-gradient-primary'
+                    },
+                    buttonsStyling: false
+                });
+                callback(null);
+                return;
+            }
+            window.currentNetworkCallback = callback;
+            window.currentEdgeData = edgeData;
+            showAddLinkModal();
+        },  
+        editNode: undefined,
+        editEdge: false,
+        deleteNode: function(nodeData, callback) {
+            const nodeId = nodeData.nodes[0];
+            if(nodeId === undefined || nodeId === null) {
+                callback(null)
+            }
+            handleDeleteVM(nodeId);
+            callback(nodeData);
+            setTimeout(() => {
+                network.selectNodes([])
+            }, 0);
+        },
+        deleteEdge: function(edgeData, callback) {
+            const edgeId = edgeData.edges[0];
+            handleDeleteLink(edgeId);
+            callback(edgeData);
+            setTimeout(() => {
+                network.selectNodes([])
+            }, 0);
+        }
+    },
+    physics: {
+        enabled: false,
+    },
+    interaction: {
+        hover: true,
+        tooltipDelay: 300,
+        zoomView: true,
+        dragView: true,
+        navigationButtons: true,
+        zoomSpeed: 0.5,
+        keyboard: {
+            enabled: true,
+            speed: { 
+                x: 5, 
+                y: 5, 
+                zoom: 0.008
+            },
+            bindToWindow: false
+        }
+    },
+    nodes: {
+        shape: 'image',
+        image: '../static/slice/topology-creator/host.png',
+        size: 30,
+        shadow: {
+            enabled: true,
+            color: 'rgba(7, 7, 7, 0.41)',
+            size: 26,
+            x: 6,
+            y: 6
+        },
+        font: {
+            size: 16,
+            color: '#000000',    
+            face: 'Roboto',         
+            strokeWidth: 4,       
+            strokeColor: '#ffffff', 
+            background: '#ffffff', 
+            multi: true,        
+            bold: '16px arial',    
+        },
+        fixed: false,
+        chosen: {                
+            node: function(values, id, selected, hovering) {
+                values.shadowSize = 15;
+                values.shadowX = 7;
+                values.shadowY = 7;
+            }
+        }
+    },
+    edges: {
+        width: 2,
+        length: 130,
+        color: {
+            color: '#000000',      
+            highlight: '#cb0c9f',  
+            hover: '#cb0c9f',    
+            opacity: 0.8
+        },
+        shadow: {
+            enabled: true,
+            color: 'rgba(0, 0, 0, 0.5)',
+            size: 21,
+            x: 5,
+            y: 5
+        },
+        smooth: {                  
+            enabled: true,
+            type: 'dynamic',
+            roundness: 0.8
+        },
+        font: {
+            size: 15,
+            face: 'Roboto',
+            align: 'middle',
+            strokeWidth: 3,
+            strokeColor: '#ffffff',
+            background: '#ffffff',
+            multi: true
+        },
+        arrows: {
+            to: {
+                enabled: false
+            }
+        },
+        chosen: {
+            edge: function(values, id, selected, hovering) {
+                if (hovering) {
+                    values.width = 3;
+                    values.color = '#e91e63';
+                    values.shadow = {
+                        enabled: true,
+                        color: '#e91e63',
+                        size: 15,
+                        x: 3,
+                        y: 3
+                    };
+                    values.font = {
+                        size: 16,
+                        strokeWidth: 5,
+                        bold: true,
+                        zIndex: 999,
+                        background: {
+                            enabled: true,
+                            color: '#ffffff',
+                            size: 8
+                        }
+                    };
+                } else {
+                    values.width = 2;
+                    values.color = '#344767';
+                    values.shadow = {
+                        enabled: true,
+                        color: 'rgba(0, 0, 0, 0.5)',
+                        size: 10,
+                        x: 3,
+                        y: 3
+                    };
+                    values.font = {
+                        size: 14,
+                        strokeWidth: 3,
+                        bold: true,
+                        zIndex: 0,
+                        background: {
+                            enabled: true,
+                            color: '#ffffff',
+                            size: 6
+                        }
+                    };
+                }
+            },
+            label: function(values, id, selected, hovering) {
+                if (hovering) {
+                    values.size = 16;
+                    values.strokeWidth = 5;
+                } else {
+                    values.size = 14;
+                    values.strokeWidth = 3;
+                }
+            }
+        }
+    },
+};
+
+// ===================== INICIALIZACIÓN =====================
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicialización de la red/topología
+    topologyManager = new TopologyManager();
+    network = new vis.Network(
+        container,
+        visDataset,
+        options
+    );
+    // Listeners para la edición de elementos
+    network.on('doubleClick', function(params) {
+        if (params.nodes && params.nodes.length > 0) {
+            const nodeId = params.nodes[0];
+            showEditVMModal(nodeId);
+            return;
+        }
+        if (params.edges && params.edges.length > 0) {
+            const edgeId = params.edges[0];
+            showEditLinkModal(edgeId);
+            return;
+        }
+    });
+    // Inicialización de los modales/pop-ups
+    initializeModals();
+});
+
+// ===================== MODALES/POP-UPS =====================
+function initializeModals() {
+    addVMModal = new bootstrap.Modal(document.getElementById('addVMModal'));
+    addLinkModal = new bootstrap.Modal(document.getElementById('addLinkModal'));
+    templateModal = new bootstrap.Modal(document.getElementById('templateModal'));
+    deployModal = new bootstrap.Modal(document.getElementById('deployModal'));
+    populateSelects();
+    setupModalEvents();
+}
+
+function populateSelects() {
+    const imageSelect = document.getElementById('vmImage');
+    const flavorSelect = document.getElementById('vmFlavor');
+
+    imageSelect.innerHTML = '<option value="" selected disabled>----</option>';
+    flavorSelect.innerHTML = '<option value="" selected disabled>----</option>';
+
+    if (AVAILABLE_IMAGES && AVAILABLE_IMAGES.length > 0) {
+        AVAILABLE_IMAGES.forEach((image, index) => {
+            const option = document.createElement('option');
+            option.value = image.id;
+            option.textContent = image.name;
+            imageSelect.appendChild(option);
+            if (index === 0) {
+                console.log('Setting default image:', image.id);
+                imageSelect.value = image.id;
+            }
+        });
+    } else {
+        console.error('No hay imágenes: ', AVAILABLE_IMAGES);
+    }
+
+    if (AVAILABLE_FLAVORS && AVAILABLE_FLAVORS.length > 0) {
+        AVAILABLE_FLAVORS.forEach((flavor, index) => {
+            const option = document.createElement('option');
+            option.value = flavor.id;
+            option.textContent = flavor.name;
+            flavorSelect.appendChild(option);
+            if (index === 0) {
+                flavorSelect.value = flavor.id;
+            }
+        });
+    } else {
+        console.error('No hay flavors: ', AVAILABLE_FLAVORS);
+    }
+}
+
+function setupModalEvents() {
+    document.getElementById('vmFlavor').addEventListener('change', updateFlavorDetails);
+    document.getElementById('vmSubmitButton').onclick = function() {
+        const form = document.getElementById('addVMForm');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        if (window.isEditMode) {
+            handleEditVM();
+        } else {
+            handleCreateVM();
+        }
+    };
+    document.getElementById('linkSubmitButton').onclick = function() {
+        if (window.isEditMode) {
+            handleEditLink();
+        } else {
+            handleCreateLink();
+        }
+    };
+    document.getElementById('templateSubmitButton').onclick = createTemplateTopology;
+}
+
+function resetModalState() {
+    const form = document.getElementById('addVMForm');
+    form.reset();
+    
+    document.getElementById('flavorRAM').textContent = '-';
+    document.getElementById('flavorCPUs').textContent = '-';
+    document.getElementById('flavorDisk').textContent = '-';
+}
+
+function showAddVMModal() {
+    document.querySelector('#addVMModal .modal-title').innerHTML = `
+        <i class="material-symbols-rounded me-2">computer</i>
+        Agregar Máquina Virtual`;
+    resetModalState();
+    window.isEditMode = false;
+    addVMModal.show();
+}
+
+function showAddLinkModal() {
+    document.querySelector('#addLinkModal .modal-title').innerHTML = `
+        <i class="material-symbols-rounded me-2">link</i>
+        Agregar Enlace de Red`;
+
+    document.getElementById('addLinkForm').reset();
+    window.isEditMode = false;
+    addLinkModal.show();
+}
+
+function showEditVMModal(vmId) {
+    const vm = topologyManager.vms.get(vmId);
+    if (!vm) return;
+
+    window.currentNodeData = {
+        id: vmId,
+        x: visDataset.nodes.get(vmId).x,
+        y: visDataset.nodes.get(vmId).y
+    };
+
+    window.isEditMode = true;
+
+    document.querySelector('#addVMModal .modal-title').innerHTML = `
+        <i class="material-symbols-rounded me-2">edit</i>
+        Editar Máquina Virtual`;
+
+    document.getElementById('vmName').value = vm.name;
+    document.getElementById('vmImage').value = vm.image_id;
+    document.getElementById('vmFlavor').value = vm.flavor_id;
+    
+    updateFlavorDetails();
+
+    const interfaces = Array.from(topologyManager.interfaces.values());
+    const vmInterfaces = interfaces.filter(iface => iface.vm_id === vm.id);
+    const hasExternal = vmInterfaces.some(iface => iface.external_access === true);
+    const checkbox = document.getElementById('vmExternalAccess');
+    checkbox.checked = hasExternal;
+
+    addVMModal.show();
+}
+
+function showEditLinkModal(linkId) {
+    const link = topologyManager.links.get(linkId);
+    if (!link) return;
+
+    window.currentEdgeData = {
+        id: linkId,
+        ...visDataset.edges.get(linkId)
+    };
+    window.isEditMode = true;
+
+    document.querySelector('#addLinkModal .modal-title').innerHTML = `
+        <i class="material-symbols-rounded me-2">edit</i>
+        Editar Enlace de Red`;
+
+    document.getElementById('linkName').value = link.name;
+
+    addLinkModal.show();
+}
+
+window.showDeployModal = function() {
+    if (!topologyManager || topologyManager.vms.size === 0) {
+        Swal.fire({
+            title: 'Topología Vacía',
+            text: 'Por favor cree una topología antes de intentar desplegar',
+            icon: 'warning',
+            confirmButtonText: 'Entendido',
+            customClass: {
+                confirmButton: 'btn bg-gradient-primary'
+            },
+            buttonsStyling: false
+        });
+        return;
+    }
+    
+    document.getElementById('deployForm').reset();
+    deployModal.show();
+}
+
+function updateFlavorDetails() {
+    const flavorId = document.getElementById('vmFlavor').value;
+    const flavor = AVAILABLE_FLAVORS.find(f => f.id === flavorId);
+    
+    if (flavor) {
+        document.getElementById('flavorRAM').textContent = `${flavor.ram} MB`;
+        document.getElementById('flavorCPUs').textContent = flavor.vcpus;
+        document.getElementById('flavorDisk').textContent = `${flavor.disk} GB`;
+    }
+}
+
+
+// ===================== CREACIÓN DE VMs =====================
+window.handleCreateVM = function() {
+    const form = document.getElementById('addVMForm');
+    const imageSelect = document.getElementById('vmImage');
+    const flavorSelect = document.getElementById('vmFlavor');
+    
+    if (!imageSelect.value || !flavorSelect.value) {
+        form.reportValidity();
+        return;
+    }
+
+    const flavor = AVAILABLE_FLAVORS.find(flavor => flavor.id === flavorSelect.value);
+    const image = AVAILABLE_IMAGES.find(image => image.id === imageSelect.value);
+    const vmName = document.getElementById('vmName').value;
+    const defaultName = `VM-${topologyManager.vms.size + 1}`;
+    const vmData = {
+        id: topologyManager.generateUUID(),
+        name: vmName || defaultName,
+        label: vmName || defaultName,
+        image_id: imageSelect.value,
+        flavor_id: flavorSelect.value,
+    };
+    const vmObject = new VM(
+        vmData.id,
+        vmData.name,
+        vmData.image_id,
+        vmData.flavor_id,
+    );
+    const title = `Nombre: ${vmData.name}
+        Imagen: ${image.name}
+        Flavor: ${flavor.name}
+        Acceso externo: ${document.getElementById('vmExternalAccess').checked? 'Sí' : 'No'}`;
+    topologyManager.addVM(vmObject,title);
+    visDataset.nodes.add({
+        ...topologyManager.visNodes.get(vmObject.id),
+        x: window.currentNodeData.x,
+        y: window.currentNodeData.y
+    });
+
+    if (document.getElementById('vmExternalAccess').checked) {
+        const interfaceData = {
+            id: topologyManager.generateUUID(),
+            name: 'exth',
+            vm_id: vmData.id,
+            link_id: null,
+            mac_address: null,
+            external_access: true
+        };
+        topologyManager.addInterface(interfaceData);
+    }
+
+    console.log(topologyManager)
+
+    addVMModal.hide();
+
+    if (window.currentNetworkCallback) {  
+        window.currentNetworkCallback(window.currentNodeData);
+        window.currentNetworkCallback = null;  
+        window.currentNodeData = null;
+    }
+}
+
+// ===================== CREACIÓN DE ENLACES =====================
+window.handleCreateLink = function() {
+    const edgeData = window.currentEdgeData;
+    if (!edgeData) return;
+
+    const linkName = document.getElementById('linkName').value;
+    const defaultName = `Enlace-${topologyManager.links.size + 1}`;
+    const linkData = {
+        id: topologyManager.generateUUID(),
+        name: linkName || defaultName
+    };
+    const sourceVM = topologyManager.vms.get(edgeData.from);
+    const targetVM = topologyManager.vms.get(edgeData.to);
+    
+    if (!sourceVM || !targetVM) {
+        return;
+    }
+
+    const sourceInterface = {
+        id: topologyManager.generateUUID(),
+        name: `if-${topologyManager.getVMInterfacesCount(sourceVM.id) + 1}`,
+        vm_id: sourceVM.id,
+        link_id: linkData.id,
+        mac_address: null,
+        external_access: false
+    };
+    const targetInterface = {
+        id: topologyManager.generateUUID(),
+        name: `if-${topologyManager.getVMInterfacesCount(targetVM.id) + 1}`,
+        vm_id: targetVM.id,
+        link_id: linkData.id,
+        mac_address: null,
+        external_access: false
+    };
+
+    topologyManager.addLink(linkData, sourceVM, targetVM);
+    topologyManager.addInterface(sourceInterface);
+    topologyManager.addInterface(targetInterface);
+
+    const edgeVisData = {
+        id: linkData.id,
+        from: edgeData.from,
+        to: edgeData.to,
+        label: linkData.name,
+        title: `Nombre: ${linkData.name}`,
+    };
+
+    visDataset.edges.add(edgeVisData);
+
+    console.log(topologyManager)
+    addLinkModal.hide();
+
+    if (window.currentNetworkCallback) {
+        window.currentNetworkCallback(edgeVisData);
+        window.currentNetworkCallback = null;
+        window.currentEdgeData = null;
+    }
+}
+
+// ===================== EDICIÓN DE VMs =====================
+window.handleEditVM = function() {
+    const vmId = window.currentNodeData.id;
+    const vm = topologyManager.vms.get(vmId);
+    if (!vm) return;
+
+    const form = document.getElementById('addVMForm');
+    const imageSelect = document.getElementById('vmImage');
+    const flavorSelect = document.getElementById('vmFlavor');
+    
+    if (!imageSelect.value || !flavorSelect.value) {
+        form.reportValidity();
+        return;
+    }
+
+    const newName = document.getElementById('vmName').value || vm.name;
+    const newImageId = imageSelect.value;
+    const newFlavorId = flavorSelect.value;
+    const newExternalAccess = document.getElementById('vmExternalAccess').checked;
+    const flavor = AVAILABLE_FLAVORS.find(f => f.id === newFlavorId);
+    const image = AVAILABLE_IMAGES.find(i => i.id === newImageId);
+
+    vm.name = newName;
+    vm.image_id = newImageId;
+    vm.flavor_id = newFlavorId;
+
+    const title = `Nombre: ${vm.name}
+        Imagen: ${image.name}
+        Flavor: ${flavor.name}
+        Acceso externo: ${newExternalAccess ? 'Sí' : 'No'}`;
+
+    const visData = {
+        id: vm.id,
+        label: vm.name,
+        title: title
+    };
+    topologyManager.visNodes.set(vm.id, new VisVM(vm, title));
+    visDataset.nodes.update(visData);
+
+    const hasExternal = topologyManager.hasExternalAccess(vm.id);
+    if (newExternalAccess && !hasExternal) {
+        const interfaceData = {
+            id: topologyManager.generateUUID(),
+            name: 'exth',
+            vm_id: vm.id,
+            link_id: null,
+            mac_address: null,
+            external_access: true
+        };
+        topologyManager.addInterface(interfaceData);
+    } else if (!newExternalAccess && hasExternal) {
+        topologyManager.removeExternalAccess(vm.id);
+    }
+
+    console.log(topologyManager)
+    addVMModal.hide();
+    window.currentNodeData = null;
+}
+
+// ===================== EDICIÓN DE ENLACES =====================
+window.handleEditLink = function() {
+    const linkId = window.currentEdgeData.id;
+    const link = topologyManager.links.get(linkId);
+    if (!link) return;
+
+    const newName = document.getElementById('linkName').value;
+    const defaultName = link.name;
+
+    link.name = newName || defaultName;
+
+    const visData = {
+        id: linkId,
+        label: link.name,
+        title: `Nombre: ${link.name}`,
+        from: window.currentEdgeData.from,
+        to: window.currentEdgeData.to
+    };
+
+    topologyManager.visEdges.set(link.id, new VisLink(link,visData.from, visData.to));
+    visDataset.edges.update(visData);
+
+    addLinkModal.hide();
+    window.currentEdgeData = null;
+    window.isEditMode = false;
+}
+
+// ===================== ELIMINACIÓN D ELEMENTOS =====================
+function handleDeleteVM(vmId) {
+    const vm = topologyManager.vms.get(vmId);
+    if (!vm) return;
+
+    const vmInterfaces = Array.from(topologyManager.interfaces.values())
+        .filter(iface => iface.vm_id === vmId);
+
+    vmInterfaces.forEach(iface => {
+        if (iface.link_id) {
+            const link = topologyManager.links.get(iface.link_id);
+            if (link) {
+                topologyManager.links.delete(link.id);
+                topologyManager.visEdges.delete(link.id);
+                visDataset.edges.remove(link.id);
+                Array.from(topologyManager.interfaces.values())
+                    .filter(i => i.link_id === link.id)
+                    .forEach(i => topologyManager.interfaces.delete(i.id));
+            }
+        }
+        topologyManager.interfaces.delete(iface.id);
+    });
+
+    topologyManager.vms.delete(vmId);
+    topologyManager.visNodes.delete(vmId);
+    visDataset.nodes.remove(vmId);
+    network.disableEditMode();
+    network.enableEditMode();
+}
+
+function handleDeleteLink(linkId) {
+    const link = topologyManager.links.get(linkId);
+    if (!link) return;
+
+    Array.from(topologyManager.interfaces.values())
+        .filter(iface => iface.link_id === linkId)
+        .forEach(iface => {
+            topologyManager.interfaces.delete(iface.id);
+        });
+
+    topologyManager.links.delete(linkId);
+    topologyManager.visEdges.delete(linkId);
+    visDataset.edges.remove(linkId);
+    network.disableEditMode();
+    network.enableEditMode();
+    console.log(topologyManager)
+}
+
+// ===================== DESPLIEGUE DE SLICEs =====================
+window.handleDeployTopology = function() { //Esta función fue de prueba :p
+    const form = document.getElementById('deployForm');
+    if (!form.checkValidity()) {
+        form.classList.add('was-validated');
+        return;
+    }
+
+    const sliceName = document.getElementById('sliceName').value;
+    const sliceDescription = document.getElementById('sliceDescription').value;
+    const slice = new Slice(topologyManager.generateUUID(),
+                            sliceName,
+                            sliceDescription || null,
+                            "usuario-69")
+    const deploymentData = {
+        slice_info: slice,
+        topology_info: {
+            vms: Array.from(topologyManager.vms.values()).map(vm => ({
+                id: vm.id,
+                name: vm.name,
+                image_id: vm.image_id,
+                flavor_id: vm.flavor_id
+            })),
+            links: Array.from(topologyManager.links.values()).map(link => ({
+                id: link.id,
+                name: link.name
+            })),
+            interfaces: Array.from(topologyManager.interfaces.values()).map(iface => ({
+                id: iface.id,
+                name: iface.name,
+                vm_id: iface.vm_id,
+                link_id: iface.link_id,
+                mac_address: iface.mac_address,
+                external_access: iface.external_access
+            }))
+        }
+    };
+
+    const jsonString = JSON.stringify(deploymentData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+
+    a.href = url;
+    a.download = `slice-${sliceName.toLowerCase().replace(/\s+/g, '-')}.json`;
+    document.body.appendChild(a);
+    a.click();
+    
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    deployModal.hide();
+}
+
+window.deployTopology = function() {
+    const form = document.getElementById('deployForm');
+    if (!form.checkValidity()) {
+        form.classList.add('was-validated');
+        return;
+    }
+
+    const sliceName = document.getElementById('sliceName').value;
+    const sliceDescription = document.getElementById('sliceDescription').value;
+    const slice = new Slice(topologyManager.generateUUID(),
+                            sliceName,
+                            sliceDescription || null,
+                            "usuario-69")              
+    const deploymentData = {
+        slice_info: slice,
+        topology_info: {
+            vms: Array.from(topologyManager.vms.values()).map(vm => ({
+                id: vm.id,
+                name: vm.name,
+                image_id: vm.image_id,
+                flavor_id: vm.flavor_id
+            })),
+            links: Array.from(topologyManager.links.values()).map(link => ({
+                id: link.id,
+                name: link.name
+            })),
+            interfaces: Array.from(topologyManager.interfaces.values()).map(iface => ({
+                id: iface.id,
+                name: iface.name,
+                vm_id: iface.vm_id,
+                link_id: iface.link_id,
+                mac_address: iface.mac_address,
+                external_access: iface.external_access
+            }))
+        }
+    };
+    const topology = deploymentData;
+
+    Swal.fire({
+        title: '¿Desplegar Topología?',
+        text: '¿Estás seguro de que deseas desplegar esta topología como una Slice?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, desplegar',
+        cancelButtonText: 'Cancelar',
+        customClass: {
+            confirmButton: 'btn bg-gradient-success',
+            cancelButton: 'btn bg-gradient-secondary ms-2'
+        },
+        buttonsStyling: false
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Desplegando',
+                text: 'Por favor espera mientras se despliega la Slice...',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            $.ajax({
+                url: 'http://localhost:5000/deploy-slice', // Cambia por la URL del backend al probar uwu
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(topology),
+                success: function(response) {
+                    if (response.status === 'success') {
+                        const sliceId = response.slice.slice_info.id;
+                        Swal.fire({
+                            title: 'Éxito',
+                            text: 'Slice desplegada correctamente',
+                            icon: 'success',
+                            confirmButtonText: 'Ver Slice',
+                            customClass: {
+                                confirmButton: 'btn bg-gradient-primary'
+                            },
+                            buttonsStyling: false
+                        }).then((result) => {
+                            window.location.href = `/slice-view/${sliceId}`;
+                        });
+                    }
+                },
+                error: function(xhr, status, error) {
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'Error al desplegar la Slice',
+                        icon: 'error',
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            confirmButton: 'btn bg-gradient-primary'
+                        },
+                        buttonsStyling: false
+                    });
+                }
+            });
+        }
+    });
+}
+
+window.showSuccessMessage = function(message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-success alert-dismissible fade position-fixed top-0 end-0 m-3 text-white';
+    alertDiv.style.cssText = `
+        z-index: 9999;
+        animation: slideIn 0.5s ease forwards, pulse 1.5s ease-in-out infinite;
+        transform: translateX(100%);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.15), 0 6px 6px rgba(0,0,0,0.12);
+    `;
+
+    if (!document.getElementById('alertAnimationStyles')) {
+        const styleSheet = document.createElement('style');
+        styleSheet.id = 'alertAnimationStyles';
+        styleSheet.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+            @keyframes pulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.02); }
+                100% { transform: scale(1); }
+            }
+            .alert-exit {
+                animation: slideOut 0.5s ease forwards !important;
+            }
+            .alert {
+                transition: all 0.3s ease;
+            }
+            .alert:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 15px 25px rgba(0,0,0,0.18), 0 8px 8px rgba(0,0,0,0.15);
+            }
+        `;
+        document.head.appendChild(styleSheet);
+    }
+
+    alertDiv.innerHTML = `
+        <i class="material-symbols-rounded me-2">check_circle</i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        alertDiv.classList.add('show');
+    }, 10);
+
+    setTimeout(() => {
+        alertDiv.classList.add('alert-exit');
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 500);
+    }, 5500);
+}
+
+// ===================== PLANTILLAS DE TOPOLOGÍAS / SUBTOPOLOGÍAS =====================
+function showTemplateModal(type) {
+    const modal = new bootstrap.Modal(document.getElementById('templateModal'));
+    const title = document.querySelector('#templateModal .modal-title');
+    const submitButton = document.getElementById('templateSubmitButton');
+    const imageSelect = document.getElementById('templateImage');
+    const flavorSelect = document.getElementById('templateFlavor');
+    
+    imageSelect.innerHTML = '';
+    flavorSelect.innerHTML = '';
+    
+    AVAILABLE_IMAGES.forEach((image, index) => {
+        const option = document.createElement('option');
+        option.value = image.id;
+        option.textContent = image.name;
+        imageSelect.appendChild(option);
+        if (index === 0) imageSelect.value = image.id;
+    });
+    
+    AVAILABLE_FLAVORS.forEach((flavor, index) => {
+        const option = document.createElement('option');
+        option.value = flavor.id;
+        option.textContent = flavor.name;
+        flavorSelect.appendChild(option);
+        if (index === 0) flavorSelect.value = flavor.id;
+    });
+    
+    const initialFlavor = AVAILABLE_FLAVORS[0];
+    const details = document.getElementById('templateFlavorDetails');
+    details.textContent = `RAM: ${initialFlavor.ram}MB | vCPUs: ${initialFlavor.vcpus} | Disco: ${initialFlavor.disk}GB`;
+    
+    
+    flavorSelect.addEventListener('change', () => {
+        const flavor = AVAILABLE_FLAVORS.find(f => f.id === flavorSelect.value);
+        const details = document.getElementById('templateFlavorDetails');
+        if (flavor) {
+            details.textContent = `RAM: ${flavor.ram}MB | vCPUs: ${flavor.vcpus} | Disco: ${flavor.disk}GB`;
+        } else {
+            details.textContent = 'RAM: - | vCPUs: - | Disco: -';
+        }
+    });
+
+    switch(type) {
+        case 'linear': title.innerHTML = '<i class="material-symbols-rounded me-2">linear_scale</i>Topología Lineal'; break;
+        case 'ring': title.innerHTML = '<i class="material-symbols-rounded me-2">radio_button_unchecked</i>Topología en Anillo'; break;
+        case 'mesh': title.innerHTML = '<i class="material-symbols-rounded me-2">grid_4x4</i>Topología en Malla'; break;
+        case 'star': title.innerHTML = '<i class="material-symbols-rounded me-2">star</i>Topología en Estrella'; break;
+    }
+
+    submitButton.onclick = () => createTemplateTopology(type);
+    modal.show();
+}
+
+function createTemplateTopology(type) {
+    const vmCount = parseInt(document.getElementById('templateVMCount').value);
+    const imageId = document.getElementById('templateImage').value;
+    const flavorId = document.getElementById('templateFlavor').value;
+
+    if (!vmCount || !imageId || !flavorId) {
+        Swal.fire({
+            title: 'Datos Incompletos',
+            text: 'Por favor complete todos los campos',
+            icon: 'warning',
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+
+    if (isNaN(vmCount) || vmCount < 2) {
+        Swal.fire({
+            title: 'Datos Incorrectos',
+            text: 'Por favor ingrese un número válido de VMs (Min: 2)',
+            icon: 'warning',
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+
+    if (vmCount > 10) {
+        Swal.fire({
+            title: 'Datos Incorrectos',
+            text: 'Por favor ingrese un número válido de VMs (Máx: 10)',
+            icon: 'warning',
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+
+    switch(type) {
+        case 'linear': createLinearTopology(vmCount, imageId, flavorId); break;
+        case 'ring': createRingTopology(vmCount, imageId, flavorId); break;
+        case 'mesh': createMeshTopology(vmCount, imageId, flavorId); break;
+        case 'star': createStarTopology(vmCount, imageId, flavorId); break;
+    }
+
+    document.getElementById('templateVMCount').value = 2;
+
+    bootstrap.Modal.getInstance(document.getElementById('templateModal')).hide();
+}
+
+function createTemplateVM(x, y, imageId, flavorId) {
+    const vmId = topologyManager.generateUUID();
+    const vmName = `VM-${topologyManager.vms.size + 1}`;
+    const vm = new VM(vmId, vmName, imageId, flavorId);
+    const image = AVAILABLE_IMAGES.find(img => img.id === imageId);
+    const flavor = AVAILABLE_FLAVORS.find(f => f.id === flavorId);
+    const title = `Nombre: ${vmName}
+        Imagen: ${image.name}
+        Flavor: ${flavor.name}
+        Acceso externo: No`;
+        
+    topologyManager.addVM(vm, title);
+
+    visDataset.nodes.add({
+        ...topologyManager.visNodes.get(vmId),
+        x: x,
+        y: y
+    });
+
+    return vmId;
+}
+
+function createTemplateLink(sourceId, targetId) {
+    const linkId = topologyManager.generateUUID();
+    const linkName = `Enlace-${topologyManager.links.size + 1}`;
+    const linkData = {
+        id: linkId,
+        name: linkName
+    };
+    const sourceInterface = {
+        id: topologyManager.generateUUID(),
+        name: `if-${topologyManager.getVMInterfacesCount(sourceId) + 1}`,
+        vm_id: sourceId,
+        link_id: linkId,
+        mac_address: null,
+        external_access: false
+    };
+    const targetInterface = {
+        id: topologyManager.generateUUID(),
+        name: `if-${topologyManager.getVMInterfacesCount(targetId) + 1}`,
+        vm_id: targetId,
+        link_id: linkId,
+        mac_address: null,
+        external_access: false
+    };
+
+    topologyManager.addLink(linkData, topologyManager.vms.get(sourceId), topologyManager.vms.get(targetId));
+    topologyManager.addInterface(sourceInterface);
+    topologyManager.addInterface(targetInterface);
+
+    visDataset.edges.add({
+        id: linkId,
+        from: sourceId,
+        to: targetId,
+        label: linkName,
+        title: `Nombre: ${linkName}`,
+    });
+}
+
+function createLinearTopology(vmCount, imageId, flavorId) {
+    const centerY = 0;
+    const spacing = 200;
+    const startX = -(vmCount - 1) * spacing / 2;
+    const vmIds = [];
+    
+    for (let i = 0; i < vmCount; i++) {
+        const x = startX + (i * spacing);
+        vmIds.push(createTemplateVM(x, centerY, imageId, flavorId));
+    }
+
+    for (let i = 0; i < vmCount - 1; i++) {
+        createTemplateLink(vmIds[i], vmIds[i + 1]);
+    }
+
+    arrangeTopology();
+}
+
+function createRingTopology(vmCount, imageId, flavorId) {
+    const radius = vmCount * 50;
+    const vmIds = [];
+    
+    for (let i = 0; i < vmCount; i++) {
+        const angle = (2 * Math.PI * i) / vmCount;
+        const x = radius * Math.cos(angle);
+        const y = radius * Math.sin(angle);
+        vmIds.push(createTemplateVM(x, y, imageId, flavorId));
+    }
+
+    for (let i = 0; i < vmCount; i++) {
+        createTemplateLink(vmIds[i], vmIds[(i + 1) % vmCount]);
+    }
+
+    arrangeTopology();
+}
+
+function createMeshTopology(vmCount, imageId, flavorId) {
+    const radius = vmCount * 50;
+    const vmIds = [];
+    
+    for (let i = 0; i < vmCount; i++) {
+        const angle = (2 * Math.PI * i) / vmCount;
+        const x = radius * Math.cos(angle);
+        const y = radius * Math.sin(angle);
+        vmIds.push(createTemplateVM(x, y, imageId, flavorId));
+    }
+
+    for (let i = 0; i < vmCount; i++) {
+        for (let j = i + 1; j < vmCount; j++) {
+            createTemplateLink(vmIds[i], vmIds[j]);
+        }
+    }
+
+    arrangeTopology();
+}
+
+function createStarTopology(vmCount, imageId, flavorId) {
+    const radius = vmCount * 50;
+    const vmIds = [];
+    const centerId = createTemplateVM(0, 0, imageId, flavorId);
+    vmIds.push(centerId);
+
+    for (let i = 1; i < vmCount; i++) {
+        const angle = (2 * Math.PI * (i - 1)) / (vmCount - 1);
+        const x = radius * Math.cos(angle);
+        const y = radius * Math.sin(angle);
+        vmIds.push(createTemplateVM(x, y, imageId, flavorId));
+    }
+
+    for (let i = 1; i < vmCount; i++) {
+        createTemplateLink(centerId, vmIds[i]);
+    }
+
+    arrangeTopology();
+}
+
+// ===================== ACCIONES RÁPIDAS =====================
+
+function arrangeTopology() {
+    if (!network || visDataset.nodes.length === 0) return;
+
+    network.setOptions({ physics: { enabled: true } });
+    network.stabilize(80);
+    
+    setTimeout(() => {
+        network.setOptions({ physics: { enabled: false } });
+        // Final fit
+        network.fit({
+            animation: {
+                duration: 1000,
+                easingFunction: 'easeInOutQuad'
+            }
+        });
+    }, 800);
+}
+
+window.autoArrangeTopology = function() {
+    arrangeTopology();
+}
+
+window.clearTopology = function() {
+    visDataset.nodes.clear();
+    visDataset.edges.clear();
+    topologyManager.vms.clear();
+    topologyManager.links.clear();
+    topologyManager.interfaces.clear();
+    topologyManager.visNodes.clear();
+    topologyManager.visEdges.clear();
+    network.fit({
+        animation: {
+            duration: 500,
+            easingFunction: 'easeInOutQuad'
+        }
+    });
+}
+
+// ===================== IMPORTAR Y EXPORTAR =====================
+window.exportTopology = function() {
+    if (!topologyManager || topologyManager.vms.size === 0) {
+        Swal.fire({
+            title: 'Topología Vacía',
+            text: 'No hay topología para exportar',
+            icon: 'warning',
+            confirmButtonText: 'Entendido',
+            customClass: {
+                confirmButton: 'btn bg-gradient-primary'
+            },
+            buttonsStyling: false
+        });
+        return;
+    }
+
+    const exportData = {
+        topology_info: {
+            vms: Array.from(topologyManager.vms.values()).map(vm => ({
+                id: vm.id,
+                name: vm.name,
+                image_id: vm.image_id,
+                flavor_id: vm.flavor_id
+            })),
+            links: Array.from(topologyManager.links.values()).map(link => ({
+                id: link.id,
+                name: link.name
+            })),
+            interfaces: Array.from(topologyManager.interfaces.values()).map(iface => ({
+                id: iface.id,
+                name: iface.name,
+                vm_id: iface.vm_id,
+                link_id: iface.link_id,
+                mac_address: iface.mac_address,
+                external_access: iface.external_access
+            }))
+        },
+        topology_graph: {
+            nodes: Array.from(topologyManager.visNodes.values()).map(node => ({
+                id: node.id,
+                label: node.label,
+                title: node.title
+            })),
+            edges: Array.from(topologyManager.visEdges.values()).map(edge => ({
+                id: edge.id,
+                from: visDataset.edges.get(edge.id).from,
+                to: visDataset.edges.get(edge.id).to,
+                label: edge.label
+            }))
+        }
+    };
+    const jsonString = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+
+    a.href = url;
+    a.download = `topology-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+window.importTopology = function() {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.json';
+    fileInput.onchange = function(e) {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        
+        reader.onload = function(event) {
+            try {
+                const importedData = JSON.parse(event.target.result);
+
+                clearTopology();
+
+                importedData.topology_info.vms.forEach(vmData => {
+                    const vm = new VM(
+                        vmData.id,
+                        vmData.name,
+                        vmData.image_id,
+                        vmData.flavor_id
+                    );
+                    topologyManager.vms.set(vm.id, vm);
+                });
+
+                importedData.topology_info.links.forEach(linkData => {
+                    const link = new Link(
+                        linkData.id,
+                        linkData.name
+                    );
+                    topologyManager.links.set(link.id, link);
+                });
+
+                const vmsWithExternalAccess = new Set();
+                importedData.topology_info.interfaces.forEach(ifaceData => {
+                    if (ifaceData.external_access) {
+                        vmsWithExternalAccess.add(ifaceData.vm_id);
+                    }
+                });
+
+                importedData.topology_info.interfaces.forEach(ifaceData => {
+                    const iface = new Interface(
+                        ifaceData.id,
+                        ifaceData.name,
+                        ifaceData.vm_id,
+                        ifaceData.link_id,
+                        ifaceData.mac_address,
+                        ifaceData.external_access
+                    );
+                    topologyManager.interfaces.set(iface.id, iface);
+                });
+
+                const nodes = importedData.topology_info.vms.map(vm => {
+                    const image = AVAILABLE_IMAGES.find(img => img.id === vm.image_id);
+                    const flavor = AVAILABLE_FLAVORS.find(flav => flav.id === vm.flavor_id);
+                    const hasExternal = vmsWithExternalAccess.has(vm.id);
+
+                    const title = `Nombre: ${vm.name}
+        Imagen: ${image ? image.name : vm.image_id}
+        Flavor: ${flavor ? flavor.name : vm.flavor_id}
+        Acceso externo: ${hasExternal ? 'Sí' : 'No'}`;
+
+                    return {
+                        id: vm.id,
+                        label: vm.name,
+                        title: title
+                    };
+                });
+
+                const edges = importedData.topology_graph.edges;
+
+                nodes.forEach(node => {
+                    topologyManager.visNodes.set(node.id, new VisVM(
+                        topologyManager.vms.get(node.id),
+                        node.title
+                    ));
+                });
+
+                edges.forEach(edge => {
+                    topologyManager.visEdges.set(edge.id, new VisLink(
+                        topologyManager.links.get(edge.id),
+                        edge.from,
+                        edge.to
+                    ));
+                });
+
+                visDataset.nodes.add(nodes);
+                visDataset.edges.add(edges);
+
+                setTimeout(() => {
+                    arrangeTopology();
+                }, 700);
+                
+            } catch (error) {
+                console.error('Error :(:', error);
+            }
+        };
+        
+        reader.readAsText(file);
+    };
+    
+    fileInput.click();
+}
+
+export { network, topologyManager };

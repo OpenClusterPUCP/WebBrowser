@@ -27,10 +27,7 @@
                         <i class="fas fa-plus-circle"></i>
                         <span class="btn-text">Nuevo Flavor</span>
                     </button>
-                    <button class="btn btn-outline" id="btnImportFlavors">
-                        <i class="fas fa-file-import"></i>
-                        <span class="btn-text">Importar</span>
-                    </button>
+
                 </div>
             </div>
 
@@ -108,6 +105,7 @@
 </div>
 
 <!-- Modal para importar flavors -->
+<!-- Modal para importar flavors -->
 <div class="modal" id="importFlavorsModal">
     <div class="modal-content">
         <div class="modal-header">
@@ -115,39 +113,28 @@
             <button class="modal-close">&times;</button>
         </div>
         <div class="modal-body">
-            <div class="import-instructions">
-                <p>Para importar flavors de forma masiva, sube un archivo CSV con los siguientes campos:</p>
-                <ul>
-                    <li>Nombre</li>
-                    <li>vCPU</li>
-                    <li>RAM (GB)</li>
-                    <li>Almacenamiento (GB)</li>
-                    <li>Estado (Opcional, por defecto: Activo)</li>
-                </ul>
-                <p><a href="#" class="text-primary" id="downloadTemplate"><i class="fas fa-download"></i> Descargar plantilla CSV</a></p>
+            <div id="uploadDropzone" class="upload-dropzone">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Arrastra y suelta un archivo CSV aquí o <span>haz clic para seleccionar</span></p>
+                <input type="file" id="fileInput" accept=".csv" style="display: none;">
             </div>
-            <div class="upload-area">
-                <div class="upload-dropzone" id="uploadDropzone">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                    <p>Arrastra y suelta tu archivo CSV aquí o haz clic para seleccionar</p>
-                    <input type="file" id="fileInput" accept=".csv" style="display: none;">
+            <div id="fileInfo" class="file-info" style="display: none;">
+                <div class="file-details">
+                    <span id="fileName" class="file-name"></span>
+                    <span id="fileSize" class="file-size"></span>
                 </div>
-                <div class="file-info" id="fileInfo" style="display: none;">
-                    <div class="file-preview">
-                        <i class="fas fa-file-csv"></i>
-                        <div class="file-details">
-                            <p class="file-name" id="fileName">filename.csv</p>
-                            <p class="file-size" id="fileSize">0 KB</p>
-                        </div>
-                    </div>
-                    <button class="btn btn-sm btn-outline" id="removeFile"><i class="fas fa-times"></i></button>
-                </div>
+                <button id="removeFile" class="remove-file"><i class="fas fa-times"></i></button>
             </div>
-            <div class="import-options">
+            <div class="form-group mt-3">
                 <div class="form-check">
-                    <input type="checkbox" id="skipDuplicates" class="form-check-input" checked>
-                    <label for="skipDuplicates" class="form-check-label">Omitir flavors duplicados</label>
+                    <input class="form-check-input" type="checkbox" id="skipDuplicates" checked>
+                    <label class="form-check-label" for="skipDuplicates">
+                        Omitir flavors duplicados
+                    </label>
                 </div>
+            </div>
+            <div class="download-template">
+                <a href="#" id="downloadTemplate">Descargar plantilla CSV</a>
             </div>
         </div>
         <div class="modal-footer">
@@ -156,7 +143,6 @@
         </div>
     </div>
 </div>
-
 <!-- Scripts -->
 <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>

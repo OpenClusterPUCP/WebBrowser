@@ -488,7 +488,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     // Modal para importar flavors
     const importFlavorsModal = document.getElementById('importFlavorsModal');
-    const btnImportFlavors = document.getElementById('btnImportFlavors');
     const cancelImport = document.getElementById('cancelImport');
     const processImport = document.getElementById('processImport');
     const uploadDropzone = document.getElementById('uploadDropzone');
@@ -500,9 +499,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const downloadTemplate = document.getElementById('downloadTemplate');
 
     // Abrir modal de importar flavors
-    btnImportFlavors.addEventListener('click', function() {
-        importFlavorsModal.style.display = 'block';
-    });
+
 
     // Cerrar modal de importar flavors
     cancelImport.addEventListener('click', function() {
