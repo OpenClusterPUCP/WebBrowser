@@ -57,21 +57,6 @@ public class AdminUsersViewController {
         return "/AdminPages/UsersList";
     }
 
-    /**
-     * Muestra el formulario para crear un nuevo usuario.
-     *
-     * @param model Modelo para pasar datos a la vista
-     * @return Vista con formulario de creación
-     */
-    @GetMapping("/create")
-    public String mostrarFormularioCreacion(Model model) {
-        log.info("Mostrando formulario de creación de usuario");
-        model.addAttribute("activeMenu", "users");
-        model.addAttribute("user", new UserDTO());
-        model.addAttribute("isNew", true);
-
-        return "/AdminPages/UserForm";
-    }
 
     /**
      * Muestra el formulario para editar un usuario existente.

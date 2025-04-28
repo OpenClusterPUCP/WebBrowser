@@ -105,26 +105,72 @@ document.addEventListener('DOMContentLoaded', function() {
         // Actualizar datos en la tarjeta de recursos
         updateResourceCardUI({loading: true});
 
-        // Simular carga de datos (en implementación real, esto sería una llamada a la API)
-        setTimeout(() => {
-            // Datos simulados
-            const resourceData = {
-                vcpu: 4,
-                ram: 8,
-                storage: 100,
-                slices: 3,
-                vcpuUsed: 1,
-                ramUsed: 3,
-                storageUsed: 15,
-                slicesUsed: 1
-            };
+        // Hacer petición real al servidor
+        fetch(`/Admin/api/users/${userId}/resources`)
+            .then(response => {
+                if (!response.ok) {
+                    // Si es un 404, quiere decir que el usuario no tiene recursos asignados
+                    if (response.status === 404) {
+                        return {
+                            notFound: true,
+                            // Valores por defecto
+                            cpu: 4,
+                            ram: 4096,
+                            disk: 30,
+                            slices: 1,
+                            usedCpu: 0,
+                            usedRam: 0,
+                            usedDisk: 0,
+                            usedSlices: 0
+                        };
+                    }
+                    throw new Error('Error en la respuesta del servidor: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Guardar datos globalmente
+                currentUserResources = data;
 
-            // Actualizar UI de la tarjeta de recursos
-            updateResourceCardUI(resourceData);
 
-            // Actualizar valores en el modal de recursos
-            updateResourceModalUI(resourceData);
-        }, 500);
+                // Verificar si hay que mostrar botón de inicialización
+                checkAndShowInitializeButton(data);
+
+                // Si no se encontraron recursos, mostrar mensaje
+                if (data.notFound) {
+                    // Mostrar mensaje en la tarjeta de recursos
+                    const resourceCard = document.getElementById('user-resources');
+                    if (resourceCard) {
+                        resourceCard.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> Este usuario no tiene recursos asignados.
+                </div>
+                <div id="initialize-resources-container" class="text-center mt-3">
+                    <button id="initialize-resources-btn" class="btn btn-primary">
+                        <i class="fas fa-magic"></i> Inicializar recursos
+                    </button>
+                </div>
+            `;
+                    }
+                    return;
+                }
+
+                // Actualizar UI de la tarjeta de recursos
+                updateResourceCardUI(data);
+
+                // Actualizar valores en el modal de recursos
+                updateResourceModalUI(data);
+            })
+            .catch(error => {
+                console.error("Error al cargar recursos:", error);
+                Swal.fire({
+                    title: "Error",
+                    text: "Error al cargar información de recursos: " + error.message,
+                    icon: "error",
+                    confirmButtonText: "Cerrar",
+                    confirmButtonColor: "#ef476f"
+                });
+            });
     }
 
     /**
@@ -147,30 +193,34 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        // Convertir RAM de MB a GB para mostrar
+        const ramInGB = Math.round(data.ram / 1024 * 10) / 10;
+        const usedRamInGB = Math.round((data.usedRam || 0) / 1024 * 10) / 10;
+
         // Actualizar valores
-        document.getElementById('vcpu-value').textContent = data.vcpu;
-        document.getElementById('ram-value').textContent = data.ram;
-        document.getElementById('storage-value').textContent = data.storage;
+        document.getElementById('vcpu-value').textContent = data.cpu;
+        document.getElementById('ram-value').textContent = ramInGB;
+        document.getElementById('storage-value').textContent = data.disk;
         document.getElementById('slices-value').textContent = data.slices;
 
         // Calcular porcentajes de uso
-        const vcpuPercent = Math.round((data.vcpuUsed / data.vcpu) * 100);
-        const ramPercent = Math.round((data.ramUsed / data.ram) * 100);
-        const storagePercent = Math.round((data.storageUsed / data.storage) * 100);
-        const slicesPercent = Math.round((data.slicesUsed / data.slices) * 100);
+        const cpuPercent = data.cpu > 0 ? Math.round(((data.usedCpu || 0) / data.cpu) * 100) : 0;
+        const ramPercent = data.ram > 0 ? Math.round(((data.usedRam || 0) / data.ram) * 100) : 0;
+        const diskPercent = data.disk > 0 ? Math.round(((data.usedDisk || 0) / data.disk) * 100) : 0;
+        const slicesPercent = data.slices > 0 ? Math.round(((data.usedSlices || 0) / data.slices) * 100) : 0;
 
         // Actualizar barras de progreso
         const vcpuProgress = document.getElementById('vcpu-progress');
-        vcpuProgress.style.width = `${vcpuPercent}%`;
-        vcpuProgress.textContent = `${vcpuPercent}%`;
+        vcpuProgress.style.width = `${cpuPercent}%`;
+        vcpuProgress.textContent = `${cpuPercent}%`;
 
         const ramProgress = document.getElementById('ram-progress');
         ramProgress.style.width = `${ramPercent}%`;
         ramProgress.textContent = `${ramPercent}%`;
 
         const storageProgress = document.getElementById('storage-progress');
-        storageProgress.style.width = `${storagePercent}%`;
-        storageProgress.textContent = `${storagePercent}%`;
+        storageProgress.style.width = `${diskPercent}%`;
+        storageProgress.textContent = `${diskPercent}%`;
 
         const slicesProgress = document.getElementById('slices-progress');
         slicesProgress.style.width = `${slicesPercent}%`;
@@ -196,30 +246,34 @@ document.addEventListener('DOMContentLoaded', function() {
      * @param {Object} data - Datos de recursos
      */
     function updateResourceModalUI(data) {
+        // Convertir RAM de MB a GB para la UI
+        const ramInGB = Math.round(data.ram / 1024 * 10) / 10;
+        const usedRamInGB = Math.round((data.usedRam || 0) / 1024 * 10) / 10;
+
         // Asignar valores a los controles
-        document.getElementById('vcpuSlider').value = data.vcpu;
-        document.getElementById('vcpuValue').value = data.vcpu;
+        document.getElementById('vcpuSlider').value = data.cpu;
+        document.getElementById('vcpuValue').value = data.cpu;
 
-        document.getElementById('ramSlider').value = data.ram;
-        document.getElementById('ramValue').value = data.ram;
+        document.getElementById('ramSlider').value = ramInGB;
+        document.getElementById('ramValue').value = ramInGB;
 
-        document.getElementById('storageSlider').value = data.storage;
-        document.getElementById('storageValue').value = data.storage;
+        document.getElementById('storageSlider').value = data.disk;
+        document.getElementById('storageValue').value = data.disk;
 
         document.getElementById('slicesSlider').value = data.slices;
         document.getElementById('slicesValue').value = data.slices;
 
         // Actualizar datos de uso
-        document.getElementById('vcpuUsed').textContent = data.vcpuUsed;
-        document.getElementById('vcpuTotal').textContent = data.vcpu;
+        document.getElementById('vcpuUsed').textContent = data.usedCpu || 0;
+        document.getElementById('vcpuTotal').textContent = data.cpu;
 
-        document.getElementById('ramUsed').textContent = data.ramUsed;
-        document.getElementById('ramTotal').textContent = data.ram;
+        document.getElementById('ramUsed').textContent = usedRamInGB;
+        document.getElementById('ramTotal').textContent = ramInGB;
 
-        document.getElementById('storageUsed').textContent = data.storageUsed;
-        document.getElementById('storageTotal').textContent = data.storage;
+        document.getElementById('storageUsed').textContent = data.usedDisk || 0;
+        document.getElementById('storageTotal').textContent = data.disk;
 
-        document.getElementById('slicesUsed').textContent = data.slicesUsed;
+        document.getElementById('slicesUsed').textContent = data.usedSlices || 0;
         document.getElementById('slicesTotal').textContent = data.slices;
     }
 
@@ -258,6 +312,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             return data;
         }
+
+
 
         // Datos simulados con tendencias
         const cpuData = generateData(0.5, 3, 0.01);  // Ligero aumento
@@ -425,28 +481,52 @@ document.addEventListener('DOMContentLoaded', function() {
     // Guardar cambios en recursos
     if (saveResourcesBtn) {
         saveResourcesBtn.addEventListener('click', function() {
+            // Convertir RAM de GB a MB para la petición
+            const ramInGB = parseFloat(document.getElementById('ramValue').value);
+            const ramInMB = Math.round(ramInGB * 1024);
+
             // Obtener valores actuales
             const resourceData = {
-                userId: userId,
-                vcpu: parseInt(document.getElementById('vcpuValue').value),
-                ram: parseInt(document.getElementById('ramValue').value),
+                cpu: parseInt(document.getElementById('vcpuValue').value),
+                ram: ramInMB,
                 disk: parseInt(document.getElementById('storageValue').value),
-                maxSlices: parseInt(document.getElementById('slicesValue').value)
+                slices: parseInt(document.getElementById('slicesValue').value)
             };
 
             console.log("Guardando recursos:", resourceData);
 
+            // Validar datos
+            if (resourceData.cpu < 1 || resourceData.cpu > 32) {
+                showAlert("CPU debe estar entre 1 y 32 núcleos", "warning");
+                return;
+            }
+
+            if (resourceData.ram < 512 || resourceData.ram > 65536) {
+                showAlert("RAM debe estar entre 512 MB y 64 GB", "warning");
+                return;
+            }
+
+            if (resourceData.disk < 10 || resourceData.disk > 2048) {
+                showAlert("Disco debe estar entre 10 GB y 2 TB", "warning");
+                return;
+            }
+
+            if (resourceData.slices < 1 || resourceData.slices > 20) {
+                showAlert("Número de slices debe estar entre 1 y 20", "warning");
+                return;
+            }
+
             // Mostrar diálogo de confirmación
             Swal.fire({
                 title: "¿Guardar recursos?",
-                text: `¿Está seguro de asignar ${resourceData.vcpu} vCPU, ${resourceData.ram} GB de RAM, ${resourceData.disk} GB de almacenamiento y ${resourceData.maxSlices} slices máximos al usuario?`,
+                text: `¿Está seguro de asignar ${resourceData.cpu} vCPU, ${ramInGB} GB de RAM, ${resourceData.disk} GB de almacenamiento y ${resourceData.slices} slices máximos al usuario?`,
                 icon: "warning",
                 showCancelButton: true,
                 cancelButtonText: "Cancelar",
                 confirmButtonText: "Confirmar",
-                confirmButtonClass: "btn btn-primary",
-                cancelButtonClass: "btn btn-light",
-                buttonsStyling: false
+                confirmButtonColor: "#007bff",
+                cancelButtonColor: "#6c757d",
+                buttonsStyling: true
             }).then((result) => {
                 if (result.isConfirmed) {
                     // Ocultar modales abiertos antes de mostrar el indicador de carga
@@ -465,27 +545,46 @@ document.addEventListener('DOMContentLoaded', function() {
                         allowEscapeKey: false
                     });
 
-                    // En implementación real, llamar al API
-                    // Por ahora, simular operación exitosa
-                    setTimeout(() => {
-                        Swal.close();
-                        showAlert(`Recursos actualizados correctamente para usuario ID: ${userId}`, 'success');
-                        closeModal(resourcesModal);
+                    // Llamada real a la API para actualizar recursos
+                    fetch(`/Admin/api/users/${userId}/resources`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(resourceData)
+                    })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Error en la respuesta del servidor: ' + response.status);
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            // Actualizar datos globales
+                            currentUserResources = data;
 
-                        // Actualizar la visualización de recursos en la tarjeta
-                        const newResourceData = {
-                            vcpu: resourceData.vcpu,
-                            ram: resourceData.ram,
-                            storage: resourceData.disk,
-                            slices: resourceData.maxSlices,
-                            vcpuUsed: document.getElementById('vcpuUsed').textContent,
-                            ramUsed: document.getElementById('ramUsed').textContent,
-                            storageUsed: document.getElementById('storageUsed').textContent,
-                            slicesUsed: document.getElementById('slicesUsed').textContent
-                        };
+                            Swal.close();
+                            showAlert(`Recursos actualizados correctamente para usuario ID: ${userId}`, 'success');
+                            closeModal(resourcesModal);
 
-                        updateResourceCardUI(newResourceData);
-                    }, 1000);
+                            // Actualizar la visualización de recursos en la tarjeta
+                            updateResourceCardUI(data);
+                        })
+                        .catch(error => {
+                            console.error("Error al actualizar recursos:", error);
+                            Swal.fire({
+                                title: "Error",
+                                text: "Error al actualizar recursos: " + error.message,
+                                icon: "error",
+                                confirmButtonText: "Aceptar",
+                                confirmButtonColor: "#dc3545"
+                            });
+
+                            // Restaurar visibilidad de modales
+                            openModals.forEach(modal => {
+                                modal.style.visibility = 'visible';
+                            });
+                        });
                 }
             });
         });
@@ -746,6 +845,95 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         });
+    }
+
+    // Verificar si el usuario no tiene recursos y mostrar botón para inicializar
+    function checkAndShowInitializeButton(data) {
+        const initializeButtonContainer = document.getElementById('initialize-resources-container');
+        if (!initializeButtonContainer) return;
+
+        if (data.notFound) {
+            // Mostrar botón para inicializar
+            initializeButtonContainer.style.display = 'block';
+
+            // Agregar evento al botón
+            const initializeButton = document.getElementById('initialize-resources-btn');
+            if (initializeButton) {
+                initializeButton.addEventListener('click', function() {
+                    // Mostrar confirmación
+                    Swal.fire({
+                        title: "Inicializar recursos",
+                        text: "¿Desea asignar recursos por defecto a este usuario?\nSe asignarán 4 vCPU, 4 GB de RAM, 30 GB de almacenamiento y 1 slice.",
+                        icon: "question",
+                        showCancelButton: true,
+                        confirmButtonText: "Inicializar",
+                        cancelButtonText: "Cancelar"
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Mostrar loader
+                            Swal.fire({
+                                title: "Procesando",
+                                text: "Inicializando recursos...",
+                                allowOutsideClick: false,
+                                showConfirmButton: false,
+                                willOpen: () => {
+                                    Swal.showLoading();
+                                }
+                            });
+
+                            // Llamada a la API para inicializar recursos
+                            fetch(`/Admin/api/users/${userId}/resources/init`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    cpu: 4,
+                                    ram: 4096,
+                                    disk: 30,
+                                    slices: 1
+                                })
+                            })
+                                .then(response => {
+                                    if (!response.ok) {
+                                        throw new Error('Error en la respuesta del servidor: ' + response.status);
+                                    }
+                                    return response.json();
+                                })
+                                .then(data => {
+                                    // Actualizar datos globales
+                                    currentUserResources = data;
+
+                                    Swal.fire({
+                                        title: "Recursos inicializados",
+                                        text: "Se han asignado recursos iniciales al usuario correctamente.",
+                                        icon: "success",
+                                        confirmButtonText: "Aceptar"
+                                    });
+
+                                    // Ocultar botón de inicializar
+                                    initializeButtonContainer.style.display = 'none';
+
+                                    // Actualizar interfaz con los nuevos datos
+                                    updateResourceCardUI(data);
+                                })
+                                .catch(error => {
+                                    console.error("Error al inicializar recursos:", error);
+                                    Swal.fire({
+                                        title: "Error",
+                                        text: "Error al inicializar recursos: " + error.message,
+                                        icon: "error",
+                                        confirmButtonText: "Cerrar"
+                                    });
+                                });
+                        }
+                    });
+                });
+            }
+        } else {
+            // Ocultar botón para inicializar si ya tiene recursos
+            initializeButtonContainer.style.display = 'none';
+        }
     }
 
     // Función para validar correo electrónico

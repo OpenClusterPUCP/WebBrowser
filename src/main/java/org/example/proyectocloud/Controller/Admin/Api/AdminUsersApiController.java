@@ -135,13 +135,6 @@ public class AdminUsersApiController {
             log.info("API: Creando nuevo usuario: {}", userDTO.getUsername());
             UserInfo userInfo = validateSession(session);
 
-            // Convertir estado de UI a backend si es necesario
-            if ("active".equals(userDTO.getState())) {
-                userDTO.setState("1");
-            } else if ("banned".equals(userDTO.getState())) {
-                userDTO.setState("0");
-            }
-
             // Verificar si se debe generar contraseña automáticamente
             if (userDTO.getPassword() == null || userDTO.getPassword().isEmpty()) {
                 userDTO.setGeneratePassword(true);
@@ -325,4 +318,103 @@ public class AdminUsersApiController {
                     .body(Collections.singletonMap("error", "Error al obtener usuarios por rol: " + e.getMessage()));
         }
     }
+
+    /**
+     * Obtiene los recursos asignados a un usuario.
+     *
+     * @param id ID del usuario
+     * @param session Sesión HTTP para obtener el token JWT
+     * @return Recursos del usuario
+     */
+    @GetMapping("/{id}/resources")
+    public ResponseEntity<?> getUserResources(@PathVariable Integer id, HttpSession session) {
+        try {
+            log.info("API: Solicitando recursos del usuario ID: {}", id);
+            UserInfo userInfo = validateSession(session);
+
+            Map<String, Object> resources = adminUsersService.getUserResources(id, userInfo.getJwt());
+
+            if (resources.containsKey("status") && (Integer)resources.get("status") > 399) {
+                log.warn("Error al obtener recursos del usuario ID {}: {}", id, resources.get("message"));
+                return ResponseEntity.status((Integer)resources.get("status"))
+                        .body(resources);
+            }
+
+            log.info("Recursos del usuario ID {} obtenidos exitosamente", id);
+            return ResponseEntity.ok(resources);
+        } catch (ResponseStatusException e) {
+            log.error("Error de autorización al obtener recursos: {}", e.getReason());
+            return ResponseEntity.status(e.getStatusCode())
+                    .body(Collections.singletonMap("error", e.getReason()));
+        } catch (Exception e) {
+            log.error("Error al obtener recursos del usuario ID {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Collections.singletonMap("error", "Error al obtener recursos del usuario: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Actualiza los recursos asignados a un usuario.
+     *
+     * @param id ID del usuario
+     * @param resourceData Datos de recursos a actualizar
+     * @param session Sesión HTTP para obtener el token JWT
+     * @return Resultado de la operación
+     */
+    @PutMapping("/{id}/resources")
+    public ResponseEntity<?> updateUserResources(@PathVariable Integer id,
+                                                 @RequestBody Map<String, Object> resourceData,
+                                                 HttpSession session) {
+        try {
+            log.info("API: Actualizando recursos del usuario ID: {}", id);
+            UserInfo userInfo = validateSession(session);
+
+            Map<String, Object> result = adminUsersService.updateUserResources(id, resourceData, userInfo.getJwt());
+
+            if (result.containsKey("status") && (Integer)result.get("status") > 399) {
+                log.warn("Error al actualizar recursos del usuario ID {}: {}", id, result.get("message"));
+                return ResponseEntity.status((Integer)result.get("status"))
+                        .body(result);
+            }
+
+            log.info("Recursos del usuario ID {} actualizados exitosamente", id);
+            return ResponseEntity.ok(result);
+        } catch (ResponseStatusException e) {
+            log.error("Error de autorización al actualizar recursos: {}", e.getReason());
+            return ResponseEntity.status(e.getStatusCode())
+                    .body(Collections.singletonMap("error", e.getReason()));
+        } catch (Exception e) {
+            log.error("Error al actualizar recursos del usuario ID {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Collections.singletonMap("error", "Error al actualizar recursos del usuario: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Obtiene un listado de todos los recursos asignados a los usuarios.
+     *
+     * @param session Sesión HTTP para obtener el token JWT
+     * @return Lista de recursos de los usuarios
+     */
+    @GetMapping("/resources")
+    public ResponseEntity<?> getAllUserResources(HttpSession session) {
+        try {
+            log.info("API: Solicitando listado de recursos de todos los usuarios");
+            UserInfo userInfo = validateSession(session);
+
+            List<Map<String, Object>> resourcesList = adminUsersService.getAllUserResources(userInfo.getJwt());
+
+            log.info("Se recuperaron recursos para {} usuarios", resourcesList.size());
+            return ResponseEntity.ok(resourcesList);
+        } catch (ResponseStatusException e) {
+            log.error("Error de autorización al obtener recursos: {}", e.getReason());
+            return ResponseEntity.status(e.getStatusCode())
+                    .body(Collections.singletonMap("error", e.getReason()));
+        } catch (Exception e) {
+            log.error("Error al obtener recursos de los usuarios: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Collections.singletonMap("error", "Error al obtener recursos de los usuarios: " + e.getMessage()));
+        }
+    }
+
 }
