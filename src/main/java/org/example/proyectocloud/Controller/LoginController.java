@@ -48,17 +48,10 @@ public class LoginController {
         }
         return "AuthPages/login";
     }
-
-
     @GetMapping({"/error-503"})
     public String Error403() {
         return "/ErrorPages/error-503";
     }
-
-
-
-
-
     @GetMapping("/logout")
     public String logout(HttpServletRequest request) {
         // Invalidate session

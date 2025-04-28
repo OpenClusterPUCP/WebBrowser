@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.proyectocloud.Bean.UserInfo;
 import org.example.proyectocloud.DTO.Admin.Flavors.FlavorRequest;
 import org.example.proyectocloud.DTO.Admin.Users.UserDTO;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 
@@ -24,52 +25,16 @@ import java.util.*;
 
 @Service
 public class FlavorService {
-
     private static final Logger log = LoggerFactory.getLogger(FlavorService.class);
-
     @Autowired
     private RestTemplate restTemplate;
-
-    private ObjectMapper objectMapper = new ObjectMapper();
-
-    // URL base para el API Gateway
-    private static final String API_GATEWAY_URL = "http://localhost:8090";
-    private static final String FLAVOR_BASE_PATH = "/Admin/flavors";
-
+    @Value("${api.gateway.url}")
+    private String API_GATEWAY_URL;
     private HttpHeaders createAuthHeaders(String token) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
         return headers;
     }
-
-    private HttpHeaders createJsonAuthHeaders(String token) {
-        HttpHeaders headers = createAuthHeaders(token);
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        return headers;
-    }
-
-    private Map<String, Object> handleError(String message, Exception ex) {
-        log.error("{}: {}", message, ex.getMessage());
-        Map<String, Object> error = new HashMap<>();
-        error.put("status", 500);
-        error.put("message", message);
-        error.put("details", ex.getMessage());
-        return error;
-    }
-
-    private Map<String, Object> processMapResponse(String response) {
-        try {
-            return objectMapper.readValue(response, new TypeReference<Map<String, Object>>() {});
-        } catch (Exception e) {
-            log.error("Error al procesar respuesta JSON: {}", e.getMessage());
-            Map<String, Object> error = new HashMap<>();
-            error.put("status", 500);
-            error.put("message", "Error al procesar la respuesta");
-            error.put("details", e.getMessage());
-            return error;
-        }
-    }
-
     public Object  getAllFlavors(String token , Integer id) {
         log.info("Solicitando lista de todos los flavors");
         String url = API_GATEWAY_URL + "/Admin/flavors/list/" +   id;
@@ -131,7 +96,6 @@ public class FlavorService {
             return Collections.emptyList();
         }
     }
-
     public Object updateFlavor(String token, FlavorRequest flavor, Integer idFlavor , Integer idUser) {
         log.info("Actualizando flavor con ID: {}", idFlavor);
         String url = API_GATEWAY_URL + "/Admin/flavors/update/" + idFlavor ;
@@ -180,7 +144,6 @@ public class FlavorService {
             return Collections.singletonMap("error", "Error al actualizar flavor: " + ex.getMessage());
         }
     }
-
     public Object createFlavor(String token, FlavorRequest flavor, Integer idFlavor , Integer idUser) {
         log.info("Actualizando flavor con ID: {}", idFlavor);
         String url = API_GATEWAY_URL + "/Admin/flavors/create";

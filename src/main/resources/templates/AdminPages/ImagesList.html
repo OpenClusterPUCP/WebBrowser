@@ -210,24 +210,6 @@
         menuToggle.addEventListener('click', toggleSidebar);
 
         // Navegación entre secciones
-        sectionLinks.forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-
-                // Actualizar clase activa en menú
-                sectionLinks.forEach(item => item.classList.remove('active'));
-                this.classList.add('active');
-
-                // Actualizar título de página
-                const sectionTitle = this.querySelector('span').textContent;
-                pageTitle.textContent = sectionTitle;
-
-                // En dispositivos móviles, cerrar sidebar al navegar
-                if (window.innerWidth <= 768) {
-                    toggleSidebar();
-                }
-            });
-        });
 
         // Modal
         function openModal() {
