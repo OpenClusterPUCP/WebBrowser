@@ -1470,3 +1470,20 @@ textarea.form-control {
         flex-wrap: wrap;
     }
 }
+
+/* Add these to your admin-styles.css file */
+.app-container > div:first-child.collapsed {
+    transform: translateX(-100%);
+    width: 0;
+}
+
+.main-content.expanded {
+    margin-left: 0;
+    width: 100%;
+}
+
+/* Add a transition for smooth animation */
+.app-container > div:first-child,
+.main-content {
+    transition: all 0.3s ease;
+}

@@ -30,7 +30,9 @@ import java.util.Map;
 public class AdminFlavorsViewController {
 
     @GetMapping("/flavors")
-    public String verFlavors(){
+    public String verFlavors(Model model){
+        log.info("Accediendo a gestión de slices");
+        model.addAttribute("activeMenu", "flavors");
         return "/AdminPages/FlavorsList";
     }
 

@@ -778,3 +778,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Cambiar tipo de un flavor (público/privado)
 });
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Get the sidebar toggle button (assuming it has an ID of 'sidebarToggle')
+    const sidebarToggle = document.getElementById('sidebarToggle');
+
+    // Get the sidebar and main content elements
+    const sidebar = document.querySelector('.app-container > div:first-child');
+    const mainContent = document.querySelector('.main-content');
+
+    // Add click event listener to the toggle button
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', function() {
+            // Toggle classes for sidebar collapse
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+        });
+    }
+});
