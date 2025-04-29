@@ -64,6 +64,7 @@
 </div>
 
 <!-- Modal para crear imagen -->
+<!-- Modal para crear imagen -->
 <div class="modal" id="createImageModal">
     <div class="modal-content">
         <div class="modal-header">
@@ -71,7 +72,7 @@
             <button class="modal-close">&times;</button>
         </div>
         <div class="modal-body">
-            <form id="imageForm">
+            <form id="imageForm" enctype="multipart/form-data">
                 <div class="form-group">
                     <label class="form-label" for="imageName">Nombre</label>
                     <input type="text" id="imageName" name="name" class="form-control" placeholder="Ingrese nombre de la imagen" required>
@@ -99,22 +100,16 @@
                 <div class="form-group">
                     <label class="form-label" for="imageType">Tipo</label>
                     <select id="imageType" name="type" class="form-control" required>
-                        <option value="base">Base</option>
-                        <option value="snapshot">Snapshot</option>
-                        <option value="custom">Personalizada</option>
+                        <option value="public">Pública</option>
+                        <option value="private" selected>Privada</option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="imageSize">Tamaño (GB)</label>
                     <input type="number" id="imageSize" name="size" class="form-control" min="1" placeholder="Ingrese tamaño de la imagen" required>
                 </div>
-                <div class="form-group">
-                    <label class="form-label" for="imageState">Estado</label>
-                    <select id="imageState" name="state" class="form-control" required>
-                        <option value="private" selected>Privada</option>
-                        <option value="public">Pública</option>
-                    </select>
-                </div>
+                <!-- Se elimina el campo Estado visible y se reemplaza por un campo oculto con valor fijo "EXISTE" -->
+                <input type="hidden" id="imageState" name="state" value="EXISTE">
                 <div class="form-group">
                     <label class="form-label" for="imageFile">Archivo de Imagen (opcional)</label>
                     <div class="custom-file-input">
@@ -126,6 +121,8 @@
                     <label class="form-label" for="imageDescription">Descripción</label>
                     <textarea id="imageDescription" name="description" class="form-control" rows="3" placeholder="Añada una descripción para esta imagen"></textarea>
                 </div>
+                <!-- Campo oculto para userId (se llenará con JavaScript) -->
+                <input type="hidden" id="userId" name="userId">
             </form>
         </div>
         <div class="modal-footer">
@@ -134,46 +131,48 @@
         </div>
     </div>
 </div>
-
-<!-- Modal para importar imágenes -->
-<div class="modal" id="importImagesModal">
+<!-- Modal para editar imagen -->
+<div class="modal" id="editImageModal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3 class="modal-title">Importar Imágenes</h3>
+            <h3 class="modal-title">Editar Imagen</h3>
             <button class="modal-close">&times;</button>
         </div>
         <div class="modal-body">
-            <div id="uploadDropzone" class="upload-dropzone">
-                <i class="fas fa-cloud-upload-alt"></i>
-                <p>Arrastra y suelta un archivo CSV aquí o <span>haz clic para seleccionar</span></p>
-                <input type="file" id="fileInput" accept=".csv" style="display: none;">
-            </div>
-            <div id="fileInfo" class="file-info" style="display: none;">
-                <div class="file-details">
-                    <span id="fileName" class="file-name"></span>
-                    <span id="fileSize" class="file-size"></span>
+            <form id="editImageForm" enctype="multipart/form-data">
+                <input type="hidden" id="editImageId">
+                <div class="form-group">
+                    <label class="form-label" for="editImageName">Nombre</label>
+                    <input type="text" id="editImageName" name="name" class="form-control" required>
                 </div>
-                <button id="removeFile" class="remove-file"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="form-group mt-3">
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="skipDuplicates" checked>
-                    <label class="form-check-label" for="skipDuplicates">
-                        Omitir imágenes duplicadas
-                    </label>
+                <div class="form-group">
+                    <label class="form-label" for="editImageType">Tipo</label>
+                    <select id="editImageType" name="type" class="form-control" required>
+                        <option value="public">Pública</option>
+                        <option value="private">Privada</option>
+                    </select>
                 </div>
-            </div>
-            <div class="download-template">
-                <a href="#" id="downloadTemplate">Descargar plantilla CSV</a>
-            </div>
+                <div class="form-group">
+                    <label class="form-label" for="editImageFile">Archivo de Imagen (opcional)</label>
+                    <div class="custom-file-input">
+                        <input type="file" id="editImageFile" name="imageFile" class="form-control">
+                        <small class="form-text text-muted">Deje en blanco para mantener el archivo actual</small>
+                    </div>
+                </div>
+                <!-- Campo oculto para userId (se llenará con JavaScript) -->
+                <input type="hidden" id="editUserId" name="userId">
+                <!-- Campo oculto para adminId (se llenará con JavaScript) -->
+                <input type="hidden" id="adminId" name="adminId">
+                <!-- Campo oculto para estado con valor fijo "EXISTE" -->
+                <input type="hidden" id="editImageState" name="state" value="EXISTE">
+            </form>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-outline" id="cancelImport">Cancelar</button>
-            <button class="btn btn-primary" id="processImport">Importar</button>
+            <button class="btn btn-outline" id="cancelEditImage">Cancelar</button>
+            <button class="btn btn-primary" id="saveEditImage">Guardar Cambios</button>
         </div>
     </div>
 </div>
-
 <!-- Scripts -->
 <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
@@ -181,24 +180,629 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script th:src="@{/js/admin/images-management.js}"></script>
-<script>
+<script th:inline="javascript">
     document.addEventListener('DOMContentLoaded', function() {
+        // Variables globales
+        const currentUserId = [[${idUser}]];
+        const adminId = [[${idUser}]];
+
         // Referencias de elementos DOM
+        const createImageModal = document.getElementById('createImageModal');
+        const editImageModal = document.getElementById('editImageModal');
+        const btnCreateImage = document.getElementById('btnCreateImage');
+        const modalCloseButtons = document.querySelectorAll('.modal-close');
+        const cancelImage = document.getElementById('cancelImage');
+        const saveImage = document.getElementById('saveImage');
+        const cancelEditImage = document.getElementById('cancelEditImage');
+        const saveEditImage = document.getElementById('saveEditImage');
+        const imageOSSelect = document.getElementById('imageOS');
+        const otherOSGroup = document.getElementById('otherOSGroup');
+        const alertContainer = document.getElementById('alertContainer');
+        const alertMessage = document.getElementById('alertMessage');
+
+        // Función para aplicar estilos mejorados
+        function applyEnhancedStyles() {
+            // Estilos para la tabla
+            $('#imagesTable').css({
+                'width': '100%',
+                'border-collapse': 'separate',
+                'border-spacing': '0',
+                'border-radius': '8px',
+                'overflow': 'hidden',
+                'box-shadow': '0 4px 6px rgba(0, 0, 0, 0.05)',
+                'margin-bottom': '20px'
+            });
+
+            $('#imagesTable thead').css({
+                'background-color': '#4a5af8',
+                'color': 'white'
+            });
+
+            $('#imagesTable th').css({
+                'padding': '12px 15px',
+                'text-align': 'left',
+                'font-weight': '600',
+                'border': 'none'
+            });
+
+            $('#imagesTable td').css({
+                'padding': '12px 15px',
+                'border-bottom': '1px solid #f0f0f0',
+                'vertical-align': 'middle'
+            });
+
+            // Estilos para los botones de acción
+            $('.btn-action').css({
+                'width': '36px',
+                'height': '36px',
+                'border-radius': '8px',
+                'border': 'none',
+                'display': 'flex',
+                'align-items': 'center',
+                'justify-content': 'center',
+                'cursor': 'pointer',
+                'transition': 'background-color 0.2s ease'
+            });
+
+            $('.btn-edit').css({
+                'background-color': '#4a5af8',
+                'color': 'white'
+            });
+
+            $('.btn-delete').css({
+                'background-color': '#f44336',
+                'color': 'white'
+            });
+
+            // Estilos para badges
+            $('.badge').css({
+                'padding': '6px 12px',
+                'border-radius': '50px',
+                'font-size': '12px',
+                'font-weight': '600',
+                'display': 'inline-block'
+            });
+
+            $('.bg-success').css({
+                'background-color': '#28a745',
+                'color': 'white'
+            });
+
+            $('.bg-secondary').css({
+                'background-color': '#6c757d',
+                'color': 'white'
+            });
+
+            // Estilizar controles de búsqueda y paginación
+            $('.dataTables_filter input').css({
+                'border': '1px solid #e0e0e0',
+                'border-radius': '6px',
+                'padding': '6px 10px'
+            });
+
+            $('.dataTables_length select').css({
+                'border': '1px solid #e0e0e0',
+                'border-radius': '6px',
+                'padding': '6px 10px'
+            });
+
+            $('.paginate_button').css({
+                'border-radius': '6px',
+                'margin': '0 3px'
+            });
+
+            // Mejorar el botón de crear imagen
+            $('#btnCreateImage').css({
+                'background-color': '#4a5af8',
+                'color': 'white',
+                'border': 'none',
+                'border-radius': '8px',
+                'padding': '10px 16px',
+                'font-weight': '600',
+                'display': 'flex',
+                'align-items': 'center',
+                'gap': '8px',
+                'cursor': 'pointer',
+                'transition': 'background-color 0.2s ease'
+            });
+
+            // Aplicar eventos hover
+            $('#imagesTable tbody tr').hover(
+                function() { $(this).css('background-color', '#f6f9ff'); },
+                function() { $(this).css('background-color', ''); }
+            );
+
+            $('.btn-edit').hover(
+                function() { $(this).css('background-color', '#3949d6'); },
+                function() { $(this).css('background-color', '#4a5af8'); }
+            );
+
+            $('.btn-delete').hover(
+                function() { $(this).css('background-color', '#d32f2f'); },
+                function() { $(this).css('background-color', '#f44336'); }
+            );
+
+            $('#btnCreateImage').hover(
+                function() { $(this).css('background-color', '#3949d6'); },
+                function() { $(this).css('background-color', '#4a5af8'); }
+            );
+
+            // Mejorar el container de acciones
+            $('.actions-container').css({
+                'display': 'flex',
+                'gap': '8px',
+                'justify-content': 'center'
+            });
+        }
+
+        // DataTable para imágenes con configuración mejorada
+        const imagesTable = $('#imagesTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+            },
+            columns: [
+                { data: 'id' },
+                { data: 'name' },
+                { data: 'os' },
+                { data: 'version' },
+                { data: 'type' },
+                { data: 'size' },
+                {
+                    data: 'state',
+                    render: function(data) {
+                        return data === 'public' ?
+                            '<span class="badge bg-success">Pública</span>' :
+                            '<span class="badge bg-secondary">Privada</span>';
+                    }
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    render: function(data) {
+                        return `
+                        <div class="actions-container">
+                            <button class="btn-action btn-edit" data-id="${data.id}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-action btn-delete" data-id="${data.id}">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    `;
+                    }
+                }
+            ],
+            // Personalizar la estructura del DataTable
+            dom: '<"dt-top"<"dt-title"<"dt-header">><"dt-buttons"B>><"dt-table-container"t><"dt-bottom"<"dt-info"li><"dt-pagination"p>>',
+            buttons: [
+                {
+                    text: '<i class="fas fa-plus"></i> Nueva Imagen',
+                    className: 'btn-new-image',
+                    action: function() {
+                        openCreateModal();
+                    }
+                }
+            ],
+            // Aplicar estilos después de dibujar la tabla
+            drawCallback: function() {
+                applyEnhancedStyles();
+
+                // Agregar título a la tabla
+                $('.dt-header').html('<h4 style="margin: 0; color: #333; font-weight: 600;">Listado de Imágenes</h4>');
+
+                // Personalizar botones
+                $('.btn-new-image').addClass('btn-primary').css({
+                    'background-color': '#4a5af8',
+                    'color': 'white',
+                    'border': 'none',
+                    'border-radius': '8px',
+                    'padding': '10px 16px',
+                    'font-weight': '600'
+                });
+            }
+        });
+
+        // Función para cargar imágenes mejorada
+        function loadImages() {
+            if (!currentUserId) {
+                showAlert('No se pudo obtener el ID de usuario de la sesión', 'danger');
+                return;
+            }
+
+            // Hacer la petición AJAX al endpoint de listar imágenes
+            $.ajax({
+                url: `/Admin/list/${currentUserId}`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    // Transformar los datos para que coincidan con las columnas esperadas
+                    const transformedData = data.map(item => {
+                        return {
+                            id: item.idImage,
+                            name: item.name,
+                            os: item.name.includes('Ubuntu') ? 'Linux' : 'Linux', // Inferir del nombre
+                            version: item.name.includes('22.04') ? '22.04' : '22.04', // Inferir del nombre
+                            type: item.type.toLowerCase(),
+                            size: '10 GB', // Valor por defecto
+                            state: item.type.toLowerCase() // public/private
+                        };
+                    });
+
+                    // Limpiar la tabla y agregar los nuevos datos transformados
+                    imagesTable.clear().rows.add(transformedData).draw();
+
+                    // Aplicar estilos mejorados después de cargar datos
+                    applyEnhancedStyles();
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error:', error);
+                    showAlert('Error al cargar las imágenes: ' + error, 'danger');
+                }
+            });
+        }
+
+        // Cargar imágenes al iniciar la página
+        loadImages();
+
+        // Función para mostrar alertas mejorada
+        function showAlert(message, type) {
+            alertMessage.textContent = message;
+            alertMessage.className = 'alert alert-' + type;
+
+            // Estilos mejorados para alertas
+            $(alertMessage).css({
+                'padding': '12px 20px',
+                'border-radius': '8px',
+                'margin-bottom': '20px',
+                'font-weight': '500'
+            });
+
+            if (type === 'success') {
+                $(alertMessage).css('background-color', '#d4edda');
+                $(alertMessage).css('color', '#155724');
+                $(alertMessage).css('border', '1px solid #c3e6cb');
+            } else if (type === 'danger') {
+                $(alertMessage).css('background-color', '#f8d7da');
+                $(alertMessage).css('color', '#721c24');
+                $(alertMessage).css('border', '1px solid #f5c6cb');
+            }
+
+            alertContainer.style.display = 'block';
+
+            // Auto-ocultar después de 5 segundos
+            setTimeout(() => {
+                alertContainer.style.display = 'none';
+            }, 5000);
+        }
+
+        // Funciones para manejar modales (mejoradas estéticamente)
+        function openCreateModal() {
+            // Resetear el formulario
+            document.getElementById('imageForm').reset();
+
+            // Establecer el userId del usuario actual
+            document.getElementById('userId').value = currentUserId;
+
+            // Aplicar estilos mejorados al modal
+            $(createImageModal).css({
+                'border-radius': '10px',
+                'box-shadow': '0 10px 25px rgba(0, 0, 0, 0.1)'
+            });
+
+            $('.modal-content').css({
+                'border-radius': '8px',
+                'border': 'none'
+            });
+
+            $('.modal-header').css({
+                'background-color': '#4a5af8',
+                'color': 'white',
+                'border-top-left-radius': '8px',
+                'border-top-right-radius': '8px',
+                'padding': '15px 20px'
+            });
+
+            $('.modal-body').css({
+                'padding': '20px'
+            });
+
+            $('.modal-footer').css({
+                'padding': '15px 20px',
+                'border-top': '1px solid #eee'
+            });
+
+            // Mostrar el modal
+            createImageModal.style.display = 'block';
+        }
+
+        function openEditModal(imageId) {
+            // Obtener los datos de la imagen seleccionada
+            const imageData = imagesTable.row(function(idx, data) {
+                return data.id === imageId;
+            }).data();
+
+            if (!imageData) {
+                showAlert('No se encontró la imagen seleccionada', 'danger');
+                return;
+            }
+
+            // Llenar el formulario con los datos existentes
+            document.getElementById('editImageId').value = imageData.id;
+            document.getElementById('editImageName').value = imageData.name;
+            document.getElementById('editImageType').value = imageData.type;
+            document.getElementById('editUserId').value = imageData.userId || currentUserId;
+            document.getElementById('adminId').value = adminId;
+
+            // Aplicar estilos mejorados al modal
+            $(editImageModal).css({
+                'border-radius': '10px',
+                'box-shadow': '0 10px 25px rgba(0, 0, 0, 0.1)'
+            });
+
+            $('.modal-content').css({
+                'border-radius': '8px',
+                'border': 'none'
+            });
+
+            $('.modal-header').css({
+                'background-color': '#4a5af8',
+                'color': 'white',
+                'border-top-left-radius': '8px',
+                'border-top-right-radius': '8px',
+                'padding': '15px 20px'
+            });
+
+            $('.modal-body').css({
+                'padding': '20px'
+            });
+
+            $('.modal-footer').css({
+                'padding': '15px 20px',
+                'border-top': '1px solid #eee'
+            });
+
+            // Mostrar el modal
+            editImageModal.style.display = 'block';
+        }
+
+        function closeModals() {
+            createImageModal.style.display = 'none';
+            editImageModal.style.display = 'none';
+        }
+
+        // Mejorar estilos de los formularios
+        function enhanceFormElements() {
+            $('input[type="text"], input[type="number"], select, textarea').css({
+                'width': '100%',
+                'padding': '10px',
+                'border': '1px solid #ddd',
+                'border-radius': '6px',
+                'margin-bottom': '15px',
+                'font-size': '14px'
+            });
+
+            $('.form-group label').css({
+                'font-weight': '600',
+                'margin-bottom': '5px',
+                'display': 'block',
+                'color': '#333'
+            });
+
+            $('.btn-primary, .btn-success').css({
+                'background-color': '#4a5af8',
+                'color': 'white',
+                'border': 'none',
+                'padding': '10px 20px',
+                'border-radius': '6px',
+                'cursor': 'pointer',
+                'font-weight': '600'
+            });
+
+            $('.btn-danger, .btn-secondary').css({
+                'background-color': '#6c757d',
+                'color': 'white',
+                'border': 'none',
+                'padding': '10px 20px',
+                'border-radius': '6px',
+                'cursor': 'pointer',
+                'font-weight': '600'
+            });
+        }
+
+        // Aplicar estilos mejorados al inicio
+        enhanceFormElements();
+
+        // Event listeners para abrir/cerrar modales
+        btnCreateImage.addEventListener('click', openCreateModal);
+        modalCloseButtons.forEach(button => {
+            button.addEventListener('click', closeModals);
+        });
+        cancelImage.addEventListener('click', closeModals);
+        cancelEditImage.addEventListener('click', closeModals);
+
+        // Cerrar modal al hacer clic fuera de él
+        window.addEventListener('click', function(e) {
+            if (e.target === createImageModal || e.target === editImageModal) {
+                closeModals();
+            }
+        });
+
+        // Event listener para el sistema operativo "Otro"
+        imageOSSelect.addEventListener('change', function() {
+            otherOSGroup.style.display = this.value === 'other' ? 'block' : 'none';
+        });
+
+        // Event listener para guardar una nueva imagen
+        saveImage.addEventListener('click', function() {
+            const form = document.getElementById('imageForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            // Preparar los datos para el envío
+            const formData = new FormData(form);
+
+            // Si el OS es "other", usar el valor personalizado
+            if (imageOSSelect.value === 'other') {
+                formData.set('os', document.getElementById('otherOS').value);
+            }
+
+            // Hacer la petición AJAX al endpoint de crear imagen
+            fetch('/Admin/create', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Error al crear la imagen');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    showAlert('Imagen creada con éxito', 'success');
+                    closeModals();
+                    loadImages(); // Recargar la tabla
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlert('Error al crear la imagen: ' + error.message, 'danger');
+                });
+        });
+
+        // Event listener para guardar cambios en una imagen existente
+        saveEditImage.addEventListener('click', function() {
+            const form = document.getElementById('editImageForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const imageId = document.getElementById('editImageId').value;
+            const formData = new FormData(form);
+
+            // Hacer la petición AJAX al endpoint de actualizar imagen
+            fetch(`/Admin/update/${imageId}`, {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Error al actualizar la imagen');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    showAlert('Imagen actualizada con éxito', 'success');
+                    closeModals();
+                    loadImages(); // Recargar la tabla
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlert('Error al actualizar la imagen: ' + error.message, 'danger');
+                });
+        });
+
+        // Event listener para borrar una imagen
+        document.querySelector('#imagesTable tbody').addEventListener('click', function(e) {
+            const deleteBtn = e.target.closest('.btn-delete');
+            if (deleteBtn) {
+                const imageId = deleteBtn.dataset.id;
+
+                // Mostrar confirmación antes de eliminar (SweetAlert mejorado)
+                Swal.fire({
+                    title: '¿Está seguro?',
+                    text: "Esta acción no se puede revertir",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#4a5af8',
+                    cancelButtonColor: '#f44336',
+                    confirmButtonText: 'Sí, eliminar',
+                    cancelButtonText: 'Cancelar',
+                    borderRadius: '8px',
+                    customClass: {
+                        popup: 'swal-custom-popup',
+                        title: 'swal-custom-title',
+                        confirmButton: 'swal-custom-confirm',
+                        cancelButton: 'swal-custom-cancel'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Hacer la petición AJAX al endpoint de eliminar imagen
+                        fetch(`/Admin/delete/${imageId}`, {
+                            method: 'DELETE'
+                        })
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error('Error al eliminar la imagen');
+                                }
+                                return response.json();
+                            })
+                            .then(data => {
+                                Swal.fire({
+                                    title: '¡Eliminada!',
+                                    text: 'La imagen ha sido eliminada.',
+                                    icon: 'success',
+                                    confirmButtonColor: '#4a5af8',
+                                    customClass: {
+                                        popup: 'swal-custom-popup',
+                                        title: 'swal-custom-title',
+                                        confirmButton: 'swal-custom-confirm'
+                                    }
+                                });
+                                loadImages(); // Recargar la tabla
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                                Swal.fire({
+                                    title: 'Error',
+                                    text: 'No se pudo eliminar la imagen: ' + error.message,
+                                    icon: 'error',
+                                    confirmButtonColor: '#4a5af8',
+                                    customClass: {
+                                        popup: 'swal-custom-popup',
+                                        title: 'swal-custom-title',
+                                        confirmButton: 'swal-custom-confirm'
+                                    }
+                                });
+                            });
+                    }
+                });
+            }
+
+            // Event listener para editar una imagen
+            const editBtn = e.target.closest('.btn-edit');
+            if (editBtn) {
+                const imageId = parseInt(editBtn.dataset.id);
+                openEditModal(imageId);
+            }
+        });
+
+        // Estilos personalizados para SweetAlert
+        $('<style>')
+            .prop('type', 'text/css')
+            .html(`
+            .swal-custom-popup {
+                border-radius: 10px;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            }
+            .swal-custom-title {
+                font-weight: 600;
+                color: #333;
+            }
+            .swal-custom-confirm, .swal-custom-cancel {
+                border-radius: 6px;
+                font-weight: 600;
+                padding: 10px 24px;
+            }
+        `)
+            .appendTo('head');
+
+        // Funciones para el sidebar
         const sidebar = document.querySelector('.sidebar');
         const mainContent = document.querySelector('.main-content');
         const sidebarToggle = document.querySelector('.sidebar-toggle');
         const menuToggle = document.querySelector('.menu-toggle');
-        const pageTitle = document.querySelector('.page-title');
-        const sectionLinks = document.querySelectorAll('.sidebar-menu a[data-section]');
-        const modal = document.getElementById('createSliceModal');
-        const btnCreateSlice = document.getElementById('btnCreateSlice');
-        const modalClose = document.querySelector('.modal-close');
-        const cancelSlice = document.getElementById('cancelSlice');
-        const saveSlice = document.getElementById('saveSlice');
-        const cardTabs = document.querySelectorAll('.card-tab');
-        const tabContents = document.querySelectorAll('.tab-content');
-        const searchInputs = document.querySelectorAll('input[id^="search-"]');
 
         // Ocultar sidebar
         function toggleSidebar() {
@@ -206,78 +810,11 @@
             mainContent.classList.toggle('full-width');
         }
 
-        sidebarToggle.addEventListener('click', toggleSidebar);
-        menuToggle.addEventListener('click', toggleSidebar);
-
-        // Navegación entre secciones
-
-        // Modal
-        function openModal() {
-            modal.style.display = 'block';
-        }
-
-        function closeModal() {
-            modal.style.display = 'none';
-        }
-
-        btnCreateSlice.addEventListener('click', openModal);
-        modalClose.addEventListener('click', closeModal);
-        cancelSlice.addEventListener('click', closeModal);
-
-        window.addEventListener('click', function(e) {
-            if (e.target === modal) {
-                closeModal();
-            }
-        });
-
-        saveSlice.addEventListener('click', function() {
-            const sliceName = document.getElementById('sliceName').value;
-            const deployment = document.getElementById('sliceDeployment').value;
-
-            if (sliceName && deployment) {
-                alert('Slice creado con éxito: ' + sliceName);
-                closeModal();
-
-                document.getElementById('sliceName').value = '';
-                document.getElementById('sliceDescription').value = '';
-                document.getElementById('sliceVMs').value = '1';
-            } else {
-                alert('Por favor complete los campos requeridos');
-            }
-        });
-
-        // Pestañas
-        cardTabs.forEach(tab => {
-            tab.addEventListener('click', function() {
-                const tabId = this.getAttribute('data-tab');
-
-                cardTabs.forEach(t => t.classList.remove('active'));
-                tabContents.forEach(c => c.classList.remove('active'));
-
-                this.classList.add('active');
-                document.getElementById(tabId).classList.add('active');
-            });
-        });
-
-        // Búsqueda en tablas
-        searchInputs.forEach(input => {
-            input.addEventListener('keyup', function() {
-                const searchValue = this.value.toLowerCase();
-                const tabId = this.id.split('-')[1]; // 'own', 'others', or 'shared'
-                const tableRows = document.querySelectorAll(`#${tabId}-slices tbody tr`);
-
-                tableRows.forEach(row => {
-                    const text = row.textContent.toLowerCase();
-                    if (text.includes(searchValue)) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-            });
-        });
-
+        if (sidebarToggle) sidebarToggle.addEventListener('click', toggleSidebar);
+        if (menuToggle) menuToggle.addEventListener('click', toggleSidebar);
     });
+
+
 </script>
 
 </body>

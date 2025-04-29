@@ -15,9 +15,14 @@ import org.springframework.web.multipart.MultipartFile;
 import org.example.proyectocloud.Bean.ImageRequest;
 
 import jakarta.servlet.http.HttpSession;
+
+import javax.print.attribute.standard.Media;
 import java.util.Map;
+import java.util.Optional;
+
 @RestController
 @Slf4j
+@RequestMapping("/Admin")
 public class AdminImagesApiController {
     @Autowired
     private ImageService imageService;
@@ -75,12 +80,13 @@ public class AdminImagesApiController {
     /**
      * Endpoint para crear una nueva imagen
      */
-    @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/create")
+    @ResponseBody
     public ResponseEntity<?> createImage(
-            @RequestPart("name") String name,
-            @RequestPart("type") String type,
-            @RequestPart(value = "userId", required = false) Integer userId,
-            @RequestPart(value = "imageFile", required = false) MultipartFile imageFile,
+            @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "type", required = false) String type,
+            @RequestParam(value = "userId", required = false) Integer userId,
+            @RequestParam(value = "imageFile", required = false) MultipartFile imageFile,
             HttpSession session) {
 
         log.info("Request to create image with name: {}, type: {}", name, type);
@@ -97,14 +103,15 @@ public class AdminImagesApiController {
         ImageRequest imageRequest = new ImageRequest();
         imageRequest.setName(name);
         imageRequest.setType(type);
-        imageRequest.setUserId(userId);
+        if(type.equals("private")){
+            imageRequest.setUserId(userId);
+        }
 
         // Llamar al servicio para crear la imagen
         Object result = imageService.createImage(token, imageRequest, imageFile);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
-
     /**
      * Endpoint para eliminar una imagen
      */
