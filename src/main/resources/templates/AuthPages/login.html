@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenClustter - Acceso al Panel de Control</title>
+    <title>OpenCluster - Acceso al Panel de Control</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -881,9 +881,9 @@
                         <line x1="32" y1="30" x2="44" y2="36" stroke="white" stroke-width="1.5" />
                         <line x1="32" y1="30" x2="24" y2="42" stroke="white" stroke-width="1.5" />
 
-                        <!-- Texto "OpenClustter" -->
+                        <!-- Texto "OpenCluster" -->
                         <text x="60" y="32" font-family="Arial, sans-serif" font-weight="700" font-size="18" fill="white">Open</text>
-                        <text x="110" y="32" font-family="Arial, sans-serif" font-weight="700" font-size="18" fill="#4cd1a9">Clustter</text>
+                        <text x="110" y="32" font-family="Arial, sans-serif" font-weight="700" font-size="18" fill="#4cd1a9">Cluster</text>
 
                         <!-- Gradiente para el círculo base -->
                         <defs>
@@ -897,7 +897,7 @@
             </div>
 
             <h1 class="brand-title">Impulsa tu infraestructura en la nube</h1>
-            <p class="brand-description">OpenClustter te ayuda a implementar, gestionar y escalar tu nube privada con seguridad y eficiencia para tu negocio.</p>
+            <p class="brand-description">OpenCluster te ayuda a implementar, gestionar y escalar tu nube privada con seguridad y eficiencia para tu negocio.</p>
 
             <ul class="feature-list">
                 <li class="feature-item">
@@ -928,7 +928,7 @@
         </div>
 
         <div class="company-info">
-            OpenClustter Cloud Technologies © 2025
+            OpenCluster Cloud Technologies © 2025
         </div>
     </div>
 
@@ -1015,7 +1015,7 @@
                 debug: true
             },
             production: {
-                apiUrl: 'https://api.openclustter.com',
+                apiUrl: 'https://api.opencluster.site',
                 debug: false
             }
         };
@@ -1031,7 +1031,12 @@
         const buttonText = submitBtn ? document.getElementById('buttonText') : null;
         const togglePassword = document.getElementById('togglePassword');
         const forgotPassword = document.getElementById('forgotPassword');
+
         const resetPasswordForm = document.getElementById('resetPasswordForm');
+        const resetEmailInput = document.getElementById('resetEmail');
+        const sendResetLinkBtn = document.getElementById('sendResetLinkBtn');
+        const closeModal = document.getElementById('closeModal');
+        const cancelResetBtn = document.getElementById('cancelResetBtn');
         const passwordResetModal = document.getElementById('passwordResetModal');
 
         // Social login buttons - Verificando que existan
@@ -1397,115 +1402,134 @@
             });
         }
 
-        // Reset password form submission - ACTUALIZADO PARA USAR FETCH EN LUGAR DE JQUERY
+        // Reset password form submission con mejor manejo de errores
         if (resetPasswordForm) {
-            resetPasswordForm.addEventListener('submit', (e) => {
+            resetPasswordForm.addEventListener('submit', function(e) {
                 e.preventDefault();
 
-                const resetEmail = document.getElementById('resetEmail');
-                if (!resetEmail) return;
-
-                const resetEmailValue = resetEmail.value;
-                const resetEmailGroup = resetEmail.parentElement;
-                if (!resetEmailGroup) return;
-
-                let resetErrorMessage = resetEmailGroup.querySelector('.error-message');
-                if (!resetErrorMessage) {
-                    resetErrorMessage = document.createElement('div');
-                    resetErrorMessage.className = 'error-message';
-                    resetEmailGroup.appendChild(resetErrorMessage);
-                }
-
-                if (!validateEmail(resetEmailValue)) {
-                    resetEmailGroup.classList.add('error');
-                    resetErrorMessage.textContent = 'Ingresa un email válido';
-                    shake(resetPasswordForm);
+                // Validar el correo electrónico
+                if (!resetEmailInput || !resetEmailInput.value || !validateEmail(resetEmailInput.value)) {
+                    // Mostrar mensaje de error
+                    showResetFormError('Por favor ingresa un correo electrónico válido');
                     return;
-                } else {
-                    resetEmailGroup.classList.remove('error');
-                    resetErrorMessage.textContent = '';
                 }
 
-                const sendResetLinkBtn = document.getElementById('sendResetLinkBtn');
-                if (!sendResetLinkBtn) return;
+                // Mostrar estado de carga
+                if (sendResetLinkBtn) {
+                    sendResetLinkBtn.disabled = true;
+                    sendResetLinkBtn.innerHTML = '<span class="loading-spinner"></span>Enviando...';
+                }
 
-                // Show loading state
-                sendResetLinkBtn.disabled = true;
-                sendResetLinkBtn.innerHTML = '<span class="loading-spinner"></span>Enviando...';
+                // Eliminar mensajes previos
+                removeAllMessages(resetPasswordForm);
 
-                // Implementar con fetch en lugar de jQuery
+                // Realizar la petición al servidor con mejor manejo de errores
                 fetch(`${config.apiUrl}/ResetPassword`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        email: resetEmailValue
+                        email: resetEmailInput.value
                     })
                 })
                     .then(response => {
-                        if (response.ok) {
-                            // Crear y mostrar mensaje de éxito
-                            const successMessage = document.createElement('div');
-                            successMessage.className = 'success-message';
+                        // Verificar primero si la respuesta es exitosa
+                        if (!response.ok) {
+                            // Si el servidor devuelve un error HTTP, lanzar excepción
+                            throw new Error(`Error HTTP: ${response.status}`);
+                        }
 
-                            // Añadir icono
-                            const iconSuccess = document.createElement('i');
-                            iconSuccess.className = 'fas fa-check-circle';
-                            successMessage.appendChild(iconSuccess);
+                        // Verificar que la respuesta es JSON antes de procesarla
+                        const contentType = response.headers.get('content-type');
+                        if (!contentType || !contentType.includes('application/json')) {
+                            throw new TypeError("La respuesta no es JSON");
+                        }
 
-                            // Añadir texto
-                            const successText = document.createElement('span');
-                            successText.textContent = 'Se ha enviado un enlace a tu correo para restablecer tu contraseña';
-                            successMessage.appendChild(successText);
-
-                            // Eliminar mensajes previos
-                            const oldMessages = resetPasswordForm.querySelectorAll('.success-message, .error-message, .error-banner');
-                            oldMessages.forEach(msg => msg.remove());
-
-                            resetPasswordForm.insertBefore(successMessage, resetPasswordForm.firstChild);
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Mostrar mensaje de éxito
+                            showResetFormSuccess('Se ha enviado un enlace a tu correo para restablecer tu contraseña');
 
                             // Cerrar modal después de 3 segundos
                             setTimeout(() => {
-                                passwordResetModal.classList.remove('show');
+                                if (passwordResetModal) {
+                                    passwordResetModal.classList.remove('show');
+                                }
                             }, 3000);
                         } else {
-                            // Manejar error
-                            return response.json().then(errorData => {
-                                throw new Error(errorData.message || 'Error al enviar el correo');
-                            });
+                            // Mostrar mensaje de error
+                            showResetFormError(data.message || 'Error al enviar el correo. Inténtalo más tarde.');
                         }
                     })
                     .catch(error => {
-                        // Crear mensaje de error
-                        const errorBanner = document.createElement('div');
-                        errorBanner.className = 'error-banner';
-
-                        // Añadir icono
-                        const iconError = document.createElement('i');
-                        iconError.className = 'fas fa-exclamation-circle';
-                        errorBanner.appendChild(iconError);
-
-                        // Añadir texto
-                        const errorText = document.createElement('span');
-                        errorText.textContent = error.message || 'Error al enviar el correo. Intenta más tarde.';
-                        errorBanner.appendChild(errorText);
-
-                        // Eliminar mensajes previos
-                        const oldMessages = resetPasswordForm.querySelectorAll('.success-message, .error-message, .error-banner');
-                        oldMessages.forEach(msg => msg.remove());
-
-                        resetPasswordForm.insertBefore(errorBanner, resetPasswordForm.firstChild);
-
-                        shake(resetPasswordForm);
+                        console.error('Error:', error);
+                        showResetFormError('Error de conexión. Por favor, verifica que el servidor esté en funcionamiento y vuelve a intentarlo.');
                     })
                     .finally(() => {
                         // Restaurar estado del botón
-                        sendResetLinkBtn.disabled = false;
-                        sendResetLinkBtn.innerHTML = 'Enviar enlace';
+                        if (sendResetLinkBtn) {
+                            sendResetLinkBtn.disabled = false;
+                            sendResetLinkBtn.innerHTML = 'Enviar enlace';
+                        }
                     });
             });
         }
+
+
+        // Funciones auxiliares para gestionar mensajes
+        function showResetFormError(message) {
+            const errorBanner = document.createElement('div');
+            errorBanner.className = 'error-banner';
+
+            const iconError = document.createElement('i');
+            iconError.className = 'fas fa-exclamation-circle';
+            errorBanner.appendChild(iconError);
+
+            const errorText = document.createElement('span');
+            errorText.textContent = message;
+            errorBanner.appendChild(errorText);
+
+            removeAllMessages(resetPasswordForm);
+
+            resetPasswordForm.insertBefore(errorBanner, resetPasswordForm.firstChild);
+
+            // Efecto shake
+            if (resetPasswordForm) {
+                resetPasswordForm.classList.add('shake');
+                setTimeout(() => {
+                    resetPasswordForm.classList.remove('shake');
+                }, 600);
+            }
+        }
+
+        function showResetFormSuccess(message) {
+            const successMessage = document.createElement('div');
+            successMessage.className = 'success-message';
+
+            const iconSuccess = document.createElement('i');
+            iconSuccess.className = 'fas fa-check-circle';
+            successMessage.appendChild(iconSuccess);
+
+            const successText = document.createElement('span');
+            successText.textContent = message;
+            successMessage.appendChild(successText);
+
+            removeAllMessages(resetPasswordForm);
+
+            resetPasswordForm.insertBefore(successMessage, resetPasswordForm.firstChild);
+        }
+
+        function removeAllMessages(form) {
+            if (!form) return;
+
+            const messages = form.querySelectorAll('.success-message, .error-message, .error-banner');
+            messages.forEach(msg => msg.remove());
+        }
+
+
 
         // Social login handlers - ACTUALIZADOS con verificación de existencia
         if (googleLogin) {
@@ -1554,6 +1578,27 @@
                 }
             });
         }
+
+        // Verificar si hay parámetros en la URL para mostrar mensajes relacionados con el restablecimiento de contraseña
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('resetSuccess') && urlParams.get('resetSuccess') === 'true') {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Contraseña restablecida!',
+                text: 'Tu contraseña ha sido actualizada correctamente. Ya puedes iniciar sesión con tu nueva contraseña.',
+                confirmButtonColor: '#3452a5',
+                confirmButtonText: 'Entendido'
+            });
+        } else if (urlParams.has('error') && urlParams.get('error') === 'invalid_token') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Token inválido',
+                text: 'El enlace de restablecimiento de contraseña es inválido o ha expirado. Por favor, solicita un nuevo enlace.',
+                confirmButtonColor: '#3452a5',
+                confirmButtonText: 'Aceptar'
+            });
+        }
+
     });</script>
 </body>
 </html>

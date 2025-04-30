@@ -1,10 +1,11 @@
-package org.example.proyectocloud.Controller;
+package org.example.proyectocloud.Controller.Auth;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.example.proyectocloud.Bean.UserInfo;
 import org.example.proyectocloud.Dao.AuthDao;
-import org.example.proyectocloud.Service.AuthService;
+import org.example.proyectocloud.Service.Auth.AuthService;
+import org.example.proyectocloud.Service.Auth.PasswordResetService;
 import org.example.proyectocloud.Service.SliceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -14,14 +15,10 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
+import java.util.*;
 
 @Controller
 public class LoginController {
@@ -33,6 +30,9 @@ public class LoginController {
     AuthDao authDao;
     @Autowired
     SliceService sliceService;
+    @Autowired
+    private PasswordResetService passwordResetService;
+
     //Ver frontEnd
     @GetMapping({"/" })
     public String login(HttpSession http) {
@@ -195,6 +195,126 @@ public class LoginController {
             response.put("message", "An unexpected error occurred");
             response.put("action", "contact_support");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+
+    /**
+     * Endpoint para solicitar el restablecimiento de contraseña.
+     * Recibe el correo electrónico del usuario y envía un enlace de restablecimiento.
+     *
+     * @param requestMap Mapa con el correo electrónico
+     * @return Respuesta con el resultado de la operación
+     */
+    @PostMapping("/ResetPassword")
+    @ResponseBody
+    public ResponseEntity<?> requestPasswordReset(@RequestBody Map<String, String> requestMap) {
+        // Verificar que se proporciona el correo electrónico
+        if (!requestMap.containsKey("email") || requestMap.get("email") == null || requestMap.get("email").isEmpty()) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("message", "Email is required");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+
+        String email = requestMap.get("email");
+
+        // Llamar al servicio para solicitar el restablecimiento
+        Map<String, Object> result = passwordResetService.requestPasswordReset(email);
+
+        // Comprobar el resultado y devolver la respuesta adecuada
+        if ("success".equals(result.get("status"))) {
+            return ResponseEntity.ok(result);
+        } else {
+            HttpStatus status;
+
+            // Determinar el código de estado según el resultado
+            if (result.containsKey("code")) {
+                int code = (Integer) result.get("code");
+                status = HttpStatus.valueOf(code);
+            } else {
+                status = HttpStatus.INTERNAL_SERVER_ERROR;
+            }
+
+            return ResponseEntity.status(status).body(result);
+        }
+    }
+
+    /**
+     * Página para cambiar la contraseña después de usar un token de restablecimiento.
+     *
+     * @param token Token de restablecimiento de contraseña
+     * @param model Modelo para la vista
+     * @return Vista de cambio de contraseña o redirección a login
+     */
+    @GetMapping("/password-reset")
+    public String showPasswordResetPage(@RequestParam(required = false) String token, Model model) {
+        // Si no hay token, redirigir al login
+        if (token == null || token.isEmpty()) {
+            return "redirect:/";
+        }
+
+        // Verificar el token
+        Map<String, Object> verificationResult = passwordResetService.verifyResetToken(token);
+
+        if ("success".equals(verificationResult.get("status"))) {
+            // Token válido, mostrar página para cambiar contraseña
+            model.addAttribute("token", token);
+            model.addAttribute("email", verificationResult.get("email"));
+            return "AuthPages/password-reset";
+        } else {
+            // Token inválido, redirigir al login con mensaje de error
+            return "redirect:/?error=invalid_token";
+        }
+    }
+
+    /**
+     * Endpoint para cambiar la contraseña usando un token de restablecimiento.
+     *
+     * @param requestMap Mapa con el token y la nueva contraseña
+     * @return Respuesta con el resultado de la operación
+     */
+    @PostMapping("/password-reset/confirm")
+    @ResponseBody
+    public ResponseEntity<?> confirmPasswordReset(@RequestBody Map<String, String> requestMap) {
+        // Verificar que se proporcionan los datos necesarios
+        if (!requestMap.containsKey("token") || requestMap.get("token") == null ||
+                !requestMap.containsKey("newPassword") || requestMap.get("newPassword") == null) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("message", "Token and new password are required");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+
+        String token = requestMap.get("token");
+        String newPassword = requestMap.get("newPassword");
+
+        // Validar la longitud de la contraseña
+        if (newPassword.length() < 6) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("message", "Password must be at least 6 characters long");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+
+        // Llamar al servicio para cambiar la contraseña
+        Map<String, Object> result = passwordResetService.resetPassword(token, newPassword);
+
+        // Comprobar el resultado y devolver la respuesta adecuada
+        if ("success".equals(result.get("status"))) {
+            return ResponseEntity.ok(result);
+        } else {
+            HttpStatus status;
+
+            // Determinar el código de estado según el resultado
+            if (result.containsKey("code")) {
+                int code = (Integer) result.get("code");
+                status = HttpStatus.valueOf(code);
+            } else {
+                status = HttpStatus.INTERNAL_SERVER_ERROR;
+            }
+
+            return ResponseEntity.status(status).body(result);
         }
     }
 

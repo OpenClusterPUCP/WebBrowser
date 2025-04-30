@@ -1,4 +1,4 @@
-package org.example.proyectocloud.Service;
+package org.example.proyectocloud.Service.Auth;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
