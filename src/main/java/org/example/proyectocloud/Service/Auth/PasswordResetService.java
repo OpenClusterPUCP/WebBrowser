@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
@@ -12,9 +13,6 @@ import org.springframework.web.client.RestTemplate;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Servicio para operaciones relacionadas con el restablecimiento de contraseñas.
- */
 @Service
 @Slf4j
 public class PasswordResetService {
@@ -24,8 +22,12 @@ public class PasswordResetService {
 
     private ObjectMapper objectMapper = new ObjectMapper();
 
-    // URL base para el API Gateway
-    private static final String API_GATEWAY_URL = "http://localhost:8090";
+    // URL base para el API Gateway - Usar @Value para mayor flexibilidad
+    @Value("${api.gateway.url}")
+    private String apiGatewayUrl;
+
+    @Value("${password.reset.redirect.url}")
+    private String passwordResetRedirectUrl;
 
     /**
      * Método auxiliar para crear headers HTTP básicos.
@@ -94,14 +96,14 @@ public class PasswordResetService {
      */
     public Map<String, Object> requestPasswordReset(String email) {
         log.info("Solicitando restablecimiento de contraseña para: {}", email);
-        String url = API_GATEWAY_URL + "/api/public/auth/password/reset-request";
+        String url = apiGatewayUrl + "/api/public/auth/password/reset-request";
 
         HttpHeaders headers = createJsonHeaders();
 
         // Crear el body de la petición
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("email", email);
-        requestBody.put("redirectUrl", "http://localhost:8080/password-reset");  // URL de la página de cambio de contraseña
+        requestBody.put("redirectUrl", passwordResetRedirectUrl);  // URL parametrizada
 
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
@@ -114,7 +116,16 @@ public class PasswordResetService {
             );
 
             log.info("Solicitud de restablecimiento de contraseña enviada para: {}", email);
-            Map<String, Object> result = processMapResponse(response.getBody());
+            Map<String, Object> result = new HashMap<>();
+
+            // Intentamos procesar la respuesta como JSON, si falla retornamos un mapa simplificado
+            try {
+                result = processMapResponse(response.getBody());
+            } catch (Exception e) {
+                log.warn("No se pudo procesar la respuesta como JSON, usando respuesta simplificada");
+                result.put("message", "Solicitud de restablecimiento enviada correctamente");
+            }
+
             result.put("status", "success");
             return result;
         } catch (HttpClientErrorException ex) {
@@ -155,7 +166,7 @@ public class PasswordResetService {
      */
     public Map<String, Object> verifyResetToken(String token) {
         log.info("Verificando token de restablecimiento de contraseña");
-        String url = API_GATEWAY_URL + "/api/public/auth/password/verify-token/" + token;
+        String url = apiGatewayUrl + "/api/public/auth/password/verify-token/" + token;
 
         HttpHeaders headers = createBasicHeaders();
         HttpEntity<String> entity = new HttpEntity<>(null, headers);
@@ -169,7 +180,17 @@ public class PasswordResetService {
             );
 
             log.info("Token de restablecimiento verificado correctamente");
-            Map<String, Object> result = processMapResponse(response.getBody());
+            Map<String, Object> result;
+
+            // Intentamos procesar la respuesta como JSON, si falla retornamos un mapa simplificado
+            try {
+                result = processMapResponse(response.getBody());
+            } catch (Exception e) {
+                log.warn("No se pudo procesar la respuesta como JSON, usando respuesta simplificada");
+                result = new HashMap<>();
+                result.put("email", ""); // Email vacío para manejar casos donde el servicio no lo devuelve
+            }
+
             result.put("status", "success");
             return result;
         } catch (HttpClientErrorException ex) {
@@ -194,7 +215,7 @@ public class PasswordResetService {
      */
     public Map<String, Object> resetPassword(String token, String newPassword) {
         log.info("Estableciendo nueva contraseña con token de restablecimiento");
-        String url = API_GATEWAY_URL + "/api/public/auth/password/reset";
+        String url = apiGatewayUrl + "/api/public/auth/password/reset";
 
         HttpHeaders headers = createJsonHeaders();
 
@@ -214,7 +235,17 @@ public class PasswordResetService {
             );
 
             log.info("Contraseña restablecida correctamente");
-            Map<String, Object> result = processMapResponse(response.getBody());
+            Map<String, Object> result;
+
+            // Intentamos procesar la respuesta como JSON, si falla retornamos un mapa simplificado
+            try {
+                result = processMapResponse(response.getBody());
+            } catch (Exception e) {
+                log.warn("No se pudo procesar la respuesta como JSON, usando respuesta simplificada");
+                result = new HashMap<>();
+                result.put("message", "Contraseña restablecida correctamente");
+            }
+
             result.put("status", "success");
             return result;
         } catch (HttpClientErrorException ex) {

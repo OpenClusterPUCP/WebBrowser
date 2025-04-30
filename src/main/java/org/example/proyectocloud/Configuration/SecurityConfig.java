@@ -21,6 +21,7 @@ public class SecurityConfig {
     private final SecurityAuthenticationEntryPoint authenticationEntryPoint;
     private final SecurityAccessDeniedHandler accessDeniedHandler;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
     public SecurityConfig(SecurityAuthenticationEntryPoint authenticationEntryPoint,
                           SecurityAccessDeniedHandler accessDeniedHandler,
                           JwtAuthenticationFilter jwtAuthenticationFilter) {
@@ -28,31 +29,36 @@ public class SecurityConfig {
         this.accessDeniedHandler = accessDeniedHandler;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())
+                .csrf(csrf -> csrf.disable())
 
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.ALWAYS))
-            .exceptionHandling(exceptions -> exceptions
-                .authenticationEntryPoint(authenticationEntryPoint)
-                .accessDeniedHandler(accessDeniedHandler)
-            ).authorizeHttpRequests(authorize -> authorize
-                .requestMatchers("/" , "/InicioSesion" , "/recuperarContraseña" , "/Logearse").permitAll()
-                .requestMatchers("/Admin/**" , "Admin/*").hasRole("Admin")
-                .requestMatchers("/User/**", "User/*").hasAnyRole("User")
-                .anyRequest().authenticated()
-            )
-            .logout(logout -> logout
-                .logoutUrl("/logout")
-                .logoutSuccessUrl("/login?logout")
-                .invalidateHttpSession(true)
-                .deleteCookies("JSESSIONID")
-            )
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.ALWAYS))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler)
+                ).authorizeHttpRequests(authorize -> authorize
+                        // Rutas públicas para autenticación
+                        .requestMatchers("/" , "/InicioSesion" , "/recuperarContraseña" , "/Logearse").permitAll()
+
+                        // Rutas públicas para autenticación
+                        .requestMatchers("/ResetPassword", "/password-reset", "/password-reset/confirm").permitAll()
+
+                        // Rutas protegidas por roles
+                        .requestMatchers("/Admin/**" , "Admin/*").hasRole("Admin")
+                        .requestMatchers("/User/**", "User/*").hasAnyRole("User")
+                        .anyRequest().authenticated()
+                )
+                .logout(logout -> logout
+                        .logoutUrl("/logout")
+                        .logoutSuccessUrl("/login?logout")
+                        .invalidateHttpSession(true)
+                        .deleteCookies("JSESSIONID")
+                )
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
-
-
 }

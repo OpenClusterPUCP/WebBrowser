@@ -1403,80 +1403,86 @@
         }
 
         // Reset password form submission con mejor manejo de errores
-        if (resetPasswordForm) {
-            resetPasswordForm.addEventListener('submit', function(e) {
-                e.preventDefault();
+        resetPasswordForm.addEventListener('submit', function(e) {
+            e.preventDefault();
 
-                // Validar el correo electrónico
-                if (!resetEmailInput || !resetEmailInput.value || !validateEmail(resetEmailInput.value)) {
-                    // Mostrar mensaje de error
-                    showResetFormError('Por favor ingresa un correo electrónico válido');
-                    return;
-                }
+            // Validar el correo electrónico
+            if (!resetEmailInput || !resetEmailInput.value || !validateEmail(resetEmailInput.value)) {
+                // Mostrar mensaje de error
+                showResetFormError('Por favor ingresa un correo electrónico válido');
+                return;
+            }
 
-                // Mostrar estado de carga
-                if (sendResetLinkBtn) {
-                    sendResetLinkBtn.disabled = true;
-                    sendResetLinkBtn.innerHTML = '<span class="loading-spinner"></span>Enviando...';
-                }
+            // Mostrar estado de carga
+            if (sendResetLinkBtn) {
+                sendResetLinkBtn.disabled = true;
+                sendResetLinkBtn.innerHTML = '<span class="loading-spinner"></span>Enviando...';
+            }
 
-                // Eliminar mensajes previos
-                removeAllMessages(resetPasswordForm);
+            // Eliminar mensajes previos
+            removeAllMessages(resetPasswordForm);
 
-                // Realizar la petición al servidor con mejor manejo de errores
-                fetch(`${config.apiUrl}/ResetPassword`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        email: resetEmailInput.value
-                    })
+            // Realizar la petición al servidor con mejor manejo de errores
+            fetch('/ResetPassword', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: resetEmailInput.value
                 })
-                    .then(response => {
-                        // Verificar primero si la respuesta es exitosa
-                        if (!response.ok) {
-                            // Si el servidor devuelve un error HTTP, lanzar excepción
-                            throw new Error(`Error HTTP: ${response.status}`);
-                        }
+            })
+                .then(response => {
+                    // Verificar si la respuesta es exitosa
+                    if (!response.ok) {
+                        // Si el servidor devuelve un error HTTP, lanzar excepción con el status
+                        return response.text().then(text => {
+                            throw new Error(`Error HTTP: ${response.status} - ${text}`);
+                        });
+                    }
 
-                        // Verificar que la respuesta es JSON antes de procesarla
-                        const contentType = response.headers.get('content-type');
-                        if (!contentType || !contentType.includes('application/json')) {
-                            throw new TypeError("La respuesta no es JSON");
-                        }
-
+                    // Intentar parsear como JSON, pero si falla, también manejar respuesta de texto
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
                         return response.json();
-                    })
-                    .then(data => {
-                        if (data.status === 'success') {
-                            // Mostrar mensaje de éxito
-                            showResetFormSuccess('Se ha enviado un enlace a tu correo para restablecer tu contraseña');
+                    } else {
+                        // Si no es JSON, convertir respuesta a un objeto con status success
+                        return response.text().then(text => {
+                            return {
+                                status: response.ok ? 'success' : 'error',
+                                message: text || 'Se ha procesado tu solicitud'
+                            };
+                        });
+                    }
+                })
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Mostrar mensaje de éxito
+                        showResetFormSuccess(data.message || 'Se ha enviado un enlace a tu correo para restablecer tu contraseña');
 
-                            // Cerrar modal después de 3 segundos
-                            setTimeout(() => {
-                                if (passwordResetModal) {
-                                    passwordResetModal.classList.remove('show');
-                                }
-                            }, 3000);
-                        } else {
-                            // Mostrar mensaje de error
-                            showResetFormError(data.message || 'Error al enviar el correo. Inténtalo más tarde.');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        showResetFormError('Error de conexión. Por favor, verifica que el servidor esté en funcionamiento y vuelve a intentarlo.');
-                    })
-                    .finally(() => {
-                        // Restaurar estado del botón
-                        if (sendResetLinkBtn) {
-                            sendResetLinkBtn.disabled = false;
-                            sendResetLinkBtn.innerHTML = 'Enviar enlace';
-                        }
-                    });
-            });
-        }
+                        // Cerrar modal después de 3 segundos
+                        setTimeout(() => {
+                            if (passwordResetModal) {
+                                passwordResetModal.classList.remove('show');
+                            }
+                        }, 3000);
+                    } else {
+                        // Mostrar mensaje de error
+                        showResetFormError(data.message || 'Error al enviar el correo. Inténtalo más tarde.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showResetFormError('Error de conexión. Por favor, verifica que el servidor esté en funcionamiento y vuelve a intentarlo.');
+                })
+                .finally(() => {
+                    // Restaurar estado del botón
+                    if (sendResetLinkBtn) {
+                        sendResetLinkBtn.disabled = false;
+                        sendResetLinkBtn.innerHTML = 'Enviar enlace';
+                    }
+                });
+        });
 
 
         // Funciones auxiliares para gestionar mensajes

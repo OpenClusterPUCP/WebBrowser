@@ -2,6 +2,7 @@ package org.example.proyectocloud.Controller.Auth;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import lombok.extern.slf4j.Slf4j;
 import org.example.proyectocloud.Bean.UserInfo;
 import org.example.proyectocloud.Dao.AuthDao;
 import org.example.proyectocloud.Service.Auth.AuthService;
@@ -9,6 +10,7 @@ import org.example.proyectocloud.Service.Auth.PasswordResetService;
 import org.example.proyectocloud.Service.SliceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.*;
 
 @Controller
+@Slf4j
 public class LoginController {
     private final AuthService authService;
     public LoginController(AuthService authService) {
@@ -209,34 +212,61 @@ public class LoginController {
     @PostMapping("/ResetPassword")
     @ResponseBody
     public ResponseEntity<?> requestPasswordReset(@RequestBody Map<String, String> requestMap) {
+        log.info("Recibida solicitud de restablecimiento de contraseña");
+
         // Verificar que se proporciona el correo electrónico
         if (!requestMap.containsKey("email") || requestMap.get("email") == null || requestMap.get("email").isEmpty()) {
+            log.warn("Solicitud de restablecimiento rechazada: email no proporcionado");
             Map<String, Object> response = new HashMap<>();
             response.put("status", "error");
             response.put("message", "Email is required");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(response);
         }
 
         String email = requestMap.get("email");
+        log.info("Procesando solicitud de restablecimiento para email: {}", email);
 
-        // Llamar al servicio para solicitar el restablecimiento
-        Map<String, Object> result = passwordResetService.requestPasswordReset(email);
+        try {
+            // Llamar al servicio para solicitar el restablecimiento
+            log.debug("Llamando al servicio de restablecimiento de contraseña");
+            Map<String, Object> result = passwordResetService.requestPasswordReset(email);
+            log.debug("Respuesta del servicio de restablecimiento: {}", result);
 
-        // Comprobar el resultado y devolver la respuesta adecuada
-        if ("success".equals(result.get("status"))) {
-            return ResponseEntity.ok(result);
-        } else {
-            HttpStatus status;
-
-            // Determinar el código de estado según el resultado
-            if (result.containsKey("code")) {
-                int code = (Integer) result.get("code");
-                status = HttpStatus.valueOf(code);
+            // Comprobar el resultado y devolver la respuesta adecuada
+            if ("success".equals(result.get("status"))) {
+                log.info("Solicitud de restablecimiento procesada con éxito para: {}", email);
+                return ResponseEntity.ok()
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(result);
             } else {
-                status = HttpStatus.INTERNAL_SERVER_ERROR;
-            }
+                HttpStatus status;
 
-            return ResponseEntity.status(status).body(result);
+                // Determinar el código de estado según el resultado
+                if (result.containsKey("code")) {
+                    int code = (Integer) result.get("code");
+                    status = HttpStatus.valueOf(code);
+                    log.warn("Error en solicitud de restablecimiento: {} - {}", status, result.get("message"));
+                } else {
+                    status = HttpStatus.INTERNAL_SERVER_ERROR;
+                    log.error("Error interno en solicitud de restablecimiento sin código de estado");
+                }
+
+                return ResponseEntity.status(status)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(result);
+            }
+        } catch (Exception e) {
+            log.error("Excepción no controlada en solicitud de restablecimiento: {}", e.getMessage(), e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", "Error interno del servidor al procesar la solicitud");
+            errorResponse.put("details", e.getMessage());
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(errorResponse);
         }
     }
 
@@ -249,22 +279,35 @@ public class LoginController {
      */
     @GetMapping("/password-reset")
     public String showPasswordResetPage(@RequestParam(required = false) String token, Model model) {
+        log.info("Acceso a página de restablecimiento de contraseña");
+
         // Si no hay token, redirigir al login
         if (token == null || token.isEmpty()) {
+            log.warn("Acceso a página de restablecimiento rechazado: token no proporcionado");
             return "redirect:/";
         }
 
-        // Verificar el token
-        Map<String, Object> verificationResult = passwordResetService.verifyResetToken(token);
+        log.debug("Verificando token de restablecimiento: {}", token);
 
-        if ("success".equals(verificationResult.get("status"))) {
-            // Token válido, mostrar página para cambiar contraseña
-            model.addAttribute("token", token);
-            model.addAttribute("email", verificationResult.get("email"));
-            return "AuthPages/password-reset";
-        } else {
-            // Token inválido, redirigir al login con mensaje de error
-            return "redirect:/?error=invalid_token";
+        try {
+            // Verificar el token
+            Map<String, Object> verificationResult = passwordResetService.verifyResetToken(token);
+            log.debug("Resultado de verificación del token: {}", verificationResult);
+
+            if ("success".equals(verificationResult.get("status"))) {
+                // Token válido, mostrar página para cambiar contraseña
+                log.info("Token válido, mostrando página de cambio de contraseña");
+                model.addAttribute("token", token);
+                model.addAttribute("email", verificationResult.get("email"));
+                return "AuthPages/resetPassword";
+            } else {
+                // Token inválido, redirigir al login con mensaje de error
+                log.warn("Token inválido o expirado, redirigiendo a login");
+                return "redirect:/?error=invalid_token";
+            }
+        } catch (Exception e) {
+            log.error("Error al verificar token de restablecimiento: {}", e.getMessage(), e);
+            return "redirect:/?error=system_error";
         }
     }
 
@@ -277,44 +320,74 @@ public class LoginController {
     @PostMapping("/password-reset/confirm")
     @ResponseBody
     public ResponseEntity<?> confirmPasswordReset(@RequestBody Map<String, String> requestMap) {
+        log.info("Recibida solicitud para confirmar restablecimiento de contraseña");
+
         // Verificar que se proporcionan los datos necesarios
         if (!requestMap.containsKey("token") || requestMap.get("token") == null ||
                 !requestMap.containsKey("newPassword") || requestMap.get("newPassword") == null) {
+            log.warn("Solicitud de confirmación rechazada: token o contraseña no proporcionados");
             Map<String, Object> response = new HashMap<>();
             response.put("status", "error");
             response.put("message", "Token and new password are required");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(response);
         }
 
         String token = requestMap.get("token");
         String newPassword = requestMap.get("newPassword");
+        log.debug("Procesando confirmación de restablecimiento con token: {}", token);
 
         // Validar la longitud de la contraseña
         if (newPassword.length() < 6) {
+            log.warn("Contraseña rechazada: longitud inferior a 6 caracteres");
             Map<String, Object> response = new HashMap<>();
             response.put("status", "error");
             response.put("message", "Password must be at least 6 characters long");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(response);
         }
 
-        // Llamar al servicio para cambiar la contraseña
-        Map<String, Object> result = passwordResetService.resetPassword(token, newPassword);
+        try {
+            // Llamar al servicio para cambiar la contraseña
+            log.debug("Llamando al servicio para restablecer contraseña");
+            Map<String, Object> result = passwordResetService.resetPassword(token, newPassword);
+            log.debug("Respuesta del servicio de restablecimiento: {}", result);
 
-        // Comprobar el resultado y devolver la respuesta adecuada
-        if ("success".equals(result.get("status"))) {
-            return ResponseEntity.ok(result);
-        } else {
-            HttpStatus status;
-
-            // Determinar el código de estado según el resultado
-            if (result.containsKey("code")) {
-                int code = (Integer) result.get("code");
-                status = HttpStatus.valueOf(code);
+            // Comprobar el resultado y devolver la respuesta adecuada
+            if ("success".equals(result.get("status"))) {
+                log.info("Contraseña restablecida con éxito");
+                return ResponseEntity.ok()
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(result);
             } else {
-                status = HttpStatus.INTERNAL_SERVER_ERROR;
-            }
+                HttpStatus status;
 
-            return ResponseEntity.status(status).body(result);
+                // Determinar el código de estado según el resultado
+                if (result.containsKey("code")) {
+                    int code = (Integer) result.get("code");
+                    status = HttpStatus.valueOf(code);
+                    log.warn("Error al restablecer contraseña: {} - {}", status, result.get("message"));
+                } else {
+                    status = HttpStatus.INTERNAL_SERVER_ERROR;
+                    log.error("Error interno al restablecer contraseña sin código de estado");
+                }
+
+                return ResponseEntity.status(status)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(result);
+            }
+        } catch (Exception e) {
+            log.error("Excepción no controlada al restablecer contraseña: {}", e.getMessage(), e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", "Error interno del servidor al procesar la solicitud");
+            errorResponse.put("details", e.getMessage());
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(errorResponse);
         }
     }
 
