@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenCluster - Detalle de Zona</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" th:href="@{/css/admin-styles.css}">
+</head>
+<body>
+<div class="app-container">
+    <!-- Sidebar -->
+    <div th:replace="~{Fragments/Admin/sidebar :: sidebar('availability')}"></div>
+
+    <!-- Contenido principal -->
+    <main class="main-content">
+        <!-- Header -->
+        <div th:replace="~{Fragments/Admin/header :: header(title='Detalle de Zona')}"></div>
+
+        <section class="page-content">
+            <div class="content-header">
+                <div class="d-flex align-items-center">
+                    <a th:href="@{/Admin/availability-zones}" class="btn btn-sm btn-outline me-3">
+                        <i class="fas fa-arrow-left"></i>
+                        <span class="btn-text">Volver</span>
+                    </a>
+                    <h2 class="content-title" th:text="${zone != null} ? ${zone.name} : 'Zona A'">Zona A</h2>
+                    <span class="zone-status online ms-3" th:text="${zone != null} ? ${zone.status} : 'En línea'" th:classappend="${zone != null} ? ${zone.status == 'active' ? 'online' : (zone.status == 'warning' ? 'warning' : 'offline')} : 'online'">En línea</span>
+                </div>
+                <div class="header-actions">
+                    <div class="refresh-container">
+                        <button class="btn btn-outline refresh-btn" id="btnRefreshZoneData">
+                            <i class="fas fa-sync-alt"></i>
+                            <span class="btn-text">Actualizar</span>
+                        </button>
+                        <span class="last-update" id="lastUpdateTime">Última actualización: hace 2 minutos</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Descripción y resumen de la zona -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-7">
+                            <h4 class="mb-3">Descripción</h4>
+                            <p class="mb-4" th:text="${zone != null} ? ${zone.description} : 'Zona principal de producción con alta disponibilidad.'">Zona principal de producción con alta disponibilidad.</p>
+
+                            <!-- Ratios de sobreaprovisionamiento explicados -->
+                            <h5 class="mb-2">Sobreaprovisionamiento de la zona</h5>
+                            <div class="bg-light p-3 rounded mb-3">
+                                <div class="d-flex justify-content-between mb-3">
+                                    <div class="ratio-block">
+                                        <div class="ratio-value" th:text="${zone != null} ? ${zone.cpuRatio} + ':1' : '2.5:1'">2.5:1</div>
+                                        <div class="ratio-label">CPU</div>
+                                        <div class="ratio-explanation">
+                                            <small class="text-muted">2.5 vCPUs por cada CPU físico</small>
+                                        </div>
+                                    </div>
+                                    <div class="ratio-block">
+                                        <div class="ratio-value" th:text="${zone != null} ? ${zone.ramRatio} + ':1' : '1.8:1'">1.8:1</div>
+                                        <div class="ratio-label">RAM</div>
+                                        <div class="ratio-explanation">
+                                            <small class="text-muted">1.8 GB virtuales por cada GB físico</small>
+                                        </div>
+                                    </div>
+                                    <div class="ratio-block">
+                                        <div class="ratio-value" th:text="${zone != null} ? ${zone.diskRatio} + ':1' : '1.4:1'">1.4:1</div>
+                                        <div class="ratio-label">Almacenamiento</div>
+                                        <div class="ratio-explanation">
+                                            <small class="text-muted">1.4 GB virtuales por cada GB físico</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="ratio-info-box">
+                                    <i class="fas fa-info-circle me-2 text-primary"></i>
+                                    <small>Estos ratios indican cuántos recursos virtuales has asignado por cada unidad física disponible en esta zona. Un uso real alto con ratios altos puede generar contención de recursos.</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-5">
+                            <div class="zone-stats-summary">
+                                <h4 class="mb-3">Resumen de recursos</h4>
+                                <div class="row">
+                                    <div class="col-6 mb-3">
+                                        <div class="stat-card">
+                                            <div class="stat-card-title">Servidores</div>
+                                            <div class="stat-card-value" th:text="${zone != null} ? ${zone.serversCount} : '3'">3</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 mb-3">
+                                        <div class="stat-card">
+                                            <div class="stat-card-title">VMs activas</div>
+                                            <div class="stat-card-value" th:text="${zone != null} ? ${zone.vmsCount} : '12'">12</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 mb-3">
+                                        <div class="stat-card">
+                                            <div class="stat-card-title">Slices</div>
+                                            <div class="stat-card-value" th:text="${zone != null} ? ${zone.slicesCount} : '4'">4</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 mb-3">
+                                        <div class="stat-card">
+                                            <div class="stat-card-title">Uso real CPU</div>
+                                            <div class="stat-card-value">
+                                                <span th:text="${zone != null} ? ${zone.actualCpuUsage} + '/' + ${zone.totalCpu} : '21/48'">21/48</span>
+                                                <small>vCPU</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <a th:href="@{/Admin/availability-zones/{id}/monitoring(id=${zone != null ? zone.id : 1})}" class="btn btn-primary w-100">
+                                    <i class="fas fa-chart-line me-2"></i>Ver monitoreo detallado
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico de uso de recursos -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-chart-bar me-2"></i>Uso de recursos
+                    </h3>
+                    <div class="card-actions">
+                        <select id="resourceTimeRange" class="form-select form-select-sm">
+                            <option value="day">Último día</option>
+                            <option value="week" selected>Última semana</option>
+                            <option value="month">Último mes</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="usage-metrics">
+                                <div class="metrics-row">
+                                    <div class="metric-label">Capacidad física:</div>
+                                    <div class="metric-value text-muted" th:text="${zone != null} ? ${zone.totalCpu} + ' vCPU' : '48 vCPU'">48 vCPU</div>
+                                </div>
+                                <div class="metrics-row">
+                                    <div class="metric-label">Recursos asignados:</div>
+                                    <div class="metric-value" th:text="${zone != null} ? ${zone.usedCpu} + ' vCPU' : '80 vCPU'">80 vCPU</div>
+                                </div>
+                                <div class="metrics-row">
+                                    <div class="metric-label">Uso real actual:</div>
+                                    <div class="metric-value text-success" th:text="${zone != null} ? ${zone.actualCpuUsage} + ' vCPU' : '21 vCPU'">21 vCPU</div>
+                                </div>
+                                <div class="metrics-row">
+                                    <div class="metric-label">Presión de recursos:</div>
+                                    <div class="metric-value" th:text="${zone != null && zone.totalCpu > 0} ? ${#numbers.formatDecimal((zone.actualCpuUsage * 100 / zone.totalCpu), 1, 1)} + '%' : '43.8%'">43.8%</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-9">
+                            <div class="usage-chart-container">
+                                <canvas id="cpuUsageChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="usage-metrics">
+                                <div class="metrics-row">
+                                    <div class="metric-label">Capacidad física:</div>
+                                    <div class="metric-value text-muted" th:text="${zone != null} ? ${zone.totalRam} + ' GB' : '128 GB'">128 GB</div>
+                                </div>
+                                <div class="metrics-row">
+                                    <div class="metric-label">Recursos asignados:</div>
+                                    <div class="metric-value" th:text="${zone != null} ? ${zone.usedRam} + ' GB' : '172 GB'">172 GB</div>
+                                </div>
+                                <div class="metrics-row">
+                                    <div class="metric-label">Uso real actual:</div>
+                                    <div class="metric-value text-success" th:text="${zone != null} ? ${zone.actualRamUsage} + ' GB' : '64 GB'">64 GB</div>
+                                </div>
+                                <div class="metrics-row">
+                                    <div class="metric-label">Presión de recursos:</div>
+                                    <div class="metric-value" th:text="${zone != null && zone.totalRam > 0} ? ${#numbers.formatDecimal((zone.actualRamUsage * 100 / zone.totalRam), 1, 1)} + '%' : '50%'">50%</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-9">
+                            <div class="usage-chart-container">
+                                <canvas id="ramUsageChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="usage-metrics">
+                                <div class="metrics-row">
+                                    <div class="metric-label">Capacidad física:</div>
+                                    <div class="metric-value text-muted" th:text="${zone != null} ? ${zone.totalStorage} + ' GB' : '1500 GB'">1500 GB</div>
+                                </div>
+                                <div class="metrics-row">
+                                    <div class="metric-label">Recursos asignados:</div>
+                                    <div class="metric-value" th:text="${zone != null} ? ${zone.usedStorage} + ' GB' : '2100 GB'">2100 GB</div>
+                                </div>
+                                <div class="metrics-row">
+                                    <div class="metric-label">Uso real actual:</div>
+                                    <div class="metric-value text-success" th:text="${zone != null} ? ${zone.actualStorageUsage} + ' GB' : '580 GB'">580 GB</div>
+                                </div>
+                                <div class="metrics-row">
+                                    <div class="metric-label">Presión de recursos:</div>
+                                    <div class="metric-value" th:text="${zone != null && zone.totalStorage > 0} ? ${#numbers.formatDecimal((zone.actualStorageUsage * 100 / zone.totalStorage), 1, 1)} + '%' : '38.7%'">38.7%</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-9">
+                            <div class="usage-chart-container">
+                                <canvas id="storageUsageChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Servidores en la zona -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-server me-2"></i>Servidores físicos
+                    </h3>
+                    <div class="card-actions">
+                        <input type="text" id="serverSearchInput" class="form-control form-control-sm" placeholder="Buscar servidor..." style="width: 200px;">
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="serversTable">
+                            <thead>
+                            <tr>
+                                <th>Hostname</th>
+                                <th>IP</th>
+                                <th>Estado</th>
+                                <th>vCPUs (Asignados/Total)</th>
+                                <th>RAM (Asignada/Total)</th>
+                                <th>Almacenamiento (Asignado/Total)</th>
+                                <th>VMs</th>
+                                <th>Acciones</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <!-- Datos de ejemplo - serán reemplazados dinámicamente -->
+                            <tr th:each="server : ${serversData}" th:if="${serversData != null && !serversData.empty}">
+                                <td th:text="${server.hostname}">server-a1</td>
+                                <td th:text="${server.ip}">10.20.12.215</td>
+                                <td>
+                                    <span th:class="'badge ' + (${server.status == 'Online'} ? 'bg-success' : (${server.status == 'Warning'} ? 'bg-warning' : 'bg-danger'))" th:text="${server.status}">Online</span>
+                                </td>
+                                <td th:text="${server.usedCpu} + '/' + ${server.totalCpu}">12/16</td>
+                                <td th:text="${server.usedRam} + '/' + ${server.totalRam} + ' GB'">24/32 GB</td>
+                                <td th:text="${server.usedStorage} + '/' + ${server.totalStorage} + ' GB'">320/500 GB</td>
+                                <td th:text="${server.vmsCount}">4</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" th:onclick="'showServerDetails(' + ${server.id} + ')'">
+                                        <i class="fas fa-info-circle"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <!-- Si no hay datos, muestra datos de ejemplo -->
+                            <tr th:if="${serversData == null || serversData.empty}">
+                                <td>server-a1</td>
+                                <td>10.20.12.215</td>
+                                <td><span class="badge bg-success">Online</span></td>
+                                <td>12/16</td>
+                                <td>24/32 GB</td>
+                                <td>320/500 GB</td>
+                                <td>4</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="showServerDetails(1)">
+                                        <i class="fas fa-info-circle"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr th:if="${serversData == null || serversData.empty}">
+                                <td>server-a2</td>
+                                <td>10.20.12.216</td>
+                                <td><span class="badge bg-success">Online</span></td>
+                                <td>10/16</td>
+                                <td>20/32 GB</td>
+                                <td>280/500 GB</td>
+                                <td>4</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="showServerDetails(2)">
+                                        <i class="fas fa-info-circle"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr th:if="${serversData == null || serversData.empty}">
+                                <td>server-a3</td>
+                                <td>10.20.12.217</td>
+                                <td><span class="badge bg-success">Online</span></td>
+                                <td>10/16</td>
+                                <td>24/32 GB</td>
+                                <td>200/500 GB</td>
+                                <td>4</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="showServerDetails(3)">
+                                        <i class="fas fa-info-circle"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slices en la zona -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-layer-group me-2"></i>Slices desplegados
+                    </h3>
+                    <div class="card-actions">
+                        <input type="text" id="sliceSearchInput" class="form-control form-control-sm" placeholder="Buscar slice..." style="width: 200px;">
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="slicesTable">
+                            <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Propietario</th>
+                                <th>Tipo</th>
+                                <th>VMs</th>
+                                <th>Recursos Asignados</th>
+                                <th>Creado</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <!-- Datos de ejemplo - serán reemplazados dinámicamente -->
+                            <tr th:each="slice : ${slicesData}" th:if="${slicesData != null && !slicesData.empty}">
+                                <td th:text="${slice.name}">web-app-1</td>
+                                <td th:text="${slice.ownerName}">Juan Díaz</td>
+                                <td th:text="${slice.type}">Lineal</td>
+                                <td th:text="${slice.vmsCount}">3</td>
+                                <td th:text="${slice.cpuCount} + ' vCPU, ' + ${slice.ramSize} + 'GB RAM, ' + ${slice.storageSize} + 'GB'">6 vCPU, 12GB RAM, 80GB</td>
+                                <td th:text="${#temporals.format(slice.createdAt, 'dd/MM/yyyy')}">12/04/2025</td>
+                                <td>
+                                    <span th:class="'badge ' + (${slice.status == 'active'} ? 'bg-success' : 'bg-secondary')" th:text="${slice.status}">Activo</span>
+                                </td>
+                                <td>
+                                    <a th:href="@{/Admin/slices/{id}(id=${slice.id})}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-external-link-alt"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            <!-- Si no hay datos, muestra datos de ejemplo -->
+                            <tr th:if="${slicesData == null || slicesData.empty}">
+                                <td>web-app-1</td>
+                                <td>Juan Díaz</td>
+                                <td>Lineal</td>
+                                <td>3</td>
+                                <td>6 vCPU, 12GB RAM, 80GB</td>
+                                <td>12/04/2025</td>
+                                <td><span class="badge bg-success">Activo</span></td>
+                                <td>
+                                    <a href="#" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-external-link-alt"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr th:if="${slicesData == null || slicesData.empty}">
+                                <td>db-cluster</td>
+                                <td>Ana López</td>
+                                <td>Anillo</td>
+                                <td>4</td>
+                                <td>12 vCPU, 32GB RAM, 120GB</td>
+                                <td>08/04/2025</td>
+                                <td><span class="badge bg-success">Activo</span></td>
+                                <td>
+                                    <a href="#" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-external-link-alt"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr th:if="${slicesData == null || slicesData.empty}">
+                                <td>test-env</td>
+                                <td>Carlos Ruiz</td>
+                                <td>Malla</td>
+                                <td>5</td>
+                                <td>10 vCPU, 16GB RAM, 100GB</td>
+                                <td>15/04/2025</td>
+                                <td><span class="badge bg-success">Activo</span></td>
+                                <td>
+                                    <a href="#" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-external-link-alt"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <div th:replace="~{Fragments/Admin/footer :: footer}"></div>
+    </main>
+</div>
+
+<!-- Modal para detalles del servidor -->
+<div class="modal fade" id="serverDetailsModal" tabindex="-1" aria-labelledby="serverDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="serverDetailsModalLabel">Detalles del Servidor</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="server-info">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="server-detail-item">
+                                <div class="detail-label">Hostname:</div>
+                                <div class="detail-value" id="serverHostname">server-a1</div>
+                            </div>
+                            <div class="server-detail-item">
+                                <div class="detail-label">Dirección IP:</div>
+                                <div class="detail-value" id="serverIp">10.20.12.215</div>
+                            </div>
+                            <div class="server-detail-item">
+                                <div class="detail-label">Estado:</div>
+                                <div class="detail-value"><span class="badge bg-success" id="serverStatus">Online</span></div>
+                            </div>
+                            <div class="server-detail-item">
+                                <div class="detail-label">Tipo de infraestructura:</div>
+                                <div class="detail-value" id="serverInfraType">Linux</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="server-detail-item">
+                                <div class="detail-label">VMs activas:</div>
+                                <div class="detail-value" id="serverVMCount">4</div>
+                            </div>
+                            <div class="server-detail-item">
+                                <div class="detail-label">SSH:</div>
+                                <div class="detail-value">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control form-control-sm" id="sshCommand" readonly value="ssh ubuntu@10.20.12.215 -p 5801">
+                                        <button class="btn btn-sm btn-outline-primary" onclick="copySshCommand()">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="server-detail-item">
+                                <div class="detail-label">Puerto SSH:</div>
+                                <div class="detail-value" id="sshPort">5801</div>
+                            </div>
+                            <div class="server-detail-item">
+                                <div class="detail-label">Usuario SSH:</div>
+                                <div class="detail-value" id="sshUser">ubuntu</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <h6 class="mb-3">Uso de recursos</h6>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="resource-usage-card">
+                                <div class="resource-title">CPU</div>
+                                <div class="resource-chart">
+                                    <canvas id="serverCpuChart"></canvas>
+                                </div>
+                                <div class="resource-details">
+                                    <div class="resource-data">
+                                        <div class="data-label">Asignado:</div>
+                                        <div class="data-value" id="serverCpuUsed">12/16 vCPU</div>
+                                    </div>
+                                    <div class="resource-data">
+                                        <div class="data-label">En uso real:</div>
+                                        <div class="data-value" id="serverCpuActual">8 vCPU</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="resource-usage-card">
+                                <div class="resource-title">Memoria RAM</div>
+                                <div class="resource-chart">
+                                    <canvas id="serverRamChart"></canvas>
+                                </div>
+                                <div class="resource-details">
+                                    <div class="resource-data">
+                                        <div class="data-label">Asignado:</div>
+                                        <div class="data-value" id="serverRamUsed">24/32 GB</div>
+                                    </div>
+                                    <div class="resource-data">
+                                        <div class="data-label">En uso real:</div>
+                                        <div class="data-value" id="serverRamActual">16 GB</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="resource-usage-card">
+                                <div class="resource-title">Almacenamiento</div>
+                                <div class="resource-chart">
+                                    <canvas id="serverStorageChart"></canvas>
+                                </div>
+                                <div class="resource-details">
+                                    <div class="resource-data">
+                                        <div class="data-label">Asignado:</div>
+                                        <div class="data-value" id="serverStorageUsed">320/500 GB</div>
+                                    </div>
+                                    <div class="resource-data">
+                                        <div class="data-label">En uso real:</div>
+                                        <div class="data-value" id="serverStorageActual">210 GB</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" data-bs-dismiss="modal">Cerrar</button>
+                <a href="#" class="btn btn-primary" id="btnViewServerMonitoring">
+                    <i class="fas fa-chart-line me-1"></i> Ver monitoreo detallado
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script th:src="@{/js/admin/zone-detail.js}"></script>
+</body>
+</html>

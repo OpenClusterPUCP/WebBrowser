@@ -35,6 +35,12 @@
                 <span>Usuarios</span>
             </a>
         </li>
+        <li>
+            <a th:href="@{/Admin/availability-zones}" th:classappend="${activeMenu == 'availability' ? 'active' : ''}" data-section="users">
+                <i class="fas fa-users"></i>
+                <span>Usuarios</span>
+            </a>
+        </li>
     </ul>
 
     <div class="sidebar-section">Administración</div>
@@ -71,12 +77,6 @@
             <a th:href="@{/Admin/settings}" th:classappend="${activeMenu == 'settings' ? 'active' : ''}">
                 <i class="fas fa-cog"></i>
                 <span>Configuración</span>
-            </a>
-        </li>
-        <li>
-            <a th:href="@{/Admin/monitoring}" th:classappend="${activeMenu == 'monitoring' ? 'active' : ''}">
-                <i class="fas fa-chart-line"></i>
-                <span>Monitorización</span>
             </a>
         </li>
     </ul>

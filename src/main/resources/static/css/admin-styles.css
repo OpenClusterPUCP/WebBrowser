@@ -1487,3 +1487,323 @@ textarea.form-control {
 .main-content {
     transition: all 0.3s ease;
 }
+
+
+/* Estilos específicos para la vista de zonas de disponibilidad */
+/* Estos estilos complementan los estilos generales de admin-styles.css */
+
+/* Tarjeta de resumen de recursos */
+.resource-overview {
+    margin-bottom: 1.5rem;
+}
+
+.resource-card {
+    height: 100%;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.resource-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.resource-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    margin-right: 1rem;
+    border-radius: 12px;
+    background-color: #f0f4ff;
+    color: var(--primary-color);
+    font-size: 1.5rem;
+}
+
+.resource-details {
+    flex: 1;
+}
+
+.resource-count {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.resource-count small {
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    margin-left: 0.25rem;
+}
+
+.progress-text {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.status-indicators {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.status-indicator {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+.status-indicator.online {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: var(--success-color);
+}
+
+.status-indicator.warning {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: var(--warning-color);
+}
+
+.status-indicator.offline {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: var(--danger-color);
+}
+
+/* Tarjetas de zona */
+.zone-cards {
+    margin-bottom: 2rem;
+}
+
+.zone-card {
+    height: 100%;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.zone-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+}
+
+.zone-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+}
+
+.zone-title-container {
+    display: flex;
+    align-items: center;
+}
+
+.zone-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-right: 0.75rem;
+}
+
+.zone-status {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.zone-status.online {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: var(--success-color);
+}
+
+.zone-status.warning {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: var(--warning-color);
+}
+
+.zone-status.offline {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: var(--danger-color);
+}
+
+.zone-description {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+.zone-stats {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1rem;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.stat-value {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.zone-resources {
+    margin-bottom: 0.5rem;
+}
+
+.resource-item {
+    margin-bottom: 1rem;
+}
+
+.resource-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.375rem;
+}
+
+.resource-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.resource-value {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.resource-details {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+}
+
+.details-btn {
+    width: 100%;
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+    transition: background-color 0.2s;
+}
+
+.details-btn:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* Gráficos de sobreaprovisionamiento */
+.overprovision-chart-container {
+    position: relative;
+    height: 220px;
+    margin-bottom: 0.5rem;
+}
+
+.chart-info {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 0.75rem;
+    border-radius: 8px;
+    min-width: 100px;
+}
+
+.ratio-info {
+    margin-bottom: 0.25rem;
+}
+
+.ratio-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.ratio-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.chart-title {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+/* Cabecera de contenido - ajustes específicos */
+.refresh-container {
+    display: flex;
+    align-items: center;
+}
+
+.refresh-btn {
+    margin-right: 0.75rem;
+}
+
+.last-update {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* Modal de detalles de zona - estilos específicos */
+.zone-details-header {
+    margin-bottom: 1.5rem;
+}
+
+.zone-details-title {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.zone-details-title h3 {
+    margin: 0 0.75rem 0 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.zone-details-description {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+.ratio-metric {
+    text-align: center;
+    padding: 0.75rem;
+    background-color: #f3f4f6;
+    border-radius: 8px;
+    min-width: 80px;
+}
+
+/* Ajustes para diferentes tamaños de pantalla */
+@media (max-width: 768px) {
+    .resource-overview .col-md-3 {
+        margin-bottom: 1rem;
+    }
+
+    .zone-stats {
+        flex-wrap: wrap;
+    }
+
+    .stat-item {
+        width: 33%;
+        margin-bottom: 0.5rem;
+    }
+
+    .resource-details .physical,
+    .resource-details .usage,
+    .resource-details .actual {
+        font-size: 0.7rem;
+    }
+}

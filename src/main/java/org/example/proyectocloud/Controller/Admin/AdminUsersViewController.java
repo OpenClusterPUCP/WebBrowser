@@ -124,38 +124,6 @@ public class AdminUsersViewController {
     }
 
     /**
-     * Muestra las métricas y estadísticas de uso de un usuario.
-     *
-     * @param id ID del usuario
-     * @param model Modelo para pasar datos a la vista
-     * @param session Sesión HTTP para obtener el token JWT
-     * @return Vista de métricas o redirección al listado si no se encuentra el usuario
-     */
-    @GetMapping("/{id}/metrics")
-    public String verMetricasUsuario(@PathVariable Integer id, Model model, HttpSession session) {
-        log.info("Mostrando métricas para usuario ID: {}", id);
-        UserInfo userInfo = (UserInfo) session.getAttribute("userInfo");
-        UserDTO user = adminUsersService.getUserById(id, userInfo.getJwt());
-
-        if (user == null) {
-            log.warn("No se encontró el usuario con ID: {}", id);
-            return "redirect:/Admin/users";
-        }
-
-        // Convertir estado si es necesario
-        if ("1".equals(user.getState())) {
-            user.setState("active");
-        } else if ("0".equals(user.getState())) {
-            user.setState("banned");
-        }
-
-        model.addAttribute("user", user);
-        model.addAttribute("activeMenu", "users");
-
-        return "/AdminPages/UserMetrics";
-    }
-
-    /**
      * Muestra el listado de usuarios filtrado por rol.
      *
      * @param roleId ID del rol para filtrar

@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenCluster - Monitoreo de Zona</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" th:href="@{/css/admin-styles.css}">
+    <style>
+        .grafana-container {
+            width: 100%;
+            height: 500px;
+            border: none;
+            margin-bottom: 20px;
+            background-color: #161b22;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .grafana-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .dashboard-nav {
+            display: flex;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+        }
+
+        .dashboard-nav-item {
+            padding: 0.5rem 1rem;
+            margin-right: 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .dashboard-nav-item:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .dashboard-nav-item.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .dashboard-section {
+            display: none;
+        }
+
+        .dashboard-section.active {
+            display: block;
+        }
+
+        .refresh-options {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-right: 1rem;
+        }
+
+        .refresh-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .time-range-selector {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <!-- Sidebar -->
+    <div th:replace="~{Fragments/Admin/sidebar :: sidebar('availability')}"></div>
+
+    <!-- Contenido principal -->
+    <main class="main-content">
+        <!-- Header -->
+        <div th:replace="~{Fragments/Admin/header :: header(title='Monitoreo de Zona')}"></div>
+
+        <section class="page-content">
+            <div class="content-header">
+                <div class="d-flex align-items-center">
+                    <a th:href="@{/Admin/availability-zones/{id}(id=${zoneId != null ? zoneId : 1})}" class="btn btn-sm btn-outline me-3">
+                        <i class="fas fa-arrow-left"></i>
+                        <span class="btn-text">Volver a detalles</span>
+                    </a>
+                    <h2 class="content-title" th:text="${zone != null} ? 'Monitoreo: ' + ${zone.name} : 'Monitoreo: Zona A'">Monitoreo: Zona A</h2>
+                    <span class="zone-status online ms-3" th:text="${zone != null} ? ${zone.status} : 'En línea'" th:classappend="${zone != null} ? ${zone.status == 'active' ? 'online' : (zone.status == 'warning' ? 'warning' : 'offline')} : 'online'">En línea</span>
+                </div>
+                <div class="header-actions">
+                    <div class="refresh-options">
+                        <span class="refresh-label">Auto-actualizar:</span>
+                        <select id="refreshInterval" class="form-select form-select-sm" style="width: 120px;">
+                            <option value="0">Desactivado</option>
+                            <option value="5000">5 segundos</option>
+                            <option value="10000">10 segundos</option>
+                            <option value="30000" selected>30 segundos</option>
+                            <option value="60000">1 minuto</option>
+                            <option value="300000">5 minutos</option>
+                        </select>
+                    </div>
+                    <div class="time-range-selector">
+                        <span class="refresh-label">Rango:</span>
+                        <select id="timeRange" class="form-select form-select-sm" style="width: 120px;">
+                            <option value="last1h">Última hora</option>
+                            <option value="last3h">Últimas 3 horas</option>
+                            <option value="last6h">Últimas 6 horas</option>
+                            <option value="last12h">Últimas 12 horas</option>
+                            <option value="last24h" selected>Últimas 24 horas</option>
+                            <option value="last2d">Últimos 2 días</option>
+                            <option value="last7d">Últimos 7 días</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navegación entre dashboards -->
+            <div class="dashboard-nav">
+                <div class="dashboard-nav-item active" data-target="overview">Resumen</div>
+                <div class="dashboard-nav-item" data-target="resources">Recursos</div>
+                <div class="dashboard-nav-item" data-target="network">Red</div>
+                <div class="dashboard-nav-item" data-target="vms">Máquinas Virtuales</div>
+                <div class="dashboard-nav-item" data-target="servers">Servidores Físicos</div>
+                <div class="dashboard-nav-item" data-target="logs">Registros</div>
+                <div class="dashboard-nav-item" data-target="alerts">Alertas</div>
+            </div>
+
+            <!-- Sección de dashboard de resumen -->
+            <div id="overview" class="dashboard-section active">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-tachometer-alt me-2"></i>Panel de resumen
+                        </h3>
+                        <div class="card-actions">
+                            <a href="#" class="btn btn-sm btn-outline" id="expandOverview" title="Expandir">
+                                <i class="fas fa-expand"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <!-- Iframe de Grafana con panel de resumen -->
+                        <div class="grafana-container">
+                            <iframe
+                                    src="http://grafana:3000/d/zone_overview?orgId=1&amp;refresh=30s&amp;var-zone=zone_a&amp;from=now-24h&amp;to=now&amp;theme=dark&amp;kiosk"
+                                    class="grafana-iframe"
+                                    title="Panel de resumen"
+                                    id="overviewFrame"
+                                    allowfullscreen>
+                            </iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección de dashboard de recursos -->
+            <div id="resources" class="dashboard-section">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-microchip me-2"></i>Utilización de recursos
+                        </h3>
+                        <div class="card-actions">
+                            <a href="#" class="btn btn-sm btn-outline" id="expandResources" title="Expandir">
+                                <i class="fas fa-expand"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <!-- Iframe de Grafana con panel de recursos -->
+                        <div class="grafana-container">
+                            <iframe
+                                    src="http://grafana:3000/d/zone_resources?orgId=1&amp;refresh=30s&amp;var-zone=zone_a&amp;from=now-24h&amp;to=now&amp;theme=dark&amp;kiosk"
+                                    class="grafana-iframe"
+                                    title="Utilización de recursos"
+                                    id="resourcesFrame"
+                                    allowfullscreen>
+                            </iframe>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel adicional para sobreaprovisionamiento -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-balance-scale me-2"></i>Métricas de sobreaprovisionamiento
+                        </h3>
+                        <div class="card-actions">
+                            <a href="#" class="btn btn-sm btn-outline" id="expandOverprovision" title="Expandir">
+                                <i class="fas fa-expand"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <!-- Iframe de Grafana con panel de sobreaprovisionamiento -->
+                        <div class="grafana-container">
+                            <iframe
+                                    src="http://grafana:3000/d/zone_overprovision?orgId=1&amp;refresh=30s&amp;var-zone=zone_a&amp;from=now-24h&amp;to=now&amp;theme=dark&amp;kiosk"
+                                    class="grafana-iframe"
+                                    title="Métricas de sobreaprovisionamiento"
+                                    id="overprovisionFrame"
+                                    allowfullscreen>
+                            </iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección de dashboard de red -->
+            <div id="network" class="dashboard-section">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-network-wired me-2"></i>Monitoreo de red
+                        </h3>
+                        <div class="card-actions">
+                            <a href="#" class="btn btn-sm btn-outline" id="expandNetwork" title="Expandir">
+                                <i class="fas fa-expand"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <!-- Iframe de Grafana con panel de red -->
+                        <div class="grafana-container">
+                            <iframe
+                                    src="http://grafana:3000/d/zone_network?orgId=1&amp;refresh=30s&amp;var-zone=zone_a&amp;from=now-24h&amp;to=now&amp;theme=dark&amp;kiosk"
+                                    class="grafana-iframe"
+                                    title="Monitoreo de red"
+                                    id="networkFrame"
+                                    allowfullscreen>
+                            </iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección de dashboard de VMs -->
+            <div id="vms" class="dashboard-section">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-laptop-code me-2"></i>Rendimiento de Máquinas Virtuales
+                        </h3>
+                        <div class="card-actions">
+                            <a href="#" class="btn btn-sm btn-outline" id="expandVMs" title="Expandir">
+                                <i class="fas fa-expand"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <!-- Iframe de Grafana con panel de VMs -->
+                        <div class="grafana-container">
+                            <iframe
+                                    src="http://grafana:3000/d/zone_vms?orgId=1&amp;refresh=30s&amp;var-zone=zone_a&amp;from=now-24h&amp;to=now&amp;theme=dark&amp;kiosk"
+                                    class="grafana-iframe"
+                                    title="Rendimiento de Máquinas Virtuales"
+                                    id="vmsFrame"
+                                    allowfullscreen>
+                            </iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección de dashboard de servidores físicos -->
+            <div id="servers" class="dashboard-section">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-server me-2"></i>Servidores Físicos
+                        </h3>
+                        <div class="card-actions">
+                            <div class="input-group input-group-sm" style="width: 200px;">
+                                <span class="input-group-text">Servidor</span>
+                                <select id="serverSelector" class="form-select form-select-sm">
+                                    <option value="all" selected>Todos</option>
+                                    <option value="server-a1">server-a1</option>
+                                    <option value="server-a2">server-a2</option>
+                                    <option value="server-a3">server-a3</option>
+                                </select>
+                            </div>
+                            <a href="#" class="btn btn-sm btn-outline ms-2" id="expandServers" title="Expandir">
+                                <i class="fas fa-expand"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <!-- Iframe de Grafana con panel de servidores físicos -->
+                        <div class="grafana-container">
+                            <iframe
+                                    src="http://grafana:3000/d/zone_servers?orgId=1&amp;refresh=30s&amp;var-zone=zone_a&amp;var-server=all&amp;from=now-24h&amp;to=now&amp;theme=dark&amp;kiosk"
+                                    class="grafana-iframe"
+                                    title="Servidores Físicos"
+                                    id="serversFrame"
+                                    allowfullscreen>
+                            </iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección de dashboard de logs -->
+            <div id="logs" class="dashboard-section">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-clipboard-list me-2"></i>Registros del sistema
+                        </h3>
+                        <div class="card-actions">
+                            <div class="input-group input-group-sm" style="width: 200px;">
+                                <span class="input-group-text">Nivel</span>
+                                <select id="logLevel" class="form-select form-select-sm">
+                                    <option value="all" selected>Todos</option>
+                                    <option value="error">Error</option>
+                                    <option value="warning">Warning</option>
+                                    <option value="info">Info</option>
+                                    <option value="debug">Debug</option>
+                                </select>
+                            </div>
+                            <a href="#" class="btn btn-sm btn-outline ms-2" id="expandLogs" title="Expandir">
+                                <i class="fas fa-expand"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <!-- Iframe de Grafana con panel de logs -->
+                        <div class="grafana-container">
+                            <iframe
+                                    src="http://grafana:3000/d/zone_logs?orgId=1&amp;refresh=30s&amp;var-zone=zone_a&amp;var-level=all&amp;from=now-24h&amp;to=now&amp;theme=dark&amp;kiosk"
+                                    class="grafana-iframe"
+                                    title="Registros del sistema"
+                                    id="logsFrame"
+                                    allowfullscreen>
+                            </iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección de dashboard de alertas -->
+            <div id="alerts" class="dashboard-section">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-exclamation-triangle me-2"></i>Alertas y notificaciones
+                        </h3>
+                        <div class="card-actions">
+                            <div class="input-group input-group-sm" style="width: 200px;">
+                                <span class="input-group-text">Estado</span>
+                                <select id="alertStatus" class="form-select form-select-sm">
+                                    <option value="all" selected>Todos</option>
+                                    <option value="active">Activas</option>
+                                    <option value="resolved">Resueltas</option>
+                                </select>
+                            </div>
+                            <a href="#" class="btn btn-sm btn-outline ms-2" id="expandAlerts" title="Expandir">
+                                <i class="fas fa-expand"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <!-- Iframe de Grafana con panel de alertas -->
+                        <div class="grafana-container">
+                            <iframe
+                                    src="http://grafana:3000/d/zone_alerts?orgId=1&amp;refresh=30s&amp;var-zone=zone_a&amp;var-status=all&amp;from=now-24h&amp;to=now&amp;theme=dark&amp;kiosk"
+                                    class="grafana-iframe"
+                                    title="Alertas y notificaciones"
+                                    id="alertsFrame"
+                                    allowfullscreen>
+                            </iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <div th:replace="~{Fragments/Admin/footer :: footer}"></div>
+    </main>
+</div>
+
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Inicialización de la interfaz
+        initSidebar();
+        initUserDropdown();
+        setupDashboardNavigation();
+        setupRefreshInterval();
+        setupTimeRange();
+        setupExpandButtons();
+        setupServerSelector();
+        setupLogLevel();
+        setupAlertStatus();
+    });
+
+    // Función para inicializar la barra lateral
+    function initSidebar() {
+        const sidebarToggle = document.querySelector('.sidebar-toggle');
+        const menuToggle = document.querySelector('.menu-toggle');
+        const appContainer = document.querySelector('.app-container');
+
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', function() {
+                appContainer.classList.toggle('sidebar-collapsed');
+            });
+        }
+
+        if (menuToggle) {
+            menuToggle.addEventListener('click', function() {
+                appContainer.classList.toggle('sidebar-mobile-open');
+            });
+        }
+    }
+
+    // Función para el dropdown de usuario
+    function initUserDropdown() {
+        const userProfile = document.querySelector('.user-profile');
+
+        if (userProfile) {
+            userProfile.addEventListener('click', function(e) {
+                userProfile.classList.toggle('dropdown-open');
+                e.stopPropagation();
+            });
+
+            document.addEventListener('click', function() {
+                userProfile.classList.remove('dropdown-open');
+            });
+        }
+    }
+
+    // Navegación entre dashboards
+    function setupDashboardNavigation() {
+        const navItems = document.querySelectorAll('.dashboard-nav-item');
+        const sections = document.querySelectorAll('.dashboard-section');
+
+        navItems.forEach(item => {
+            item.addEventListener('click', function() {
+                const target = this.getAttribute('data-target');
+
+                // Actualizar navegación
+                navItems.forEach(navItem => navItem.classList.remove('active'));
+                this.classList.add('active');
+
+                // Mostrar sección correspondiente
+                sections.forEach(section => {
+                    section.classList.remove('active');
+                    if (section.id === target) {
+                        section.classList.add('active');
+                    }
+                });
+            });
+        });
+    }
+
+    // Configurar intervalo de actualización
+    function setupRefreshInterval() {
+        const refreshSelect = document.getElementById('refreshInterval');
+        if (refreshSelect) {
+            refreshSelect.addEventListener('change', function() {
+                const interval = this.value;
+                updateRefreshInterval(interval);
+            });
+        }
+    }
+
+    // Actualizar intervalo de actualización en todos los iframes
+    function updateRefreshInterval(interval) {
+        const iframes = document.querySelectorAll('.grafana-iframe');
+        iframes.forEach(iframe => {
+            let src = iframe.src;
+            // Reemplazar el parámetro refresh
+            if (interval === "0") {
+                src = src.replace(/refresh=\d+s/, 'refresh=off');
+            } else {
+                const seconds = parseInt(interval) / 1000;
+                src = src.replace(/refresh=(off|\d+s)/, `refresh=${seconds}s`);
+            }
+            iframe.src = src;
+        });
+    }
+
+    // Configurar rango de tiempo
+    function setupTimeRange() {
+        const timeRangeSelect = document.getElementById('timeRange');
+        if (timeRangeSelect) {
+            timeRangeSelect.addEventListener('change', function() {
+                const range = this.value;
+                updateTimeRange(range);
+            });
+        }
+    }
+
+    // Actualizar rango de tiempo en todos los iframes
+    function updateTimeRange(range) {
+        const iframes = document.querySelectorAll('.grafana-iframe');
+        let fromTime, toTime;
+
+        switch(range) {
+            case 'last1h':
+                fromTime = 'now-1h';
+                break;
+            case 'last3h':
+                fromTime = 'now-3h';
+                break;
+            case 'last6h':
+                fromTime = 'now-6h';
+                break;
+            case 'last12h':
+                fromTime = 'now-12h';
+                break;
+            case 'last24h':
+                fromTime = 'now-24h';
+                break;
+            case 'last2d':
+                fromTime = 'now-2d';
+                break;
+            case 'last7d':
+                fromTime = 'now-7d';
+                break;
+            default:
+                fromTime = 'now-24h';
+        }
+
+        toTime = 'now';
+
+        iframes.forEach(iframe => {
+            let src = iframe.src;
+            src = src.replace(/from=[^&]+/, `from=${fromTime}`);
+            src = src.replace(/to=[^&]+/, `to=${toTime}`);
+            iframe.src = src;
+        });
+    }
+
+    // Configurar botones de expandir
+    function setupExpandButtons() {
+        const expandButtons = document.querySelectorAll('[id^="expand"]');
+        expandButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const sectionId = this.id.replace('expand', '').toLowerCase();
+                const iframe = document.getElementById(`${sectionId}Frame`);
+                if (iframe) {
+                    if (iframe.requestFullscreen) {
+                        iframe.requestFullscreen();
+                    } else if (iframe.mozRequestFullScreen) {
+                        iframe.mozRequestFullScreen();
+                    } else if (iframe.webkitRequestFullscreen) {
+                        iframe.webkitRequestFullscreen();
+                    } else if (iframe.msRequestFullscreen) {
+                        iframe.msRequestFullscreen();
+                    }
+                }
+            });
+        });
+    }
+
+    // Configurar selector de servidor
+    function setupServerSelector() {
+        const serverSelector = document.getElementById('serverSelector');
+        if (serverSelector) {
+            serverSelector.addEventListener('change', function() {
+                const server = this.value;
+                const iframe = document.getElementById('serversFrame');
+                if (iframe) {
+                    let src = iframe.src;
+                    src = src.replace(/var-server=[^&]+/, `var-server=${server}`);
+                    iframe.src = src;
+                }
+            });
+        }
+    }
+
+    // Configurar nivel de logs
+    function setupLogLevel() {
+        const logLevelSelector = document.getElementById('logLevel');
+        if (logLevelSelector) {
+            logLevelSelector.addEventListener('change', function() {
+                const level = this.value;
+                const iframe = document.getElementById('logsFrame');
+                if (iframe) {
+                    let src = iframe.src;
+                    src = src.replace(/var-level=[^&]+/, `var-level=${level}`);
+                    iframe.src = src;
+                }
+            });
+        }
+    }
+
+    // Configurar estado de alertas
+    function setupAlertStatus() {
+        const alertStatusSelector = document.getElementById('alertStatus');
+        if (alertStatusSelector) {
+            alertStatusSelector.addEventListener('change', function() {
+                const status = this.value;
+                const iframe = document.getElementById('alertsFrame');
+                if (iframe) {
+                    let src = iframe.src;
+                    src = src.replace(/var-status=[^&]+/, `var-status=${status}`);
+                    iframe.src = src;
+                }
+            });
+        }
+    }
+</script>
+</body>
+</html>
