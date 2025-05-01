@@ -44,7 +44,7 @@
                             <th>ID</th>
                             <th>Nombre</th>
                             <th>vCPU</th>
-                            <th>RAM (GB)</th>
+                            <th>RAM (MB)</th>
                             <th>Almacenamiento (GB)</th>
                             <th>Estado</th>
                             <th>Acciones</th>
@@ -78,16 +78,59 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="flavorVcpu">CPU Virtual (vCPU)</label>
-                    <input type="number" id="flavorVcpu" name="vcpu" class="form-control" min="1" placeholder="Ingrese cantidad de vCPUs" required>
+                    <input type="number" id="flavorVcpu" name="vcpu" class="form-control" min="1" max="10" placeholder="Ingrese cantidad de vCPUs" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label" for="flavorRam">Memoria RAM (GB)</label>
-                    <input type="number" id="flavorRam" name="ram" class="form-control" min="1" placeholder="Ingrese cantidad de RAM" required>
+                    <label class="form-label" for="flavorRam">Memoria RAM (MB)</label>
+                    <input type="number" id="flavorRam" name="ram" class="form-control" min="1" max="" placeholder="Ingrese cantidad de RAM" required>
                 </div>
+                <script>
+                    document.getElementById('flavorRam').addEventListener('change', function() {
+                        const ramValue = parseInt(this.value);
+                        const isPowerOfTwo = (ramValue > 0) && ((ramValue & (ramValue - 1)) === 0);
+
+                        if (!isPowerOfTwo) {
+                            this.setCustomValidity('El valor de RAM debe ser una potencia de 2 (2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, etc.)');
+                        } else {
+                            this.setCustomValidity('');
+                        }
+
+                        this.reportValidity();
+                    });
+                </script>
                 <div class="form-group">
                     <label class="form-label" for="flavorStorage">Almacenamiento (GB)</label>
-                    <input type="number" id="flavorStorage" name="storage" class="form-control" min="10" placeholder="Ingrese capacidad de almacenamiento" required>
+                    <input type="number" id="flavorStorage" name="storage" class="form-control" min="1" max="3" placeholder="Ingrese capacidad de almacenamiento" required>
                 </div>
+                <script>
+                    document.getElementById('flavorStorage').addEventListener('input', function() {
+                        // Cambia el tipo de input a "text" para manejar mejor los decimales
+                        this.type = "text";
+
+                        // Expresión regular que permite números con un decimal obligatorio
+                        const decimalRegex = /^\d+\.\d+$/;
+
+                        if (!decimalRegex.test(this.value)) {
+                            this.setCustomValidity('Debe ingresar un valor decimal (por ejemplo: 1.5, 2.3)');
+                        } else {
+                            this.setCustomValidity('');
+                        }
+
+                        this.reportValidity();
+                    });
+
+                    // Evitar que se envíe el formulario sin un decimal válido
+                    document.querySelector('form').addEventListener('submit', function(event) {
+                        const storageInput = document.getElementById('flavorStorage');
+                        const decimalRegex = /^\d+\.\d+$/;
+
+                        if (!decimalRegex.test(storageInput.value)) {
+                            event.preventDefault();
+                            storageInput.setCustomValidity('Debe ingresar un valor decimal (por ejemplo: 1.5, 2.3)');
+                            storageInput.reportValidity();
+                        }
+                    });
+                </script>
                 <div class="form-group">
                     <label class="form-label" for="flavorState">Estado</label>
                     <select id="flavorState" name="state" class="form-control" required>

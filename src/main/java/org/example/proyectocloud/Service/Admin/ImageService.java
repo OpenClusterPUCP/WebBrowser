@@ -57,7 +57,6 @@ public class ImageService {
                     entity,
                     LinkedHashMap.class
             );
-
             try {
                 LinkedHashMap<String, Object> json = response.getBody();
                 if (json == null) {
@@ -182,70 +181,49 @@ public class ImageService {
             return Collections.singletonMap("error", "Error deleting image: " + ex.getMessage());
         }
     }
-    
-    /**
-     * Update an existing image
-     * @param token Authorization token
-     * @param imageId ID of the image to update
-     * @param imageRequest Updated image metadata
-     * @param file New image file (optional)
-     * @param adminUserId ID of the admin user performing the update
-     * @return Updated image information or error details
-     */
-    public Object updateImage(String token, Integer imageId, ImageRequest imageRequest, 
-                              MultipartFile file, Integer adminUserId) {
-        log.info("Updating image with ID: {}", imageId);
+    public Object updateImage(String token, Integer imageId, String name,
+                              String description, String state, Integer adminUserId) {
+        log.info("Updating image with ID: {}, parameters: name={}, description={}, state={}",
+                imageId, name, description, state);
+
         String url = API_GATEWAY_URL + "/Admin/images/update/" + imageId + "?idAdmin=" + adminUserId;
 
         HttpHeaders headers = createAuthHeaders(token);
-        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-        
-        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        
-        // Add image request data
-        ObjectMapper mapper = new ObjectMapper();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+        body.add("name", name);
+
+        // Añadir descripción y estado solo si no son nulos
+        if (description != null) {
+            body.add("description", description);
+        }
+
+        if (state != null) {
+            body.add("state", state);
+        }
+
+        HttpEntity<MultiValueMap<String, String>> requestEntity =
+                new HttpEntity<>(body, headers);
+
         try {
-            String imageDataJson = mapper.writeValueAsString(imageRequest);
-            HttpHeaders imageDataHeaders = new HttpHeaders();
-            imageDataHeaders.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<String> imageDataEntity = new HttpEntity<>(imageDataJson, imageDataHeaders);
-            body.add("imageData", imageDataEntity);
-            
-            // Add file if provided
-            if (file != null && !file.isEmpty()) {
-                HttpHeaders fileHeaders = new HttpHeaders();
-                fileHeaders.setContentType(MediaType.valueOf(file.getContentType()));
-                ByteArrayResource fileResource = new ByteArrayResource(file.getBytes()) {
-                    @Override
-                    public String getFilename() {
-                        return file.getOriginalFilename();
-                    }
-                };
-                HttpEntity<ByteArrayResource> fileEntity = new HttpEntity<>(fileResource, fileHeaders);
-                body.add("file", fileEntity);
-            }
-            
-            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
-            
             ResponseEntity<LinkedHashMap> response = restTemplate.exchange(
                     url,
                     HttpMethod.POST,
                     requestEntity,
                     LinkedHashMap.class
             );
-            
+
             return response.getBody();
         } catch (HttpClientErrorException ex) {
             log.error("Error updating image: {} - {}", ex.getStatusCode(), ex.getResponseBodyAsString());
             try {
+                ObjectMapper mapper = new ObjectMapper();
                 Map<String, Object> errorResponse = mapper.readValue(ex.getResponseBodyAsString(), Map.class);
                 return errorResponse;
             } catch (Exception e) {
                 return Collections.singletonMap("error", "Error updating image: " + ex.getMessage());
             }
-        } catch (IOException e) {
-            log.error("Error processing file or JSON: {}", e.getMessage());
-            return Collections.singletonMap("error", "Error processing file: " + e.getMessage());
         } catch (Exception ex) {
             log.error("Error consuming image API: {}", ex.getMessage());
             return Collections.singletonMap("error", "Error updating image: " + ex.getMessage());

@@ -216,7 +216,7 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             { data: 'ram',
                 render: function(data) {
-                    return `<div class="resource-value"><i class="fas fa-memory resource-icon"></i> ${data} GB</div>`;
+                    return `<div class="resource-value"><i class="fas fa-memory resource-icon"></i> ${data} MB</div>`;
                 }
             },
             { data: 'disk',
