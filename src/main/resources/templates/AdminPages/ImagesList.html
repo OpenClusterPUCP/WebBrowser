@@ -401,13 +401,12 @@
                 <div class="form-group">
                     <label class="form-label required" for="imageType">Tipo</label>
                     <select id="imageType" name="type" class="form-control" required>
-                        <option value="active" selected>Activo</option>
-                        <option value="public">Público</option>
+                        <option value="public" selected>Público</option>
                         <option value="private">Privado</option>
                     </select>
                     <div class="form-help-tooltip">
                         <i class="fas fa-question-circle"></i>
-                        <span class="tooltip-text">Estado inicial de la imagen. Por defecto: Activo</span>
+                        <span class="tooltip-text">Estado inicial de la imagen. Por defecto: Público</span>
                     </div>
                 </div>
 
@@ -519,7 +518,6 @@
                 <div class="form-group">
                     <label class="form-label required" for="editImageType">Tipo</label>
                     <select id="editImageType" name="type" class="form-control" required>
-                        <option value="active">Activo</option>
                         <option value="public">Público</option>
                         <option value="private">Privado</option>
                     </select>
@@ -712,7 +710,6 @@
                         return `
                 <div class="actions-container">
                     ${descriptionBtn}
-                    ${downloadBtn}
                     ${editBtn}
                     ${deleteBtn}
                 </div>
