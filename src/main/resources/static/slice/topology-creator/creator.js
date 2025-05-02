@@ -38,7 +38,6 @@
 
 
 // ===================== IMPORTACIONES =====================
-import { AVAILABLE_IMAGES, AVAILABLE_FLAVORS } from './data-auxiliar.js';
 import { TopologyManager, VM, Link, Interface, Flavor, Image, Slice, VisVM, VisLink } from './classes.js';
 
 // ===================== VARIABLES GLOBALES =====================
@@ -48,11 +47,18 @@ let visDataset = {
     nodes: new vis.DataSet(),
     edges: new vis.DataSet()
 };
+let nodeTooltips = new Map();
+let edgeTooltips = new Map();
 const container = document.getElementById('network-container');
+const tooltip = document.getElementById('customTooltip');
 let addVMModal = null;
 let addLinkModal = null;
 let deployModal = null;
 let templateModal = null;
+let BACKEND_IP = 'localhost';
+let BACKEND_PORT = 5001;
+let AVAILABLE_IMAGES = [];
+let AVAILABLE_FLAVORS = [];
 window.addLinearTopology = () => showTemplateModal('linear');
 window.addRingTopology = () => showTemplateModal('ring');
 window.addMeshTopology = () => showTemplateModal('mesh');
@@ -136,7 +142,7 @@ const options = {
     },
     nodes: {
         shape: 'image',
-        image: '../static/slice/topology-creator/host.png',
+        image: '/slice/topology-creator/host.png',
         size: 30,
         shadow: {
             enabled: true,
@@ -151,7 +157,6 @@ const options = {
             face: 'Roboto',         
             strokeWidth: 4,       
             strokeColor: '#ffffff', 
-            background: '#ffffff', 
             multi: true,        
             bold: '16px arial',    
         },
@@ -162,7 +167,8 @@ const options = {
                 values.shadowX = 7;
                 values.shadowY = 7;
             }
-        }
+        },
+        title: undefined,
     },
     edges: {
         width: 2,
@@ -173,6 +179,7 @@ const options = {
             hover: '#cb0c9f',    
             opacity: 0.8
         },
+        title: undefined,
         shadow: {
             enabled: true,
             color: 'rgba(0, 0, 0, 0.5)',
@@ -191,7 +198,6 @@ const options = {
             align: 'middle',
             strokeWidth: 3,
             strokeColor: '#ffffff',
-            background: '#ffffff',
             multi: true
         },
         arrows: {
@@ -216,11 +222,6 @@ const options = {
                         strokeWidth: 5,
                         bold: true,
                         zIndex: 999,
-                        background: {
-                            enabled: true,
-                            color: '#ffffff',
-                            size: 8
-                        }
                     };
                 } else {
                     values.width = 2;
@@ -237,11 +238,6 @@ const options = {
                         strokeWidth: 3,
                         bold: true,
                         zIndex: 0,
-                        background: {
-                            enabled: true,
-                            color: '#ffffff',
-                            size: 6
-                        }
                     };
                 }
             },
@@ -259,7 +255,9 @@ const options = {
 };
 
 // ===================== INICIALIZACIÓN =====================
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+    // Inicialización de la data de flavors e images
+    await loadResources();
     // Inicialización de la red/topología
     topologyManager = new TopologyManager();
     network = new vis.Network(
@@ -267,7 +265,7 @@ document.addEventListener('DOMContentLoaded', function() {
         visDataset,
         options
     );
-    // Listeners para la edición de elementos
+    // Listeners
     network.on('doubleClick', function(params) {
         if (params.nodes && params.nodes.length > 0) {
             const nodeId = params.nodes[0];
@@ -280,6 +278,83 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
     });
+
+    network.on("hoverNode", function (params) {
+        const nodeId = params.node;
+        const tooltipContent = nodeTooltips.get(nodeId);
+
+        if (tooltipContent) {
+            tooltip.innerHTML = tooltipContent;
+            
+            // Get mouse position and container position
+            const mouseX = params.pointer.DOM.x;
+            const mouseY = params.pointer.DOM.y;
+            const containerRect = container.getBoundingClientRect();
+            
+            // Calculate position relative to page instead of container
+            const tooltipX = mouseX;
+            const tooltipY = mouseY;
+            
+            // Position tooltip with fixed offset from cursor
+            tooltip.style.position = 'fixed'; // Change to fixed positioning
+            tooltip.style.left = `${tooltipX + 15}px`; // Small offset from cursor
+            tooltip.style.top = `${tooltipY - 10}px`;
+            
+            tooltip.classList.remove("animate__fadeOutDown");
+            tooltip.classList.add("animate__delay-2s");
+            tooltip.classList.add("animate__jackInTheBox");
+            tooltip.style.display = "block";
+        }
+    });
+    
+    network.on("blurNode", function () {
+        tooltip.classList.remove("animate__jackInTheBox");
+        tooltip.classList.add("animate__fadeOut");
+        tooltip.style.display = "none";
+    });
+    
+    container.addEventListener("mousemove", function (event) {
+        if (tooltip.style.display === "block") {
+            tooltip.style.left = (event.pageX + 10) + "px";
+            tooltip.style.top = (event.pageY - 10) + "px";
+        }
+    });
+
+    // Add hover event for edges
+    network.on("hoverEdge", function (params) {
+        const edgeId = params.edge;
+        const tooltipContent = edgeTooltips.get(edgeId);
+        if (tooltipContent) {
+            tooltip.innerHTML = tooltipContent;
+            
+            // Get mouse position and container position
+            const mouseX = params.pointer.DOM.x;
+            const mouseY = params.pointer.DOM.y;
+            const containerRect = container.getBoundingClientRect();
+            
+            // Calculate position relative to page instead of container
+            const tooltipX = mouseX;
+            const tooltipY = mouseY;
+            
+            // Position tooltip with fixed offset from cursor
+            tooltip.style.position = 'fixed'; // Change to fixed positioning
+            tooltip.style.left = `${tooltipX + 15}px`; // Small offset from cursor
+            tooltip.style.top = `${tooltipY - 10}px`;
+            
+
+            tooltip.classList.remove("animate__rotateOut");
+            tooltip.classList.add("animate__delay-2s");
+            tooltip.classList.add("animate__jackInTheBox");
+            tooltip.style.display = "block";
+        }
+    });
+
+    network.on("blurEdge", function () {
+        tooltip.classList.remove("animate__jackInTheBox");
+        tooltip.classList.add("animate__fadeOut");
+        tooltip.style.display = "none";
+    });
+
     // Inicialización de los modales/pop-ups
     initializeModals();
 });
@@ -300,6 +375,9 @@ function populateSelects() {
 
     imageSelect.innerHTML = '<option value="" selected disabled>----</option>';
     flavorSelect.innerHTML = '<option value="" selected disabled>----</option>';
+
+    console.log(AVAILABLE_IMAGES, 'available_images')
+    console.log(AVAILABLE_FLAVORS, 'available_flavors')
 
     if (AVAILABLE_IMAGES && AVAILABLE_IMAGES.length > 0) {
         AVAILABLE_IMAGES.forEach((image, index) => {
@@ -366,6 +444,7 @@ function resetModalState() {
 }
 
 function showAddVMModal() {
+    hideTooltip()
     document.querySelector('#addVMModal .modal-title').innerHTML = `
         <i class="material-symbols-rounded me-2">computer</i>
         Agregar Máquina Virtual`;
@@ -375,6 +454,7 @@ function showAddVMModal() {
 }
 
 function showAddLinkModal() {
+    hideTooltip()
     document.querySelector('#addLinkModal .modal-title').innerHTML = `
         <i class="material-symbols-rounded me-2">link</i>
         Agregar Enlace de Red`;
@@ -385,6 +465,7 @@ function showAddLinkModal() {
 }
 
 function showEditVMModal(vmId) {
+    hideTooltip()
     const vm = topologyManager.vms.get(vmId);
     if (!vm) return;
 
@@ -416,6 +497,7 @@ function showEditVMModal(vmId) {
 }
 
 function showEditLinkModal(linkId) {
+    hideTooltip()
     const link = topologyManager.links.get(linkId);
     if (!link) return;
 
@@ -435,6 +517,7 @@ function showEditLinkModal(linkId) {
 }
 
 window.showDeployModal = function() {
+    hideTooltip()
     if (!topologyManager || topologyManager.vms.size === 0) {
         Swal.fire({
             title: 'Topología Vacía',
@@ -455,7 +538,7 @@ window.showDeployModal = function() {
 
 function updateFlavorDetails() {
     const flavorId = document.getElementById('vmFlavor').value;
-    const flavor = AVAILABLE_FLAVORS.find(f => f.id === flavorId);
+    const flavor = AVAILABLE_FLAVORS.find(f => f.id === parseInt(flavorId));
     
     if (flavor) {
         document.getElementById('flavorRAM').textContent = `${flavor.ram} MB`;
@@ -476,8 +559,8 @@ window.handleCreateVM = function() {
         return;
     }
 
-    const flavor = AVAILABLE_FLAVORS.find(flavor => flavor.id === flavorSelect.value);
-    const image = AVAILABLE_IMAGES.find(image => image.id === imageSelect.value);
+    const flavor = AVAILABLE_FLAVORS.find(flavor => flavor.id === parseInt(flavorSelect.value));
+    const image = AVAILABLE_IMAGES.find(image => image.id === parseInt(imageSelect.value));
     const vmName = document.getElementById('vmName').value;
     const defaultName = `VM-${topologyManager.vms.size + 1}`;
     const vmData = {
@@ -493,17 +576,21 @@ window.handleCreateVM = function() {
         vmData.image_id,
         vmData.flavor_id,
     );
-    const title = `Nombre: ${vmData.name}
-        Imagen: ${image.name}
-        Flavor: ${flavor.name}
-        Acceso externo: ${document.getElementById('vmExternalAccess').checked? 'Sí' : 'No'}`;
-    topologyManager.addVM(vmObject,title);
+    const tooltipContent = `<b>Nombre:</b> ${vmData.name}
+    <b>Imagen:</b> ${image.name}
+    <b>Flavor:</b> ${flavor.name}
+    <b>Acceso externo:</b> ${document.getElementById('vmExternalAccess').checked ? 'Sí' : 'No'}`;
+
+
+    topologyManager.addVM(vmObject,undefined);
     visDataset.nodes.add({
         ...topologyManager.visNodes.get(vmObject.id),
         x: window.currentNodeData.x,
-        y: window.currentNodeData.y
+        y: window.currentNodeData.y,
+        title: undefined
     });
 
+    nodeTooltips.set(vmObject.id, tooltipContent);
     if (document.getElementById('vmExternalAccess').checked) {
         const interfaceData = {
             id: topologyManager.generateUUID(),
@@ -566,12 +653,15 @@ window.handleCreateLink = function() {
     topologyManager.addInterface(sourceInterface);
     topologyManager.addInterface(targetInterface);
 
+    const tooltipContent = `<b>Nombre:</b> ${linkName || defaultName}`;
+    edgeTooltips.set(linkData.id, tooltipContent);
+
     const edgeVisData = {
         id: linkData.id,
         from: edgeData.from,
         to: edgeData.to,
         label: linkData.name,
-        title: `Nombre: ${linkData.name}`,
+        title: undefined,
     };
 
     visDataset.edges.add(edgeVisData);
@@ -605,24 +695,24 @@ window.handleEditVM = function() {
     const newImageId = imageSelect.value;
     const newFlavorId = flavorSelect.value;
     const newExternalAccess = document.getElementById('vmExternalAccess').checked;
-    const flavor = AVAILABLE_FLAVORS.find(f => f.id === newFlavorId);
-    const image = AVAILABLE_IMAGES.find(i => i.id === newImageId);
+    const flavor = AVAILABLE_FLAVORS.find(f => f.id === parseInt(newFlavorId));
+    const image = AVAILABLE_IMAGES.find(i => i.id === parseInt(newImageId));
 
     vm.name = newName;
     vm.image_id = newImageId;
     vm.flavor_id = newFlavorId;
 
-    const title = `Nombre: ${vm.name}
-        Imagen: ${image.name}
-        Flavor: ${flavor.name}
-        Acceso externo: ${newExternalAccess ? 'Sí' : 'No'}`;
+    const tooltipContent = `<b>Nombre:</b> ${vm.name}
+    <b>Imagen:</b> ${image.name}
+    <b>Flavor:</b> ${flavor.name}
+    <b>Acceso externo:</b> ${newExternalAccess ? 'Sí' : 'No'}`;
 
     const visData = {
         id: vm.id,
         label: vm.name,
-        title: title
+        title: undefined
     };
-    topologyManager.visNodes.set(vm.id, new VisVM(vm, title));
+    topologyManager.visNodes.set(vm.id, new VisVM(vm, undefined));
     visDataset.nodes.update(visData);
 
     const hasExternal = topologyManager.hasExternalAccess(vm.id);
@@ -656,10 +746,13 @@ window.handleEditLink = function() {
 
     link.name = newName || defaultName;
 
+    const tooltipContent = `<b>Nombre:</b> ${linkName || defaultName}`;
+    edgeTooltips.set(linkData.id, tooltipContent);
+
     const visData = {
         id: linkId,
         label: link.name,
-        title: `Nombre: ${link.name}`,
+        title: undefined,
         from: window.currentEdgeData.from,
         to: window.currentEdgeData.to
     };
@@ -693,6 +786,7 @@ function handleDeleteVM(vmId) {
             }
         }
         topologyManager.interfaces.delete(iface.id);
+        nodeTooltips.delete(vmId);
     });
 
     topologyManager.vms.delete(vmId);
@@ -717,6 +811,7 @@ function handleDeleteLink(linkId) {
     visDataset.edges.remove(linkId);
     network.disableEditMode();
     network.enableEditMode();
+    edgeTooltips.delete(linkId);
     console.log(topologyManager)
 }
 
@@ -774,6 +869,7 @@ window.handleDeployTopology = function() { //Esta función fue de prueba :p
 }
 
 window.deployTopology = function() {
+    hideTooltip()
     const form = document.getElementById('deployForm');
     if (!form.checkValidity()) {
         form.classList.add('was-validated');
@@ -811,6 +907,9 @@ window.deployTopology = function() {
     };
     const topology = deploymentData;
 
+    console.log(topology)
+    console.log(JSON.stringify(topology))
+
     Swal.fire({
         title: '¿Desplegar Topología?',
         text: '¿Estás seguro de que deseas desplegar esta topología como una Slice?',
@@ -819,7 +918,7 @@ window.deployTopology = function() {
         confirmButtonText: 'Sí, desplegar',
         cancelButtonText: 'Cancelar',
         customClass: {
-            confirmButton: 'btn bg-gradient-success',
+            confirmButton: 'btn bg-gradient-primary',
             cancelButton: 'btn bg-gradient-secondary ms-2'
         },
         buttonsStyling: false
@@ -837,13 +936,13 @@ window.deployTopology = function() {
             });
 
             $.ajax({
-                url: 'http://localhost:5000/deploy-slice', // Cambia por la URL del backend al probar uwu
+                url: `http://${BACKEND_IP}:${BACKEND_PORT}/deploy-slice`, // Cambia por la URL del backend al probar uwu
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify(topology),
                 success: function(response) {
                     if (response.status === 'success') {
-                        const sliceId = response.slice.slice_info.id;
+                        const sliceId = response.content.slice_info.id;
                         Swal.fire({
                             title: 'Éxito',
                             text: 'Slice desplegada correctamente',
@@ -854,14 +953,15 @@ window.deployTopology = function() {
                             },
                             buttonsStyling: false
                         }).then((result) => {
-                            window.location.href = `/slice-view/${sliceId}`;
+                            window.location.href = `/User/slice/${sliceId}`;
                         });
+                        console.log(response);
                     }
                 },
                 error: function(xhr, status, error) {
                     Swal.fire({
                         title: 'Error',
-                        text: 'Error al desplegar la Slice',
+                        text: 'Ocurrió un error al desplegar la Slice',
                         icon: 'error',
                         confirmButtonText: 'OK',
                         customClass: {
@@ -869,6 +969,7 @@ window.deployTopology = function() {
                         },
                         buttonsStyling: false
                     });
+                    console.log(error);
                 }
             });
         }
@@ -937,6 +1038,7 @@ window.showSuccessMessage = function(message) {
 
 // ===================== PLANTILLAS DE TOPOLOGÍAS / SUBTOPOLOGÍAS =====================
 function showTemplateModal(type) {
+    hideTooltip()
     const modal = new bootstrap.Modal(document.getElementById('templateModal'));
     const title = document.querySelector('#templateModal .modal-title');
     const submitButton = document.getElementById('templateSubmitButton');
@@ -968,7 +1070,7 @@ function showTemplateModal(type) {
     
     
     flavorSelect.addEventListener('change', () => {
-        const flavor = AVAILABLE_FLAVORS.find(f => f.id === flavorSelect.value);
+        const flavor = AVAILABLE_FLAVORS.find(f => f.id === parseInt(flavorSelect.value));
         const details = document.getElementById('templateFlavorDetails');
         if (flavor) {
             details.textContent = `RAM: ${flavor.ram}MB | vCPUs: ${flavor.vcpus} | Disco: ${flavor.disk}GB`;
@@ -1039,19 +1141,25 @@ function createTemplateVM(x, y, imageId, flavorId) {
     const vmId = topologyManager.generateUUID();
     const vmName = `VM-${topologyManager.vms.size + 1}`;
     const vm = new VM(vmId, vmName, imageId, flavorId);
-    const image = AVAILABLE_IMAGES.find(img => img.id === imageId);
-    const flavor = AVAILABLE_FLAVORS.find(f => f.id === flavorId);
-    const title = `Nombre: ${vmName}
-        Imagen: ${image.name}
-        Flavor: ${flavor.name}
-        Acceso externo: No`;
+    
+    // Obtener la información para el tooltip
+    const image = AVAILABLE_IMAGES.find(img => img.id === parseInt(imageId));
+    const flavor = AVAILABLE_FLAVORS.find(f => f.id === parseInt(flavorId));
+    const tooltipContent = `<b>Nombre:</b> ${vmName}
+<b>Imagen:</b> ${image.name}
+<b>Flavor:</b> ${flavor.name}
+<b>Acceso externo:</b> No`;
+
+    // Guardar el tooltip content en el Map
+    nodeTooltips.set(vmId, tooltipContent);
         
-    topologyManager.addVM(vm, title);
+    topologyManager.addVM(vm, undefined);
 
     visDataset.nodes.add({
         ...topologyManager.visNodes.get(vmId),
         x: x,
-        y: y
+        y: y,
+        title: undefined  // Asegurarse que el título nativo está deshabilitado
     });
 
     return vmId;
@@ -1085,12 +1193,15 @@ function createTemplateLink(sourceId, targetId) {
     topologyManager.addInterface(sourceInterface);
     topologyManager.addInterface(targetInterface);
 
+    const tooltipContent = `<b>Nombre:</b> ${linkName || defaultName}`;
+    edgeTooltips.set(linkData.id, tooltipContent);
+
     visDataset.edges.add({
         id: linkId,
         from: sourceId,
         to: targetId,
         label: linkName,
-        title: `Nombre: ${linkName}`,
+        title: undefined,
     });
 }
 
@@ -1202,6 +1313,8 @@ window.clearTopology = function() {
     topologyManager.interfaces.clear();
     topologyManager.visNodes.clear();
     topologyManager.visEdges.clear();
+    nodeTooltips.clear();
+    edgeTooltips.clear();
     network.fit({
         animation: {
             duration: 500,
@@ -1251,7 +1364,7 @@ window.exportTopology = function() {
             nodes: Array.from(topologyManager.visNodes.values()).map(node => ({
                 id: node.id,
                 label: node.label,
-                title: node.title
+                title: nodeTooltips.get(node.id) || node.title,
             })),
             edges: Array.from(topologyManager.visEdges.values()).map(edge => ({
                 id: edge.id,
@@ -1296,8 +1409,23 @@ window.importTopology = function() {
                         vmData.image_id,
                         vmData.flavor_id
                     );
+                    // Crear tooltip para la VM
+                    const image = AVAILABLE_IMAGES.find(img => img.id === parseInt(vm.image_id));
+                    const flavor = AVAILABLE_FLAVORS.find(flav => flav.id === parseInt(vm.flavor_id));
+                    const hasExternal = importedData.topology_info.interfaces.some(
+                        iface => iface.vm_id === vm.id && iface.external_access
+                    );
+
+                    const tooltipContent = `<b>Nombre:</b> ${vm.name}
+<b>Imagen:</b> ${image ? image.name : 'Desconocida'}
+<b>Flavor:</b> ${flavor ? flavor.name : 'Desconocido'}
+<b>Acceso externo:</b> ${hasExternal ? 'Sí' : 'No'}`;
+
+                    // Guardar tooltip en el Map
+                    nodeTooltips.set(vm.id, tooltipContent);
                     topologyManager.vms.set(vm.id, vm);
                 });
+
 
                 importedData.topology_info.links.forEach(linkData => {
                     const link = new Link(
@@ -1305,6 +1433,10 @@ window.importTopology = function() {
                         linkData.name
                     );
                     topologyManager.links.set(link.id, link);
+
+                    // Crear tooltip para el enlace
+                    const tooltipContent = `<b>Nombre:</b> ${link.name}`;
+                    edgeTooltips.set(link.id, tooltipContent);
                 });
 
                 const vmsWithExternalAccess = new Set();
@@ -1324,22 +1456,25 @@ window.importTopology = function() {
                         ifaceData.external_access
                     );
                     topologyManager.interfaces.set(iface.id, iface);
+
+                    
+
                 });
 
                 const nodes = importedData.topology_info.vms.map(vm => {
-                    const image = AVAILABLE_IMAGES.find(img => img.id === vm.image_id);
-                    const flavor = AVAILABLE_FLAVORS.find(flav => flav.id === vm.flavor_id);
+                    const image = AVAILABLE_IMAGES.find(img => img.id === parseInt(vm.image_id));
+                    const flavor = AVAILABLE_FLAVORS.find(flav => flav.id === parseInt(vm.flavor_id));
                     const hasExternal = vmsWithExternalAccess.has(vm.id);
 
-                    const title = `Nombre: ${vm.name}
-        Imagen: ${image ? image.name : vm.image_id}
-        Flavor: ${flavor ? flavor.name : vm.flavor_id}
-        Acceso externo: ${hasExternal ? 'Sí' : 'No'}`;
+                    const title = `<b>Nombre:</b> ${vm.name}
+    <b>Imagen:</b> ${image ? image.name : vm.image_id}
+    <b>Flavor:</b> ${flavor ? flavor.name : vm.flavor_id}
+    <b>Acceso externo:</b> ${hasExternal ? 'Sí' : 'No'}`;
 
                     return {
                         id: vm.id,
                         label: vm.name,
-                        title: title
+                        title: undefined
                     };
                 });
 
@@ -1348,7 +1483,7 @@ window.importTopology = function() {
                 nodes.forEach(node => {
                     topologyManager.visNodes.set(node.id, new VisVM(
                         topologyManager.vms.get(node.id),
-                        node.title
+                        undefined
                     ));
                 });
 
@@ -1376,6 +1511,40 @@ window.importTopology = function() {
     };
     
     fileInput.click();
+}
+
+function hideTooltip() {
+    network.selectNodes([]);
+    const tooltip = document.getElementById('customTooltip');
+    if (tooltip) {
+        tooltip.classList.remove("animate__jackInTheBox");
+        tooltip.classList.add("animate__fadeOut");
+        tooltip.style.display = "none";
+    }
+}
+
+// Función para cargar los recursos desde el backend
+async function loadResources() {
+    try {
+        // Cargar flavors
+        const flavorsResponse = await fetch(`http://${BACKEND_IP}:${BACKEND_PORT}/resources/flavors`);
+        const flavorsData = await flavorsResponse.json();
+        if (flavorsData.status === 'success') {
+            AVAILABLE_FLAVORS = flavorsData.content;
+        }
+
+        // Cargar imágenes
+        const imagesResponse = await fetch(`http://${BACKEND_IP}:${BACKEND_PORT}/resources/images`);
+        const imagesData = await imagesResponse.json();
+        if (imagesData.status === 'success') {
+            AVAILABLE_IMAGES = imagesData.content;
+        }
+
+        console.log('Recursos cargados:', { flavors: AVAILABLE_FLAVORS, images: AVAILABLE_IMAGES });
+
+    } catch (error) {
+        console.error('Error cargando recursos:', error);
+    }
 }
 
 export { network, topologyManager };

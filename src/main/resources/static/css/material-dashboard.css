@@ -3912,6 +3912,28 @@ fieldset:disabled .btn {
   --bs-btn-disabled-border-color: #4CAF50;
 }
 
+.btn-orange {
+  --bs-btn-color: #ffffff;
+  --bs-btn-bg: #eb8052;
+  --bs-btn-border-color: #eb8052;
+  --bs-btn-hover-color: #0a0a0a;
+  --bs-btn-hover-bg: #eb8052;
+  --bs-btn-hover-border-color: #ed7a45;
+  --bs-btn-focus-shadow-rgb: 235, 128, 82;
+  --bs-btn-active-color: #ffffff;
+  --bs-btn-active-bg: #e26f43;
+  --bs-btn-active-border-color: #d8653a;
+  --bs-btn-active-shadow: none;
+  --bs-btn-disabled-color: #ffffff;
+  --bs-btn-disabled-bg: #eb8052;
+  --bs-btn-disabled-border-color: #eb8052;
+}
+
+.btn-orange:hover,
+.btn.bg-gradient-orange:hover {
+  color: #fff;
+}
+
 .btn-info {
   --bs-btn-color: #fff;
   --bs-btn-bg: #1A73E8;
@@ -5908,9 +5930,9 @@ fieldset:disabled .btn {
 }
 
 .badge {
-  --bs-badge-padding-x: 0.9em;
-  --bs-badge-padding-y: 0.55em;
-  --bs-badge-font-size: 0.75em;
+  --bs-badge-padding-x: 1.0em;
+  --bs-badge-padding-y: 0.65em;
+  --bs-badge-font-size: 0.85em;
   --bs-badge-font-weight: 700;
   --bs-badge-color: #fff;
   --bs-badge-border-radius: 0.45rem;
@@ -22381,6 +22403,7 @@ fieldset:disabled .btn {
 .btn.bg-gradient-warning {
   color: #fff;
 }
+
 
 .btn-warning:hover,
 .btn.bg-gradient-warning:hover {

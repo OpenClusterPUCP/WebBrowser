@@ -1,0 +1,900 @@
+<!--
+==============================================================================
+| ARCHIVO: SliceView.html / slice-view.html
+==============================================================================
+| DESCRIPCIÓN:
+| Interfaz gráfica para visualizar y gestionar las Slices desplegados. Permite
+| ver detalles de la propia Slice, las máquinas virtuales, su estado, conexiones y
+| acceder a las consolas VNC/SSH.
+==============================================================================
+| CONTENIDO PRINCIPAL:
+| 1. ESTRUCTURA BASE
+|    - Importación de estilos y librerías
+|    - Configuración de Material Dashboard
+|    - Navbar y Sidebar
+|
+| 2. ÁREA DE TRABAJO
+|    - Visualizador de topología (Vis.js Network)
+|    - Panel de información de red
+|    - Acciones rápidas
+|    - Exportación de topología
+|
+| 3. PANELES DE INFORMACIÓN
+|    - Detalles de la Slice
+|    - Información de red
+|    - Estado de VMs y enlaces
+|    - Acceso externo y direccionamiento
+|
+| 4. MODALES/POP-UPS
+|    - Modal de información de VM
+|    - Modal de información de enlace
+|    - Acceso a consola VNC
+|    - Confirmaciones de acciones
+|
+| 5. PLANTILLAS, SCRIPTS, DEPENDENCIAS
+|    - Material Dashboard Core 3
+|    - Sweet Alert
+|    - Vis.js Network
+|    - Scripts personalizados (view.js)
+==============================================================================
+-->
+
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenCluster - Visualizador de Slice</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" th:href="@{/css/user-styles.css}">
+    <!-- Font Awesome Icons -->
+    <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
+    <!-- Material Icons -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <!-- Fonts and icons -->
+    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700,900" />
+    <!-- CSS Files -->
+    <link id="pagestyle" th:href="@{/css/material-dashboard.css}" rel="stylesheet" />
+    <link id="stylesheet" th:href="@{/slice/vis/dist/vis-network.css}" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
+    <!-- Estilos extra -->
+    <style>
+        #network-container {
+            outline: none !important;
+            position: relative !important;
+            overflow: visible !important;
+        }
+        #network-container:focus,
+        #network-container:hover {
+            outline: none !important;
+            border-color: inherit !important;
+        }
+        .vis-network:focus {
+            outline: none !important;
+        }
+        .vis-manipulation {
+            border: 1px solid #ccc !important;
+            border-radius: 8px !important;
+            padding-top: 8px !important;
+            padding-bottom: 5px !important;
+            background-color: white !important;
+            z-index: 1000 !important;
+            position: absolute !important;
+            top: 10px !important;
+            left: 10px !important;
+            right: 10px !important;
+        }
+        .vis-close {
+            position: absolute !important;
+            display: none;
+            z-index: 1001 !important;
+        }
+        .vis-manipulation, .vis-edit-mode {
+            overflow: visible !important;
+        }
+        .vis-manipulation-overlay {
+            z-index: 1002 !important;
+            overflow: visible !important;
+        }
+        .card-body {
+            overflow: visible !important;
+            position: relative !important;
+            z-index: 1 !important;
+        }
+        .vis-manipulation .vis-button.vis-edit,
+        .vis-manipulation .vis-button.vis-close {
+            position: absolute !important;
+            right: -40px !important;
+            top: 0 !important;
+            background-color: white !important;
+            border: 1px solid #ccc !important;
+            border-radius: 4px !important;
+            padding: 5px !important;
+            box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1) !important;
+        }
+        .modal-backdrop {
+            z-index: 1040 !important;
+        }
+        .modal {
+            z-index: 1045 !important;
+        }
+        aside.sidenav {
+            z-index: 1039 !important;
+        }
+        .hover-bounce:hover {
+            animation: bounce 0.5s !important;
+        }
+        .hover-pulse:hover {
+            animation: pulse 0.5s !important;
+        }
+        .btn:not(.mainBtnKOMO) {
+            transition: all 0.5s cubic-bezier(0.34, 1.61, 0.7, 1);
+        }
+        .btn:not(.mainBtnKOMO):hover {
+            transform: translateY(-5.5px);
+        }
+        .badge {
+            transition: all 0.3s ease;
+        }
+        .badge.updating {
+            animation: flash 1s;
+        }
+        .card {
+            position: relative;
+            background: #fff;
+            margin-bottom: 1rem;
+            box-shadow: rgba(0, 0, 0, 0.1) 0px 1px 3px, rgba(0, 0, 0, 0.05) 0px 1px 2px;
+        }
+        @keyframes slideFromRight {
+            0% {
+                opacity: 0;
+                right: -100%;
+            }
+            100% {
+                opacity: 1;
+                right: 0;
+            }
+        }
+        .panel-card {
+            opacity: 0;
+            position: relative;
+            right: -100px;
+        }
+        .panel-card {
+            animation: slideFromRight 0.8s cubic-bezier(0.34, 1.61, 0.7, 1) forwards;
+        }
+        .panel-card-1 { animation-delay: 0.8s; }
+        .panel-card-2 { animation-delay: 1.4s; }
+        .panel-card-3 { animation-delay: 2.0s; }
+        .card {
+            transition: transform 0.3s cubic-bezier(0.34, 1.61, 0.7, 1),
+            box-shadow 0.3s cubic-bezier(0.34, 1.61, 0.7, 1);
+        }
+        .card:hover{
+            transform: translateY(-5.5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .badge:hover{
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        #customTooltip {
+            position: fixed;
+            background-color: rgba(0, 0, 0, 0.85);
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 6px;
+            pointer-events: none;
+            font-size: 14px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            z-index: 10000;
+            display: none;
+            white-space: pre-line;
+        }
+
+        :root {
+            --animate-delay: 0.2s;
+        }
+
+
+        #contextMenu {
+            min-width: 200px;
+            background-color: rgba(0, 0, 0, 0.85);
+            border-radius: 8px;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            --animate-delay: 1.3s;
+        }
+
+        #contextMenu .card {
+            background-color: transparent !important;
+            box-shadow: none !important;
+            border: none !important;
+            margin: 0 !important;
+            transform: none !important;
+        }
+
+        #contextMenu .card:hover {
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        #contextMenu .card-body {
+            padding: 8px !important;
+        }
+
+        #contextMenu .btn-link {
+            color: #fff !important;
+            text-decoration: none !important;
+            padding: 10px 16px !important;
+            transition: all 0.2s ease !important;
+            font-size: 14px !important;
+            display: flex !important;
+            align-items: center !important;
+            border-radius: 6px !important;
+            margin: 2px 0 !important;
+            transform: none !important;
+        }
+
+        #contextMenu .btn-link:hover {
+            background-color: rgba(255, 255, 255, 0.1) !important;
+            color: #fb8c00 !important;
+            transform: translateX(5px) !important;
+        }
+
+        #contextMenu .btn-link.disabled {
+            color: rgba(255, 255, 255, 0.5) !important;
+            pointer-events: none !important;
+        }
+
+        #contextMenu .material-symbols-rounded {
+            margin-right: 12px !important;
+            font-size: 20px !important;
+            width: 24px !important;
+        }
+
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="app-container">
+    <!-- Sidebar -->
+    <div th:replace="~{Fragments/Admin/sidebar :: sidebar('slices')}"></div>
+
+    <!-- Contenido principal -->
+    <main class="main-content">
+        <!-- Header -->
+        <div th:replace="~{Fragments/Admin/header :: header(title='Slice')}"></div>
+
+        <section class="page-content">
+            <div class="row mb-4">
+                <div class="col-12 text-center">
+                    <h2 class="content-title text-3xl text-start font-weight-bolder font-weight-bold mb-2 animate__animated animate__zoomInLeft animate__slow" style="font-weight: 900">
+                        VISUALIZADOR DE SLICE
+                    </h2>
+                    <p class="text-sm text-start text-secondary mb-4 animate__animated animate__backInLeft animate__delay-5s">
+                        Visualiza y gestiona tu Slice desplegada con nuestra herramienta interactiva. Monitorea el estado de tus máquinas virtuales, interfaces de red y conexiones.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Mensajes de alerta -->
+            <div id="alertContainer" class="alert-container" style="display: none;">
+                <div id="alertMessage" class="alert"></div>
+            </div>
+
+            <!-- Tooltip -->
+            <div id="customTooltip" class="animate__animated"></div>
+
+            <!-- Área de trabajo principal -->
+            <div class="row g-4">
+
+                <div class="col-8 animate__animated animate__fadeInLeft" style="min-height: 590px !important;">
+                    <div class="card h-100">
+                        <div class="card-header p-3 bg-gradient-dark">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="mb-0 text-white">Viewspace</h6>
+                                    <p class="text-white text-sm mb-0">Área interactiva para visualizar tu topología desplegada
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body p-3" style="height: calc(100vh - 80vh); ">
+                            <div id="network-container" class="border border-radius-xl" style="width: 100%; height: 100%; outline: none !important; ">
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel de control -->
+                <div class="col-4 d-flex flex-column">
+
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="card mb-4 panel-card panel-card-1 w-100">
+                                <div class="card-header p-3 bg-gradient-warning">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-0 text-white">Información de Slice</h6>
+                                            <p class="text-white text-sm mb-0">Detalles de la Topología desplegada</p>
+                                        </div>
+                                        <button type="button"
+                                                class="btn btn-icon-only btn-link text-white mb-0"
+                                                id="sliceDescriptionBtn"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#sliceDetailModal">
+                                            <i class="material-symbols-rounded">description</i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="card-body p-3">
+                                    <div class="row">
+
+                                        <div class="col-12 col-sm-6">
+                                            <div class="timeline timeline-one-side">
+
+                                                <div class="timeline-block mb-3">
+                                    <span class="timeline-step">
+                                        <i class="material-symbols-rounded text-warning">label</i>
+                                    </span>
+                                                    <div class="timeline-content">
+                                                        <h6 class="text-dark text-sm font-weight-bold mb-0">Nombre de la Slice</h6>
+                                                        <p class="text-secondary font-weight-bold text-xs mt-1 mb-0" id="sliceName">Cargando...</p>
+                                                    </div>
+                                                </div>
+
+                                                <div class="timeline-block mb-3">
+                                    <span class="timeline-step">
+                                        <i class="material-symbols-rounded text-warning">dns</i>
+                                    </span>
+                                                    <div class="timeline-content">
+                                                        <h6 class="text-dark text-sm font-weight-bold mb-0">ID de la Slice</h6>
+                                                        <p class="text-secondary text-xs mt-1 mb-0" id="sliceId">Cargando...</p>
+                                                        <span class="badge bg-gradient-secondary mt-2" id="sliceStatus">Cargando...</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 col-sm-6">
+                                            <div class="timeline timeline-one-side">
+                                                <div class="timeline-block">
+                                  <span class="timeline-step">
+                                    <i class="material-symbols-rounded text-warning">hub</i>
+                                </span>
+                                                    <div class="timeline-content">
+                                                        <h6 class="text-dark text-sm font-weight-bold mb-0">Bridge Interno</h6>
+                                                        <p class="text-secondary text-xs mt-1 mb-0">
+                                                            <span id="internalBridge">Cargando...</span>
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div class="timeline-block mb-3">
+                                    <span class="timeline-step">
+                                        <i class="material-symbols-rounded text-warning">cloud</i>
+                                    </span>
+                                                    <div class="timeline-content">
+                                                        <h6 class="text-dark text-sm font-weight-bold mb-0">Red Externa</h6>
+
+                                                        <p class="text-secondary text-xs mt-1 mb-0">
+                                                            <span class="text-bold">SVLAN: </span>
+                                                            <span id="VlanId">Cargando...</span>
+                                                        </p>
+
+                                                        <p class="text-secondary text-xs mt-1 mb-0">
+                                                            <span class="text-bold">RED: </span>
+                                                            <span id="externalNetwork">...</span>
+                                                        </p>
+
+                                                        <div class="d-flex align-items-center mt-2">
+                                                            <div class="row w-100">
+                                                                <div class="col-6">
+                                                                    <p class="text-secondary text-xs mb-0 font-weight-bold">Inicio:</p>
+                                                                    <p class="text-secondary text-xs mb-0 text-nowrap" id="networkRangeStart">...</p>
+                                                                </div>
+                                                                <div class="col-6">
+                                                                    <p class="text-secondary text-xs mb-0 font-weight-bold">Fin:</p>
+                                                                    <p class="text-secondary text-xs mb-0 text-nowrap" id="networkRangeEnd">...</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="card mb-4 panel-card panel-card-2 w-100">
+                                <div class="card-header p-3 bg-gradient-info">
+                                    <h6 class="mb-0 text-white">Acciones Rápidas</h6>
+                                    <p class="text-white text-sm mb-0">Herramientas para la gestión gráfica y funcional de la Slice</p>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="row g-2 mb-0">
+                                        <div class="col-3 mb-0">
+                                            <button class="btn btn-info btn-lg w-100 h-100 mb-0 mainBtn d-flex flex-column align-items-center justify-content-center" style="min-height: 85px;" onclick="autoArrangeTopology()">
+                                                <i class="material-symbols-rounded mb-1" style="font-size: 1.5rem;">auto_fix</i>
+                                                <span class="mb-1">Organizar</span>
+                                                <p class="text-xxs opacity-8 mb-0">Optimiza la vista actual</p>
+                                            </button>
+                                        </div>
+                                        <div class="col-3 mb-0 text-">
+                                            <button class="btn btn-success btn-lg w-100 h-100 mb-0 mainBtn d-flex flex-column align-items-center justify-content-center" style="min-height: 85px;" onclick="refreshSliceInfo()">
+                                                <i class="material-symbols-rounded mb-1" style="font-size: 1.5rem;">refresh</i>
+                                                <span class="mb-1">Actualizar</span>
+                                                <p class="text-xxs opacity-8 mb-0">Refresca los datos de la Slice</p>
+                                            </button>
+                                        </div>
+
+                                        <div class="col-3 mb-0">
+                                            <button class="btn btn-orange btn-lg w-100 h-100 mb-0 mainBtn d-flex flex-column align-items-center justify-content-center" style="min-height: 85px;" onclick="restartSlice()">
+                                                <i class="material-symbols-rounded mb-1" style="font-size: 1.5rem;">restart_alt</i>
+                                                <span class="mb-1">Reiniciar Slice</span>
+                                                <p class="text-xxs opacity-8 mb-0">Reinicia todas las VMs</p>
+                                            </button>
+                                        </div>
+
+                                        <div class="col-3 mb-0">
+                                            <button class="btn btn-danger btn-lg w-100 h-100 mb-0 mainBtn d-flex flex-column align-items-center justify-content-center" style="min-height: 85px;" onclick="stopSlice()">
+                                                <i class="material-symbols-rounded mb-1" style="font-size: 1.5rem;">stop_circle</i>
+                                                <span class="mb-1">Detener Slice</span>
+                                                <p class="text-xxs opacity-8 mb-0">Detiene todas las VMs</p>
+                                            </button>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-0">
+                        <div class="col-12">
+                            <div class="card panel-card panel-card-3 w-100">
+                                <div class="card-header p-3 bg-gradient-primary">
+                                    <h6 class="mb-0 text-white">Exportar Topología</h6>
+                                    <p class="text-white text-sm mb-0">Guardar configuración actual</p>
+                                </div>
+                                <div class="card-body p-2 w-100">
+                                    <button class="btn btn-primary btn-lg w-100 h-100 mb-0 mainBtn" style="min-height: 85px;" onclick="exportTopology()">
+                                        <i class="material-symbols-rounded me-2">file_download</i>
+                                        Exportar Configuración
+                                        <p class="text-xxs mb-0">Guarda como archivo JSON</p>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Fin de los elementos uwu -->
+
+        <!-- Footer -->
+        <div th:replace="~{Fragments/Admin/footer :: footer}"></div>
+    </main>
+</div>
+
+
+<!-- Modal - Información de VM -->
+<div class="modal fade" id="vmInfoModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg w-75">
+        <div class="modal-content">
+            <!-- Header -->
+            <div class="modal-header bg-gradient-dark">
+                <h5 class="modal-title text-white">
+                    <i class="material-symbols-rounded me-2">computer</i>
+                    <span id="">Información de Máquina Virtual</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body p-4">
+
+                <div class="card border mb-4">
+                    <div class="card-body p-3">
+                        <div class="row align-items-center">
+                            <div class="col-8">
+                                <!-- Información básica -->
+                                <div class="mb-2">
+                                    <p class="text-md mb-0 font-weight-bold">ID: <span class="font-weight-normal" id="vmModalId">-</span></p>
+                                    <p class="text-md mb-0 font-weight-bold">Nombre: <span class="font-weight-normal text-primary" id="vmModalName">-</span></p>
+                                    <p class="text-md mb-0 font-weight-bold">Imagen: <span class="font-weight-normal" id="vmModalImage">-</span></p>
+                                    <p class="text-md mb-0 font-weight-bold">Flavor: <span class="font-weight-normal" id="vmModalFlavorName">-</span></p>
+                                </div>
+                                <!-- Nueva información -->
+                                <div class="mt-2 pt-2 border-top">
+                                    <p class="text-md mb-0 font-weight-bold">Servidor Físico: <span class="font-weight-normal" id="vmModalPhysicalServer">-</span></p>
+                                    <p class="text-md mb-0 font-weight-bold">QEMU PID: <span class="font-weight-normal" id="vmModalQemuPid">-</span></p>
+                                    <p class="text-md mb-0 font-weight-bold">VNC Display: <span class="font-weight-normal" id="vmModalVncDisplay">-</span></p>
+                                </div>
+                            </div>
+                            <div class="col-4 text-end d-flex flex-column justify-content-center">
+                                <div id="vmModalStatus" class="mb-2 mt-3">
+                                    <!-- Status badge will be inserted here -->
+                                </div>
+                                <div id="vmModalExternalAccess" class="">
+                                    <!-- Badge for external access will be inserted here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border mb-4">
+                    <div class="card-body p-0">
+                        <div class="row g-0">
+                            <div class="col-4 text-center border-end">
+                                <div class="p-3">
+                                    <i class="material-symbols-rounded text-gradient text-dark mb-1" style="font-size: 2.5rem;">memory</i>
+                                    <p class="text-xs text-secondary mb-0">RAM</p>
+                                    <h5 class="font-weight-bolder mb-0" id="vmModalRAM">-</h5>
+                                </div>
+                            </div>
+                            <div class="col-4 text-center border-end">
+                                <div class="p-3">
+                                    <i class="material-symbols-rounded text-gradient text-dark mb-1" style="font-size: 2.5rem;">developer_board</i>
+                                    <p class="text-xs text-secondary mb-0">vCPUs</p>
+                                    <h5 class="font-weight-bolder mb-0" id="vmModalCPUs">-</h5>
+                                </div>
+                            </div>
+                            <div class="col-4 text-center">
+                                <div class="p-3">
+                                    <i class="material-symbols-rounded text-gradient text-dark mb-1" style="font-size: 2.5rem;">storage</i>
+                                    <p class="text-xs text-secondary mb-0">Disco</p>
+                                    <h5 class="font-weight-bolder mb-0" id="vmModalDisk">-</h5>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table align-items-center mb-0">
+                                <thead>
+                                <tr>
+                                    <th class="text-uppercase text-secondary text-xs font-weight-bolder">Interfaz</th>
+                                    <th class="text-uppercase text-secondary text-xs font-weight-bolder">MAC</th>
+                                    <th class="text-uppercase text-secondary text-xs  font-weight-bolder">Enlace</th>
+                                    <th class="text-uppercase text-secondary text-xs font-weight-bolder">Conectado a</th>
+                                </tr>
+                                </thead>
+                                <tbody id="vmModalInterfaces">
+                                <!-- Interfaces will be added dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-link m-0" data-bs-dismiss="modal">Cerrar</button>
+
+                <button type="button" class="btn btn-orange m-0 me-1" onclick="restartVM(this.getAttribute('data-vm-id'))" id="vmRestartButton">
+                    <i class="material-symbols-rounded me-2">cached</i>
+                    Reiniciar VM
+                </button>
+
+                <button type="button"
+                        class="btn bg-gradient-warning m-0 me-1"
+                        id="vmToggleButton"
+                        onclick="toggleVMState(this.getAttribute('data-vm-id'))">
+                    <i class="material-symbols-rounded me-2" id="vmToggleIcon">pause</i>
+                    <span id="vmToggleText">Pausar VM</span>
+                </button>
+
+                <button type="button" class="btn bg-gradient-dark m-0" onclick="openVNCConsole(this.getAttribute('data-vm-id'))" id="vmVNCButton">
+                    <i class="material-symbols-rounded me-2">terminal</i>
+                    Abrir Consola VNC
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal - Información de Enlace -->
+<div class="modal fade" id="linkInfoModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <!-- Header -->
+            <div class="modal-header bg-gradient-dark">
+                <h5 class="modal-title text-white">
+                    <i class="material-symbols-rounded me-2">link</i>
+                    <span >Información de Enlace de Red</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body p-4">
+                <div class="card border mb-4">
+                    <div class="card-body p-3">
+                        <div class="row align-items-center">
+                            <div class="col-8">
+                                <p class="text-md mb-0 font-weight-bold">ID: <span class="font-weight-normal" id="linkModalId">-</span></p>
+                                <p class="text-md mb-0 font-weight-bold">Nombre: <span class="font-weight-normal text-primary" id="linkModalName">-</span></p>
+                                <p class="text-md mb-0 font-weight-bold">Conecta: <span class="font-weight-normal" id="linkModalConnects">-</span></p>
+                            </div>
+                            <div class="col-4 text-end">
+                                <div class="d-flex flex-column align-items-end">
+                                    <span class="badge bg-gradient-dark" id="linkModalCVLAN">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border">
+                    <div class="table-responsive p-0" style="max-height: 300px;">
+                        <table class="table align-items-center mb-0">
+                            <thead>
+                            <tr>
+                                <th class="text-uppercase text-secondary text-md font-weight-bolder">VM</th>
+                                <th class="text-uppercase text-secondary text-md font-weight-bolder">MAC</th>
+                                <th class="text-uppercase text-secondary text-md font-weight-bolder">INTERFAZ</th>
+                            </tr>
+                            </thead>
+                            <tbody id="linkModalInterfaces">
+                            <!-- Interfaces will be added dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-link m-0" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal - Información de Slice -->
+<div class="modal fade" id="sliceDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <!-- Header -->
+            <div class="modal-header bg-gradient-warning">
+                <h5 class="modal-title text-white">
+                    <i class="material-symbols-rounded me-2">layers</i>
+                    <span>Información Detallada del Slice</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body p-4">
+                <!-- Información básica -->
+                <div class="card border mb-4">
+                    <div class="card-body p-3">
+                        <div class="row align-items-center">
+                            <div class="col-8">
+                                <p class="text-md mb-0 font-weight-bold">ID: <span class="font-weight-normal" id="sliceModalId">-</span></p>
+                                <p class="text-md mb-0 font-weight-bold">Nombre: <span class="font-weight-normal text-warning" id="sliceModalName">-</span></p>
+                                <p class="text-md mb-0 font-weight-bold">Descripción: <span class="font-weight-normal" id="sliceModalDescription">-</span></p>
+                            </div>
+                            <div class="col-4 text-end">
+                                <span class="badge bg-gradient-success" id="sliceModalStatus">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Estadísticas -->
+                <div class="card border mb-4">
+                    <div class="card-body p-0">
+                        <div class="row g-0">
+                            <div class="col-3 text-center border-end">
+                                <div class="p-3">
+                                    <i class="material-symbols-rounded text-gradient text-warning mb-1" style="font-size: 2.5rem;">computer</i>
+                                    <p class="text-xs text-secondary mb-0">VMs</p>
+                                    <h5 class="font-weight-bolder mb-0" id="sliceModalVMCount">-</h5>
+                                </div>
+                            </div>
+                            <div class="col-3 text-center border-end">
+                                <div class="p-3">
+                                    <i class="material-symbols-rounded text-gradient text-warning mb-1" style="font-size: 2.5rem;">settings_ethernet</i>
+                                    <p class="text-xs text-secondary mb-0">Interfaces</p>
+                                    <h5 class="font-weight-bolder mb-0" id="sliceModalInterfaceCount">-</h5>
+                                </div>
+                            </div>
+                            <div class="col-3 text-center border-end">
+                                <div class="p-3">
+                                    <i class="material-symbols-rounded text-gradient text-warning mb-1" style="font-size: 2.5rem;">link</i>
+                                    <p class="text-xs text-secondary mb-0">Enlaces</p>
+                                    <h5 class="font-weight-bolder mb-0" id="sliceModalLinkCount">-</h5>
+                                </div>
+                            </div>
+                            <div class="col-3 text-center">
+                                <div class="p-3">
+                                    <i class="material-symbols-rounded text-gradient text-warning mb-1" style="font-size: 2.5rem;">dns</i>
+                                    <p class="text-xs text-secondary mb-0">Workers</p>
+                                    <h5 class="font-weight-bolder mb-0" id="sliceModalWorkerCount">-</h5>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Configuración de Red -->
+                <div class="card border">
+                    <div class="card-header p-3 border-bottom">
+                        <h6 class="text-secondary text-md mb-0 font-weight-bold">CONFIGURACIÓN DE RED</h6>
+                    </div>
+                    <div class="card-body p-3">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="timeline timeline-one-side">
+                                    <!-- Bridge y SVLAN -->
+                                    <div class="timeline-block mb-3">
+                                      <span class="timeline-step">
+                                          <i class="material-symbols-rounded text-warning">hub</i>
+                                      </span>
+                                        <div class="timeline-content">
+                                            <h6 class="text-secondary text-md font-weight-bold mb-0">BRIDGE y VLAN</h6>
+                                            <p class="text-secondary text-md mt-1 mb-0">
+                                                Bridge Interno: <span id="sliceModalBridgeName" class="font-weight-bold">-</span>
+                                            </p>
+
+                                        </div>
+                                    </div>
+
+                                    <!-- Network -->
+                                    <div class="timeline-block mb-3">
+                                      <span class="timeline-step">
+                                          <i class="material-symbols-rounded text-warning">lan</i>
+                                      </span>
+                                        <div class="timeline-content">
+                                            <h6 class="text-secondary text-md font-weight-bold mb-0">RED</h6>
+
+                                            <p class="text-secondary text-md mt-1 mb-0">
+                                                Red Externa: <span id="sliceModalNetwork" class="font-weight-bold">-</span>
+                                            </p>
+                                            <div class="d-flex mt-2">
+                                                <div class="me-4">
+                                                    <p class="text-secondary text-md mb-0">Rango DHCP:</p>
+                                                    <p class="text-secondary text-md mb-0">Inicio: <span id="sliceModalDHCPStart" class="font-weight-bold">-</span></p>
+                                                </div>
+                                                <div>
+                                                    <p class="text-secondary text-md mb-0">&nbsp;</p>
+                                                    <p class="text-secondary text-md mb-0">Fin: <span id="sliceModalDHCPEnd" class="font-weight-bold">-</span></p>
+                                                </div>
+                                            </div>
+                                            <p class="badge bg-gradient-warning text-white text-md mt-2 mb-0">
+                                                SVLAN: <span id="sliceModalSVLAN" class="font-weight-bold">-</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="timeline timeline-one-side">
+                                    <!-- Interfaces -->
+                                    <div class="timeline-block mb-3">
+                                      <span class="timeline-step">
+                                          <i class="material-symbols-rounded text-warning">settings_ethernet</i>
+                                      </span>
+                                        <div class="timeline-content">
+                                            <h6 class="text-secondary text-md font-weight-bold mb-0">INTERFACES</h6>
+                                            <p class="text-secondary text-md mt-1 mb-0">
+                                                Interfaz DHCP: <span id="sliceModalDHCPInterface" class="font-weight-bold">-</span>
+                                            </p>
+                                            <p class="text-secondary text-md mt-1 mb-0">
+                                                Interfaz Gateway: <span id="sliceModalGatewayInterface" class="font-weight-bold">-</span>
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Patch Ports -->
+                                    <div class="timeline-block">
+                                      <span class="timeline-step">
+                                          <i class="material-symbols-rounded text-warning">swap_horiz</i>
+                                      </span>
+                                        <div class="timeline-content">
+                                            <h6 class="text-secondary text-md font-weight-bold mb-0">PATCH PORTS</h6>
+                                            <p class="text-secondary text-md mt-1 mb-0">
+                                                Interno: <span id="sliceModalPatchInt" class="font-weight-bold">-</span>
+                                            </p>
+                                            <p class="text-secondary text-md mt-1 mb-0">
+                                                Slice: <span id="sliceModalPatchSlice" class="font-weight-bold">-</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-link m-0" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Context Menú - Acciones rápidas -->
+<div id="contextMenu" class="animate__animated" style="display: none; position: fixed; z-index: 10000;">
+    <div class="card-body">
+        <button class="btn btn-link w-100" id="ctxRestartButton">
+            <i class="material-symbols-rounded">cached</i>
+            <span>Reiniciar VM</span>
+        </button>
+        <button class="btn btn-link w-100" id="ctxToggleButton">
+            <i class="material-symbols-rounded" id="ctxToggleIcon">pause</i>
+            <span id="ctxToggleText">Pausar VM</span>
+        </button>
+        <button class="btn btn-link w-100" id="ctxVNCButton">
+            <i class="material-symbols-rounded">terminal</i>
+            <span>Abrir Consola VNC</span>
+        </button>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script type="text/javascript" src="../static/js/core/popper.min.js"></script>
+<script type="text/javascript" src="../static/js/core/bootstrap.min.js"></script>
+
+<!-- Topology Creator JS -->
+<script type="text/javascript" th:src="@{/slice/vis/vis-network.js}"></script>
+<script type="module" th:src="@{/slice/slice-view/view.js}"></script>
+<!-- Data de la Slice -->
+<div id="slice-data" th:data-slice-id="${sliceId}" style="display: none;"></div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Referencias de elementos DOM
+        const sidebar = document.querySelector('.sidebar');
+        const mainContent = document.querySelector('.main-content');
+        const sidebarToggle = document.querySelector('.sidebar-toggle');
+        const menuToggle = document.querySelector('.menu-toggle');
+        const pageTitle = document.querySelector('.page-title');
+        const sectionLinks = document.querySelectorAll('.sidebar-menu a[data-section]');
+        const modal = document.getElementById('createSliceModal');
+        const btnCreateSlice = document.getElementById('btnCreateSlice');
+        const modalClose = document.querySelector('.modal-close');
+        const cancelSlice = document.getElementById('cancelSlice');
+        const saveSlice = document.getElementById('saveSlice');
+        const cardTabs = document.querySelectorAll('.card-tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const searchInputs = document.querySelectorAll('input[id^="search-"]');
+
+        // Ocultar sidebar
+        function toggleSidebar() {
+            sidebar.classList.toggle('hidden');
+            mainContent.classList.toggle('full-width');
+        }
+
+        sidebarToggle.addEventListener('click', toggleSidebar);
+        menuToggle.addEventListener('click', toggleSidebar);
+    });
+</script>
+</body>
+</html>

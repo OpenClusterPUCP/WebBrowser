@@ -36,9 +36,9 @@
             </a>
         </li>
         <li>
-            <a th:href="@{/Admin/availability-zones}" th:classappend="${activeMenu == 'availability' ? 'active' : ''}" data-section="users">
-                <i class="fas fa-users"></i>
-                <span>Usuarios</span>
+            <a th:href="@{/Admin/availability-zones}" th:classappend="${activeMenu == 'availability' ? 'active' : ''}" data-section="zones">
+                <i class="fas fa-network-wired"></i>
+                <span>Zonas</span>
             </a>
         </li>
     </ul>
@@ -58,7 +58,7 @@
             </a>
         </li>
         <li>
-            <a th:href="@{/Admin/sketch}" th:classappend="${activeMenu == 'sketch' ? 'active' : ''}" data-section="sketch">
+            <a th:href="@{/User/sketch}" th:classappend="${activeMenu == 'sketch' ? 'active' : ''}" data-section="sketch">
                 <i class="fas fa-pencil-alt"></i>
                 <span>Sketch</span>
             </a>
