@@ -194,26 +194,26 @@
                 </div>
             </div>
 
-            <!-- Zonas de disponibilidad -->
             <div class="row zone-cards">
-                <!-- Zona 1 -->
-                <div class="col-md-6 col-xl-4 mb-4">
+                <div class="col-md-6 col-xl-4 mb-4" th:each="zone : ${zones}">
                     <div class="card zone-card">
                         <div class="card-body">
                             <div class="zone-header">
                                 <div class="zone-title-container">
-                                    <h4 class="zone-title">Zona A</h4>
+                                    <h4 class="zone-title" th:text="${zone.name}">Nombre zona</h4>
                                     <span class="zone-status online">En línea</span>
                                 </div>
                                 <div class="zone-actions">
-                                    <a th:href="@{/Admin/availability-zones/1}" class="btn btn-sm btn-icon" title="Ver detalles">
+                                    <a th:href="@{/Admin/availability-zones/{id}(id=${zone.id})}" class="btn btn-sm btn-icon" title="Ver detalles">
                                         <i class="fas fa-expand-arrows-alt"></i>
                                     </a>
                                 </div>
                             </div>
                             <div class="zone-description">
-                                <p>Zona principal de producción con alta disponibilidad.</p>
+                                <p th:text="${zone.description}">Descripción de la zona</p>
                             </div>
+
+                            <!-- Datos simulados/hardcodeados mientras no se tenga back completo -->
                             <div class="zone-stats">
                                 <div class="stat-item">
                                     <span class="stat-label">Servidores:</span>
@@ -228,6 +228,7 @@
                                     <span class="stat-value">4</span>
                                 </div>
                             </div>
+
                             <div class="zone-resources">
                                 <div class="resource-item">
                                     <div class="resource-header">
@@ -243,6 +244,7 @@
                                         <span class="actual">8 en uso</span>
                                     </div>
                                 </div>
+
                                 <div class="resource-item">
                                     <div class="resource-header">
                                         <span class="resource-label">RAM</span>
@@ -257,6 +259,7 @@
                                         <span class="actual">28 GB en uso</span>
                                     </div>
                                 </div>
+
                                 <div class="resource-item">
                                     <div class="resource-header">
                                         <span class="resource-label">Almacenamiento</span>
@@ -274,183 +277,21 @@
                             </div>
                         </div>
                         <div class="card-footer">
-                            <a th:href="@{/Admin/availability-zones/1}" class="btn btn-sm btn-outline details-btn">
-                                <i class="fas fa-info-circle me-1"></i> Ver detalles
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Zona 2 -->
-                <div class="col-md-6 col-xl-4 mb-4">
-                    <div class="card zone-card">
-                        <div class="card-body">
-                            <div class="zone-header">
-                                <div class="zone-title-container">
-                                    <h4 class="zone-title">Zona B</h4>
-                                    <span class="zone-status warning">Advertencia</span>
-                                </div>
-                                <div class="zone-actions">
-                                    <a th:href="@{/Admin/availability-zones/2}" class="btn btn-sm btn-icon" title="Ver detalles">
-                                        <i class="fas fa-expand-arrows-alt"></i>
-                                    </a>
-                                </div>
-                            </div>
-                            <div class="zone-description">
-                                <p>Zona secundaria para desarrollo y pruebas.</p>
-                            </div>
-                            <div class="zone-stats">
-                                <div class="stat-item">
-                                    <span class="stat-label">Servidores:</span>
-                                    <span class="stat-value">3</span>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="stat-label">VMs activas:</span>
-                                    <span class="stat-value">8</span>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="stat-label">Slices:</span>
-                                    <span class="stat-value">2</span>
-                                </div>
-                            </div>
-                            <div class="zone-resources">
-                                <div class="resource-item">
-                                    <div class="resource-header">
-                                        <span class="resource-label">CPU</span>
-                                        <span class="resource-value">16 vCPU</span>
-                                    </div>
-                                    <div class="progress">
-                                        <div class="progress-bar bg-warning" role="progressbar" style="width: 85%;" aria-valuenow="85" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                    <div class="resource-details">
-                                        <span class="physical">12 físicos</span>
-                                        <span class="usage">28 asignados</span>
-                                        <span class="actual">10 en uso</span>
-                                    </div>
-                                </div>
-                                <div class="resource-item">
-                                    <div class="resource-header">
-                                        <span class="resource-label">RAM</span>
-                                        <span class="resource-value">48 GB</span>
-                                    </div>
-                                    <div class="progress">
-                                        <div class="progress-bar" role="progressbar" style="width: 55%;" aria-valuenow="55" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                    <div class="resource-details">
-                                        <span class="physical">32 GB físicos</span>
-                                        <span class="usage">52 GB asignados</span>
-                                        <span class="actual">18 GB en uso</span>
-                                    </div>
-                                </div>
-                                <div class="resource-item">
-                                    <div class="resource-header">
-                                        <span class="resource-label">Almacenamiento</span>
-                                        <span class="resource-value">600 GB</span>
-                                    </div>
-                                    <div class="progress">
-                                        <div class="progress-bar" role="progressbar" style="width: 45%;" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                    <div class="resource-details">
-                                        <span class="physical">500 GB físicos</span>
-                                        <span class="usage">620 GB asignados</span>
-                                        <span class="actual">225 GB en uso</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card-footer">
-                            <a th:href="@{/Admin/availability-zones/2}" class="btn btn-sm btn-outline details-btn">
-                                <i class="fas fa-info-circle me-1"></i> Ver detalles
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Zona 3 -->
-                <div class="col-md-6 col-xl-4 mb-4">
-                    <div class="card zone-card">
-                        <div class="card-body">
-                            <div class="zone-header">
-                                <div class="zone-title-container">
-                                    <h4 class="zone-title">Zona C</h4>
-                                    <span class="zone-status online">En línea</span>
-                                </div>
-                                <div class="zone-actions">
-                                    <a th:href="@{/Admin/availability-zones/3}" class="btn btn-sm btn-icon" title="Ver detalles">
-                                        <i class="fas fa-expand-arrows-alt"></i>
-                                    </a>
-                                </div>
-                            </div>
-                            <div class="zone-description">
-                                <p>Zona para investigación y nuevos desarrollos.</p>
-                            </div>
-                            <div class="zone-stats">
-                                <div class="stat-item">
-                                    <span class="stat-label">Servidores:</span>
-                                    <span class="stat-value">2</span>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="stat-label">VMs activas:</span>
-                                    <span class="stat-value">5</span>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="stat-label">Slices:</span>
-                                    <span class="stat-value">2</span>
-                                </div>
-                            </div>
-                            <div class="zone-resources">
-                                <div class="resource-item">
-                                    <div class="resource-header">
-                                        <span class="resource-label">CPU</span>
-                                        <span class="resource-value">8 vCPU</span>
-                                    </div>
-                                    <div class="progress">
-                                        <div class="progress-bar" role="progressbar" style="width: 40%;" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                    <div class="resource-details">
-                                        <span class="physical">8 físicos</span>
-                                        <span class="usage">16 asignados</span>
-                                        <span class="actual">3 en uso</span>
-                                    </div>
-                                </div>
-                                <div class="resource-item">
-                                    <div class="resource-header">
-                                        <span class="resource-label">RAM</span>
-                                        <span class="resource-value">32 GB</span>
-                                    </div>
-                                    <div class="progress">
-                                        <div class="progress-bar" role="progressbar" style="width: 30%;" aria-valuenow="30" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                    <div class="resource-details">
-                                        <span class="physical">24 GB físicos</span>
-                                        <span class="usage">40 GB asignados</span>
-                                        <span class="actual">12 GB en uso</span>
-                                    </div>
-                                </div>
-                                <div class="resource-item">
-                                    <div class="resource-header">
-                                        <span class="resource-label">Almacenamiento</span>
-                                        <span class="resource-value">400 GB</span>
-                                    </div>
-                                    <div class="progress">
-                                        <div class="progress-bar" role="progressbar" style="width: 25%;" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                    <div class="resource-details">
-                                        <span class="physical">300 GB físicos</span>
-                                        <span class="usage">400 GB asignados</span>
-                                        <span class="actual">100 GB en uso</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card-footer">
-                            <a th:href="@{/Admin/availability-zones/3}" class="btn btn-sm btn-outline details-btn">
+                            <a th:href="@{/Admin/availability-zones/{id}(id=${zone.id})}" class="btn btn-sm btn-outline details-btn">
                                 <i class="fas fa-info-circle me-1"></i> Ver detalles
                             </a>
                         </div>
                     </div>
                 </div>
             </div>
+
+
+
+
+
+
+
+
         </section>
 
         <!-- Footer -->
