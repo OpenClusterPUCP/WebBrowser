@@ -3,6 +3,7 @@ package org.example.proyectocloud.Service.Admin;
 import lombok.Value;
 import org.example.proyectocloud.DTO.Admin.Zones.GlobalResourceStatsDTO;
 import org.example.proyectocloud.DTO.Admin.Zones.ZoneDTO;
+import org.example.proyectocloud.DTO.Admin.Zones.ZoneDetailDTO;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -62,6 +63,25 @@ public class ZoneService {
                 totalServers
         );
     }
+
+    public ZoneDetailDTO getZoneDetailById(Integer id, String token) {
+        String url = API_GATEWAY_URL + "/api/admin/zones/zone_service/" + id;
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<ZoneDetailDTO> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                entity,
+                ZoneDetailDTO.class
+        );
+
+        return response.getBody();
+    }
+
+
 
 
 

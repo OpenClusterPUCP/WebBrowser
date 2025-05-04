@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.proyectocloud.Bean.UserInfo;
 import org.example.proyectocloud.DTO.Admin.Zones.GlobalResourceStatsDTO;
 import org.example.proyectocloud.DTO.Admin.Zones.ZoneDTO;
+import org.example.proyectocloud.DTO.Admin.Zones.ZoneDetailDTO;
 import org.example.proyectocloud.Service.Admin.ZoneService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -60,6 +61,17 @@ public class AdminAvailabilityZonesController {
     @GetMapping("/{id}")
     public String verDetalleZona(@PathVariable Integer id, Model model, HttpSession session) {
         // Lógica para cargar datos de la zona
+        UserInfo userInfo = (UserInfo) session.getAttribute("userInfo");
+        if (userInfo == null || userInfo.getJwt() == null) {
+            log.warn("No hay token disponible en sesión, redirigiendo al login");
+            return "redirect:/login";
+        }
+
+        ZoneDetailDTO detail = zoneService.getZoneDetailById(id, userInfo.getJwt());
+        model.addAttribute("zone", detail);
+        model.addAttribute("serversData", detail.getServers());
+        model.addAttribute("slicesData", detail.getSlices());
+
         return "/AdminPages/AvailabilityZoneDetail";
     }
 
