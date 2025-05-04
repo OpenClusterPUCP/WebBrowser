@@ -3,6 +3,7 @@ package org.example.proyectocloud.Controller.Admin;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.example.proyectocloud.Bean.UserInfo;
+import org.example.proyectocloud.DTO.Admin.Zones.GlobalResourceStatsDTO;
 import org.example.proyectocloud.DTO.Admin.Zones.ZoneDTO;
 import org.example.proyectocloud.Service.Admin.ZoneService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,8 +46,12 @@ public class AdminAvailabilityZonesController {
         }
 
         List<ZoneDTO> zones = zoneService.getAllZones(userInfo.getJwt());
+        System.out.println(zones.size());
+        GlobalResourceStatsDTO stats = zoneService.getGlobalStats(userInfo.getJwt());
         model.addAttribute("zones", zones);
         model.addAttribute("activeMenu", "zones");
+        model.addAttribute("globalStats", stats);
+        System.out.println(stats.getTotalCpu());
 
         return "/AdminPages/AvailabilityZones";
     }

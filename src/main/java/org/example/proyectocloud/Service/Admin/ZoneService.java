@@ -1,6 +1,7 @@
 package org.example.proyectocloud.Service.Admin;
 
 import lombok.Value;
+import org.example.proyectocloud.DTO.Admin.Zones.GlobalResourceStatsDTO;
 import org.example.proyectocloud.DTO.Admin.Zones.ZoneDTO;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -39,5 +40,31 @@ public class ZoneService {
 
         return Arrays.asList(response.getBody());
     }
+
+    public GlobalResourceStatsDTO getGlobalStats(String token) {
+        List<ZoneDTO> zones = getAllZones(token); // Usar el token correctamente
+
+        int totalCpu = zones.stream().mapToInt(ZoneDTO::getTotalVcpu).sum();
+        int usedCpu = zones.stream().mapToInt(ZoneDTO::getUsedVcpu).sum();
+
+        int totalRam = zones.stream().mapToInt(ZoneDTO::getTotalRam).sum();
+        int usedRam = zones.stream().mapToInt(ZoneDTO::getUsedRam).sum();
+
+        int totalDisk = zones.stream().mapToInt(ZoneDTO::getTotalDisk).sum();
+        int usedDisk = zones.stream().mapToInt(ZoneDTO::getUsedDisk).sum();
+
+        int totalServers = zones.stream().mapToInt(ZoneDTO::getServerCount).sum();
+
+        return new GlobalResourceStatsDTO(
+                totalCpu, usedCpu,
+                totalRam, usedRam,
+                totalDisk, usedDisk,
+                totalServers
+        );
+    }
+
+
+
+
 
 }
