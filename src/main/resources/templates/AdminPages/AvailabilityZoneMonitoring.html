@@ -127,10 +127,10 @@
             <!-- Navegación entre dashboards -->
             <div class="dashboard-nav">
                 <div class="dashboard-nav-item active" data-target="overview">Resumen</div>
-                <div class="dashboard-nav-item" data-target="resources">Recursos</div>
-                <div class="dashboard-nav-item" data-target="network">Red</div>
-                <div class="dashboard-nav-item" data-target="vms">Máquinas Virtuales</div>
-                <div class="dashboard-nav-item" data-target="servers">Servidores Físicos</div>
+                <div class="dashboard-nav-item" data-target="resources">CPU</div>
+                <div class="dashboard-nav-item" data-target="network">Memoria RAM</div>
+                <div class="dashboard-nav-item" data-target="vms">Disco</div>
+                <div class="dashboard-nav-item" data-target="servers">Tráfico de Red</div>
                 <div class="dashboard-nav-item" data-target="logs">Registros</div>
                 <div class="dashboard-nav-item" data-target="alerts">Alertas</div>
             </div>
@@ -150,15 +150,24 @@
                     </div>
                     <div class="card-body p-0">
                         <!-- Iframe de Grafana con panel de resumen -->
-                        <div class="grafana-container">
-                            <iframe
-                                    src="http://grafana:3000/d/zone_overview?orgId=1&amp;refresh=30s&amp;var-zone=zone_a&amp;from=now-24h&amp;to=now&amp;theme=dark&amp;kiosk"
-                                    class="grafana-iframe"
-                                    title="Panel de resumen"
-                                    id="overviewFrame"
-                                    allowfullscreen>
-                            </iframe>
+                        <!-- Iframes dinámicos por servidor -->
+                        <div class="row">
+                            <div th:each="server : ${resumenList}" class="col-12 mb-5">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="card-title" th:text="'Servidor: ' + ${server.ip}"></h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-4 mb-3" th:each="panel : ${server.panelIframes}">
+                                                <iframe th:src="${panel.value}" width="100%" height="200" frameborder="0"></iframe>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+
                     </div>
                 </div>
             </div>
@@ -190,11 +199,11 @@
                     </div>
                 </div>
 
-                <!-- Panel adicional para sobreaprovisionamiento -->
+                <!-- Panel adicional para CPU -->
                 <div class="card mb-4">
                     <div class="card-header">
                         <h3 class="card-title">
-                            <i class="fas fa-balance-scale me-2"></i>Métricas de sobreaprovisionamiento
+                            <i class="fas fa-balance-scale me-2"></i>Tiempo en CPU
                         </h3>
                         <div class="card-actions">
                             <a href="#" class="btn btn-sm btn-outline" id="expandOverprovision" title="Expandir">
@@ -203,7 +212,7 @@
                         </div>
                     </div>
                     <div class="card-body p-0">
-                        <!-- Iframe de Grafana con panel de sobreaprovisionamiento -->
+                        <!-- Iframe de Grafana con panel para CPU -->
                         <div class="grafana-container">
                             <iframe
                                     src="http://grafana:3000/d/zone_overprovision?orgId=1&amp;refresh=30s&amp;var-zone=zone_a&amp;from=now-24h&amp;to=now&amp;theme=dark&amp;kiosk"
@@ -217,12 +226,12 @@
                 </div>
             </div>
 
-            <!-- Sección de dashboard de red -->
+            <!-- Sección de dashboard de Memoria RAM -->
             <div id="network" class="dashboard-section">
                 <div class="card mb-4">
                     <div class="card-header">
                         <h3 class="card-title">
-                            <i class="fas fa-network-wired me-2"></i>Monitoreo de red
+                            <i class="fas fa-network-wired me-2"></i>Memoria RAM
                         </h3>
                         <div class="card-actions">
                             <a href="#" class="btn btn-sm btn-outline" id="expandNetwork" title="Expandir">
@@ -245,12 +254,12 @@
                 </div>
             </div>
 
-            <!-- Sección de dashboard de VMs -->
+            <!-- Sección de dashboard de Disco -->
             <div id="vms" class="dashboard-section">
                 <div class="card mb-4">
                     <div class="card-header">
                         <h3 class="card-title">
-                            <i class="fas fa-laptop-code me-2"></i>Rendimiento de Máquinas Virtuales
+                            <i class="fas fa-laptop-code me-2"></i>Disco
                         </h3>
                         <div class="card-actions">
                             <a href="#" class="btn btn-sm btn-outline" id="expandVMs" title="Expandir">
@@ -273,12 +282,12 @@
                 </div>
             </div>
 
-            <!-- Sección de dashboard de servidores físicos -->
+            <!-- Sección de dashboard de Tráfico de red -->
             <div id="servers" class="dashboard-section">
                 <div class="card mb-4">
                     <div class="card-header">
                         <h3 class="card-title">
-                            <i class="fas fa-server me-2"></i>Servidores Físicos
+                            <i class="fas fa-server me-2"></i>Tráfico de red
                         </h3>
                         <div class="card-actions">
                             <div class="input-group input-group-sm" style="width: 200px;">

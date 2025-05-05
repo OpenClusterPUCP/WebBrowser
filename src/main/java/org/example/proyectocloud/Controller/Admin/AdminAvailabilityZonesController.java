@@ -3,6 +3,7 @@ package org.example.proyectocloud.Controller.Admin;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.example.proyectocloud.Bean.UserInfo;
+import org.example.proyectocloud.DTO.Admin.ServerDashboard;
 import org.example.proyectocloud.DTO.Admin.Zones.GlobalResourceStatsDTO;
 import org.example.proyectocloud.DTO.Admin.Zones.ZoneDTO;
 import org.example.proyectocloud.DTO.Admin.Zones.ZoneDetailDTO;
@@ -14,7 +15,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Controlador para las vistas relacionadas con la gestión de zonas de disponibilidad.
@@ -77,7 +81,44 @@ public class AdminAvailabilityZonesController {
 
     @GetMapping("/{id}/monitoring")
     public String verMonitoreoZona(@PathVariable Integer id, Model model, HttpSession session) {
-        // Lógica para cargar datos de monitoreo
+        List<String> ips = List.of("10.0.10.1", "10.0.10.2", "10.0.10.3", "10.0.10.4");
+        Map<String, Integer> panelIds = new HashMap<>();
+        panelIds.put("pressure", 323);
+        panelIds.put("cpuBusy", 20);
+        panelIds.put("sysLoad", 155);
+        panelIds.put("ramUsed", 16);
+        panelIds.put("rootFsUsed", 154);
+        panelIds.put("cpuCores", 14);
+        panelIds.put("uptime", 15);
+        panelIds.put("rootFsTotal", 23);
+        panelIds.put("ramTotal", 75);
+
+
+        String now = "now";
+        String from = "now-24h"; // Últimas 24 horas
+
+        List<ServerDashboard> resumenList = new ArrayList<>();
+
+        for (String ip : ips) {
+            Map<String, String> panelUrls = new HashMap<>();
+            for (Map.Entry<String, Integer> entry : panelIds.entrySet()) {
+                String key = entry.getKey();
+                Integer panelId = entry.getValue();
+                String iframe = String.format(
+                        "http://localhost:3000/d-solo/rYdddlPWk/dashboard-vnrt-servers?" +
+                                "orgId=1&from=%s&to=%s&timezone=browser&var-datasource=default" +
+                                "&var-job=vnrt-servers&var-nodename=server1&var-node=%s:9100" +
+                                "&refresh=1m&panelId=%d&__feature.dashboardSceneSolo",
+                        from, now, ip, panelId
+                );
+                panelUrls.put(key, iframe);
+            }
+            resumenList.add(new ServerDashboard(ip, panelUrls));
+        }
+
+        model.addAttribute("resumenList", resumenList);
+
+
         return "/AdminPages/AvailabilityZoneMonitoring";
     }
 
