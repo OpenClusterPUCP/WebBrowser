@@ -83,7 +83,31 @@
                         <div class="col-lg-2"></div>
                         <div class="col-lg-5">
                             <h4 class="mb-3">Descripción</h4>
-                            <p class="mb-4" th:text="${zone != null} ? ${zone.description} : 'Zona principal de producción con alta disponibilidad.'">Zona principal de producción con alta disponibilidad.</p>
+                            <p class="mb-4">Zona principal de producción con alta disponibilidad.</p>
+
+                            <!-- Tarjeta de advertencia dinámica -->
+                            <div class="alert alert-danger" role="alert" style="font-size: 0.9rem;">
+                                <strong>Advertencia:</strong> Para visualizar el monitoreo de esta zona correctamente, asegúrese de tener configurado el <strong>port forwarding</strong> desde su máquina.<br>
+                                <span th:switch="${zone.id}">
+                                    <span th:case="1">
+                                        Ejemplo: <code>ssh -L 3000:localhost:3000 usuario@10.20.12.156 -p 5801</code>
+                                    </span>
+                                    <span th:case="2">
+                                        Ejemplo: <code>ssh -L 3001:localhost:3000 usuario@10.20.12.127 -p 5801</code>
+                                    </span>
+                                    <span th:case="3">
+                                        Ejemplo: <code>ssh -L 3002:localhost:3000 usuario@10.20.12.137 -p 5801</code>
+                                    </span>
+                                    <span th:case="4">
+                                        Ejemplo: <code>ssh -L 3003:localhost:3000 usuario@10.20.12.215 -p 5801</code>
+                                    </span>
+                                    <span th:case="*">
+                                        No se ha encontrado una configuración de port forwarding para esta zona.
+                                    </span>
+                                </span>
+                            </div>
+
+
                         </div>
 
                     </div>
