@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenCluster - Perfil de Administrador</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" th:href="@{/css/admin-styles.css}">
+</head>
+<body>
+<div class="app-container">
+  <!-- Sidebar -->
+  <div th:replace="~{Fragments/Admin/sidebar :: sidebar('profile')}"></div>
+
+  <!-- Contenido principal -->
+  <main class="main-content">
+    <!-- Header -->
+    <div th:replace="~{Fragments/Admin/header :: header(title='Mi Perfil')}"></div>
+
+    <section class="page-content">
+      <div class="content-header">
+        <h2 class="content-title">Información de Perfil</h2>
+        <div class="header-actions">
+          <button class="btn btn-primary" id="btnEditProfile">
+            <i class="fas fa-edit"></i>
+            <span class="btn-text">Editar Perfil</span>
+          </button>
+          <button class="btn btn-outline-danger" id="btnChangePassword">
+            <i class="fas fa-key"></i>
+            <span class="btn-text">Cambiar Contraseña</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mensajes de alerta -->
+      <div id="alertContainer" class="alert-container" style="display: none;">
+        <div id="alertMessage" class="alert"></div>
+      </div>
+
+      <div class="row">
+        <!-- Tarjeta de información personal -->
+        <div class="col-md-8">
+          <div class="card mb-4">
+            <div class="card-body">
+              <div class="profile-header">
+                <div class="profile-avatar">
+                  <i class="fas fa-user-circle fa-6x"></i>
+                </div>
+                <div class="profile-info">
+                  <h3 th:text="${user != null ? user.name + ' ' + user.lastname : 'Administrador'}">Administrador</h3>
+                  <p class="text-muted" th:text="${user != null ? 'Código: ' + user.code : 'Código: ADMIN'}">Código: ADMIN</p>
+                  <span class="badge bg-primary" >Administrador</span>
+                </div>
+              </div>
+
+              <hr class="my-4">
+
+              <div class="profile-details">
+                <div class="detail-item">
+                  <div class="detail-label"><i class="fas fa-envelope me-2"></i>Correo Electrónico:</div>
+                  <div class="detail-value" th:text="${user != null ? user.username : 'admin@pucp.edu.pe'}">admin@pucp.edu.pe</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label"><i class="fas fa-id-card me-2"></i>Nombre Completo:</div>
+                  <div class="detail-value" th:text="${user != null ? user.name + ' ' + user.lastname : 'Administrador Principal'}">Administrador Principal</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label"><i class="fas fa-list-ol me-2"></i>Código:</div>
+                  <div class="detail-value" th:text="${user != null ? user.code : 'ADMIN001'}">ADMIN001</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label"><i class="fas fa-user-shield me-2"></i>Rol:</div>
+                  <div class="detail-value" th:text="${user != null ? user.role == 2 ? 'Administrador' : 'Usuario' : 'Administrador'}">Administrador</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label"><i class="fas fa-clock me-2"></i>Último Acceso:</div>
+                  <div class="detail-value" th:text="${user != null && user.last_login != null ? user.last_login: 'No disponible'}">06/05/2025 16:54</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label"><i class="fas fa-calendar-alt me-2"></i>Fecha de Creación:</div>
+                  <div class="detail-value" th:text="${user != null && user.created_at != null ? user.created_at : 'No disponible'}">01/05/2025</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tarjeta de estadísticas y actividad -->
+        <div class="col-md-4">
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="card-title"><i class="fas fa-chart-line me-2"></i>Actividad Reciente</h5>
+            </div>
+            <div class="card-body">
+              <div class="activity-stats">
+                <div class="stat-item">
+                  <div class="stat-icon bg-primary">
+                    <i class="fas fa-server"></i>
+                  </div>
+                  <div class="stat-info">
+                    <h6>Slices Administrados</h6>
+                    <p class="stat-value">12</p>
+                  </div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-icon bg-success">
+                    <i class="fas fa-users"></i>
+                  </div>
+                  <div class="stat-info">
+                    <h6>Usuarios Gestionados</h6>
+                    <p class="stat-value">24</p>
+                  </div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-icon bg-info">
+                    <i class="fas fa-desktop"></i>
+                  </div>
+                  <div class="stat-info">
+                    <h6>VMs Creadas</h6>
+                    <p class="stat-value">56</p>
+                  </div>
+                </div>
+              </div>
+
+              <hr class="my-3">
+
+              <h6 class="text-muted">Últimas Acciones</h6>
+              <div class="recent-activities">
+                <div class="activity-item">
+                  <div class="activity-icon bg-warning">
+                    <i class="fas fa-plus"></i>
+                  </div>
+                  <div class="activity-details">
+                    <p>Creación de nuevo Slice</p>
+                    <small class="text-muted">Hace 2 horas</small>
+                  </div>
+                </div>
+                <div class="activity-item">
+                  <div class="activity-icon bg-primary">
+                    <i class="fas fa-user-plus"></i>
+                  </div>
+                  <div class="activity-details">
+                    <p>Usuario añadido al sistema</p>
+                    <small class="text-muted">Ayer</small>
+                  </div>
+                </div>
+                <div class="activity-item">
+                  <div class="activity-icon bg-success">
+                    <i class="fas fa-cog"></i>
+                  </div>
+                  <div class="activity-details">
+                    <p>Configuración de recursos</p>
+                    <small class="text-muted">Hace 3 días</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title"><i class="fas fa-shield-alt me-2"></i>Seguridad</h5>
+            </div>
+            <div class="card-body">
+              <div class="security-item">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6>Contraseña</h6>
+                    <p class="text-muted">Última actualización: Hace 30 días</p>
+                  </div>
+                  <button class="btn btn-sm btn-outline-primary" id="btnChangePasswordAlt">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="security-item">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6>Sesiones Activas</h6>
+                    <p class="text-muted">1 sesión activa</p>
+                  </div>
+                  <button class="btn btn-sm btn-outline-warning">
+                    <i class="fas fa-sign-out-alt"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <div th:replace="~{Fragments/Admin/footer :: footer}"></div>
+  </main>
+</div>
+
+<!-- Modal para editar perfil -->
+<div class="modal" id="editProfileModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">Editar Perfil</h3>
+      <button class="modal-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="profileForm">
+        <div class="form-group">
+          <label class="form-label" for="profileName">Nombre</label>
+          <input type="text" id="profileName" name="name" class="form-control" placeholder="Ingrese su nombre"
+                 th:value="${user != null ? user.name : ''}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="profileLastName">Apellido</label>
+          <input type="text" id="profileLastName" name="lastname" class="form-control" placeholder="Ingrese su apellido"
+                 th:value="${user != null ? user.lastname : ''}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="profileUsername">Correo electrónico</label>
+          <input type="email" id="profileUsername" name="username" class="form-control" placeholder="Ingrese su correo"
+                 th:value="${user != null ? user.username : ''}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="profileCode">Código</label>
+          <input type="text" id="profileCode" name="code" class="form-control" placeholder="Ingrese su código"
+                 th:value="${user != null ? user.code : ''}" readonly>
+          <small class="text-muted">El código no puede ser modificado</small>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="cancelProfileEdit">Cancelar</button>
+      <button class="btn btn-primary" id="saveProfileEdit">Guardar Cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para cambiar contraseña -->
+<div class="modal" id="changePasswordModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">Cambiar Contraseña</h3>
+      <button class="modal-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="passwordForm">
+        <div class="form-group">
+          <label class="form-label" for="currentPassword">Contraseña Actual</label>
+          <div class="password-input-group">
+            <input type="password" id="currentPassword" name="currentPassword" class="form-control" placeholder="Ingrese su contraseña actual" required>
+            <button type="button" class="password-toggle" data-target="currentPassword">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="newPassword">Nueva Contraseña</label>
+          <div class="password-input-group">
+            <input type="password" id="newPassword" name="newPassword" class="form-control" placeholder="Ingrese su nueva contraseña" required>
+            <button type="button" class="password-toggle" data-target="newPassword">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+          <div class="password-strength-meter mt-2">
+            <div class="meter-bar">
+              <div class="meter-fill" id="passwordStrength"></div>
+            </div>
+            <small class="password-strength-text" id="passwordStrengthText">Fuerza de contraseña</small>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="confirmPassword">Confirmar Nueva Contraseña</label>
+          <div class="password-input-group">
+            <input type="password" id="confirmPassword" name="confirmPassword" class="form-control" placeholder="Confirme su nueva contraseña" required>
+            <button type="button" class="password-toggle" data-target="confirmPassword">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+          <div id="passwordMatch" class="mt-1"></div>
+        </div>
+        <div class="password-requirements mt-3">
+          <p><strong>Requisitos de contraseña:</strong></p>
+          <ul>
+            <li id="req-length"><i class="fas fa-times-circle"></i> Mínimo 8 caracteres</li>
+            <li id="req-uppercase"><i class="fas fa-times-circle"></i> Al menos una letra mayúscula</li>
+            <li id="req-lowercase"><i class="fas fa-times-circle"></i> Al menos una letra minúscula</li>
+            <li id="req-number"><i class="fas fa-times-circle"></i> Al menos un número</li>
+            <li id="req-special"><i class="fas fa-times-circle"></i> Al menos un carácter especial</li>
+          </ul>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="cancelPasswordChange">Cancelar</button>
+      <button class="btn btn-primary" id="savePasswordChange">Cambiar Contraseña</button>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script th:src="@{/js/admin/admin-profile.js}"></script>
+</body>
+</html>
