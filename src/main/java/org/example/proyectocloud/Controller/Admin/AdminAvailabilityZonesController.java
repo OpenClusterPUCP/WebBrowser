@@ -5,8 +5,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.proyectocloud.Bean.UserInfo;
 import org.example.proyectocloud.DTO.Admin.ServerDashboard;
 import org.example.proyectocloud.DTO.Admin.Zones.GlobalResourceStatsDTO;
+import org.example.proyectocloud.DTO.Admin.Zones.ServerInfoDTO;
 import org.example.proyectocloud.DTO.Admin.Zones.ZoneDTO;
 import org.example.proyectocloud.DTO.Admin.Zones.ZoneDetailDTO;
+import org.example.proyectocloud.Service.Admin.PhysicalServerService;
 import org.example.proyectocloud.Service.Admin.ZoneService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -31,6 +33,9 @@ public class AdminAvailabilityZonesController {
 
     @Autowired
     private ZoneService zoneService;
+
+    @Autowired
+    private PhysicalServerService physicalServerService;
 
 
     /**
@@ -81,7 +86,33 @@ public class AdminAvailabilityZonesController {
 
     @GetMapping("/{id}/monitoring")
     public String verMonitoreoZona(@PathVariable Integer id, Model model, HttpSession session) {
-        List<String> ips = List.of("10.0.10.1", "10.0.10.2", "10.0.10.3", "10.0.10.4");
+
+        UserInfo userInfo = (UserInfo) session.getAttribute("userInfo");
+
+        //En base al id de la zona de disponibilidad consultamos a api gateway
+        List<ServerInfoDTO> servers = physicalServerService.getServersByZone(id, userInfo.getJwt());
+
+        List<String> ips = servers.stream()
+                .map(ServerInfoDTO::getIp)
+                .toList();
+
+        String port = ""; // Inicializamos port de su máquina al que enlazaremos con el puerto 3000 de Grafana, esto permitirá monitorear varios a la vez
+        String jobName = ""; // Inicializamos job
+        if(id == 1){ // Zona de disponibilidad de Gabriel
+            port = "3000";
+            jobName = "vnrt-servers-gabriel";
+        } else if (id == 2) { // Zona de disponibilidad de Sergio
+            port = "3001";
+            jobName = "vnrt-servers";
+        } else if (id == 3) { // Zona de disponibilidad de Hineill
+            port = "3002";
+            jobName = "vnrt-servers-hineill";
+        } else if (id == 4) { // Zona de disponibilidad de Denilson
+            port = "3003";
+            jobName = "prometheus";
+        }else{
+            // No se encuentra el ID, debería redirigirlo o salir la pantalla de no se encontró
+        }
 
         // Paneles usados para resumen general
         Map<String, Integer> panelIds = new HashMap<>();
@@ -105,11 +136,11 @@ public class AdminAvailabilityZonesController {
         String from = "now-24h"; // Últimas 24 horas
 
         // Construcción de listas por categoría
-        List<ServerDashboard> resumenList = buildPanelList(ips, panelIds, from, now);
-        List<ServerDashboard> cpuList = buildPanelList(ips, cpuPanels, from, now);
-        List<ServerDashboard> ramList = buildPanelList(ips, ramPanels, from, now);
-        List<ServerDashboard> diskList = buildPanelList(ips, diskPanels, from, now);
-        List<ServerDashboard> networkList = buildPanelList(ips, netPanels, from, now);
+        List<ServerDashboard> resumenList = buildPanelList(ips, panelIds, from, now, port, jobName);
+        List<ServerDashboard> cpuList = buildPanelList(ips, cpuPanels, from, now, port, jobName);
+        List<ServerDashboard> ramList = buildPanelList(ips, ramPanels, from, now, port, jobName);
+        List<ServerDashboard> diskList = buildPanelList(ips, diskPanels, from, now, port, jobName);
+        List<ServerDashboard> networkList = buildPanelList(ips, netPanels, from, now, port, jobName);
 
         // Enviar datos al modelo
         model.addAttribute("zoneId", id);
@@ -118,23 +149,24 @@ public class AdminAvailabilityZonesController {
         model.addAttribute("ramList", ramList);
         model.addAttribute("diskList", diskList);
         model.addAttribute("networkList", networkList);
+        model.addAttribute("port", port);
 
         return "/AdminPages/AvailabilityZoneMonitoring";
     }
 
     // Método auxiliar para generar los paneles de cada servidor
-    private List<ServerDashboard> buildPanelList(List<String> ips, Map<String, Integer> panelIds, String from, String to) {
+    private List<ServerDashboard> buildPanelList(List<String> ips, Map<String, Integer> panelIds, String from, String to, String port, String jobName) {
         List<ServerDashboard> result = new ArrayList<>();
 
         for (String ip : ips) {
             Map<String, String> iframes = new HashMap<>();
             for (Map.Entry<String, Integer> entry : panelIds.entrySet()) {
                 String iframe = String.format(
-                        "http://localhost:3000/d-solo/rYdddlPWk/dashboard-vnrt-servers?" +
+                        "http://localhost:%s/d-solo/rYdddlPWk/dashboard-vnrt-servers?" +
                                 "orgId=1&from=%s&to=%s&timezone=browser&var-datasource=default" +
-                                "&var-job=vnrt-servers&var-nodename=server1&var-node=%s:9100" +
+                                "&var-job=%s&var-nodename=server1&var-node=%s:9100" +
                                 "&var-diskdevices=[a-z]+|nvme[0-9]+n[0-9]+|mmcblk[0-9]+&refresh=1m&panelId=%d&theme=light&__feature.dashboardSceneSolo",
-                        from, to, ip, entry.getValue()
+                        port, from, to, jobName, ip, entry.getValue()
                 );
                 iframes.put(entry.getKey(), iframe);
             }
