@@ -82,6 +82,8 @@ public class AdminAvailabilityZonesController {
     @GetMapping("/{id}/monitoring")
     public String verMonitoreoZona(@PathVariable Integer id, Model model, HttpSession session) {
         List<String> ips = List.of("10.0.10.1", "10.0.10.2", "10.0.10.3", "10.0.10.4");
+
+        // Paneles usados para resumen general
         Map<String, Integer> panelIds = new HashMap<>();
         panelIds.put("pressure", 323);
         panelIds.put("cpuBusy", 20);
@@ -93,34 +95,56 @@ public class AdminAvailabilityZonesController {
         panelIds.put("rootFsTotal", 23);
         panelIds.put("ramTotal", 75);
 
+        // Paneles usados para cada categoría
+        Map<String, Integer> cpuPanels = Map.of("cpu", 3);
+        Map<String, Integer> ramPanels = Map.of("ram", 78);
+        Map<String, Integer> diskPanels = Map.of("disk", 152);
+        Map<String, Integer> netPanels = Map.of("net", 74);
 
         String now = "now";
         String from = "now-24h"; // Últimas 24 horas
 
-        List<ServerDashboard> resumenList = new ArrayList<>();
+        // Construcción de listas por categoría
+        List<ServerDashboard> resumenList = buildPanelList(ips, panelIds, from, now);
+        List<ServerDashboard> cpuList = buildPanelList(ips, cpuPanels, from, now);
+        List<ServerDashboard> ramList = buildPanelList(ips, ramPanels, from, now);
+        List<ServerDashboard> diskList = buildPanelList(ips, diskPanels, from, now);
+        List<ServerDashboard> networkList = buildPanelList(ips, netPanels, from, now);
+
+        // Enviar datos al modelo
+        model.addAttribute("zoneId", id);
+        model.addAttribute("resumenList", resumenList);
+        model.addAttribute("cpuList", cpuList);
+        model.addAttribute("ramList", ramList);
+        model.addAttribute("diskList", diskList);
+        model.addAttribute("networkList", networkList);
+
+        return "/AdminPages/AvailabilityZoneMonitoring";
+    }
+
+    // Método auxiliar para generar los paneles de cada servidor
+    private List<ServerDashboard> buildPanelList(List<String> ips, Map<String, Integer> panelIds, String from, String to) {
+        List<ServerDashboard> result = new ArrayList<>();
 
         for (String ip : ips) {
-            Map<String, String> panelUrls = new HashMap<>();
+            Map<String, String> iframes = new HashMap<>();
             for (Map.Entry<String, Integer> entry : panelIds.entrySet()) {
-                String key = entry.getKey();
-                Integer panelId = entry.getValue();
                 String iframe = String.format(
                         "http://localhost:3000/d-solo/rYdddlPWk/dashboard-vnrt-servers?" +
                                 "orgId=1&from=%s&to=%s&timezone=browser&var-datasource=default" +
                                 "&var-job=vnrt-servers&var-nodename=server1&var-node=%s:9100" +
-                                "&refresh=1m&panelId=%d&__feature.dashboardSceneSolo",
-                        from, now, ip, panelId
+                                "&var-diskdevices=[a-z]+|nvme[0-9]+n[0-9]+|mmcblk[0-9]+&refresh=1m&panelId=%d&theme=light&__feature.dashboardSceneSolo",
+                        from, to, ip, entry.getValue()
                 );
-                panelUrls.put(key, iframe);
+                iframes.put(entry.getKey(), iframe);
             }
-            resumenList.add(new ServerDashboard(ip, panelUrls));
+            result.add(new ServerDashboard(ip, iframes));
         }
 
-        model.addAttribute("resumenList", resumenList);
-
-
-        return "/AdminPages/AvailabilityZoneMonitoring";
+        return result;
     }
+
+
 
 
 }

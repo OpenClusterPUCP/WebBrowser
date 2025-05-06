@@ -174,6 +174,9 @@
 
             <!-- Sección de dashboard de recursos -->
             <div id="resources" class="dashboard-section">
+
+                <!--
+
                 <div class="card mb-4">
                     <div class="card-header">
                         <h3 class="card-title">
@@ -186,7 +189,7 @@
                         </div>
                     </div>
                     <div class="card-body p-0">
-                        <!-- Iframe de Grafana con panel de recursos -->
+
                         <div class="grafana-container">
                             <iframe
                                     src="http://grafana:3000/d/zone_resources?orgId=1&amp;refresh=30s&amp;var-zone=zone_a&amp;from=now-24h&amp;to=now&amp;theme=dark&amp;kiosk"
@@ -197,7 +200,7 @@
                             </iframe>
                         </div>
                     </div>
-                </div>
+                </div>-->
 
                 <!-- Panel adicional para CPU -->
                 <div class="card mb-4">
@@ -205,25 +208,30 @@
                         <h3 class="card-title">
                             <i class="fas fa-balance-scale me-2"></i>Tiempo en CPU
                         </h3>
-                        <div class="card-actions">
-                            <a href="#" class="btn btn-sm btn-outline" id="expandOverprovision" title="Expandir">
-                                <i class="fas fa-expand"></i>
-                            </a>
-                        </div>
                     </div>
                     <div class="card-body p-0">
-                        <!-- Iframe de Grafana con panel para CPU -->
-                        <div class="grafana-container">
-                            <iframe
-                                    src="http://grafana:3000/d/zone_overprovision?orgId=1&amp;refresh=30s&amp;var-zone=zone_a&amp;from=now-24h&amp;to=now&amp;theme=dark&amp;kiosk"
-                                    class="grafana-iframe"
-                                    title="Métricas de sobreaprovisionamiento"
-                                    id="overprovisionFrame"
-                                    allowfullscreen>
-                            </iframe>
+                        <div class="row">
+                            <div th:each="server : ${cpuList}" class="col-12 mb-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="card-title" th:text="'Servidor: ' + ${server.ip}"></h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="grafana-container">
+                                            <iframe th:src="${server.panelIframes.get('cpu')}"
+                                                    class="grafana-iframe"
+                                                    frameborder="0"
+                                                    title="CPU"
+                                                    allowfullscreen>
+                                            </iframe>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
+
             </div>
 
             <!-- Sección de dashboard de Memoria RAM -->
@@ -233,26 +241,31 @@
                         <h3 class="card-title">
                             <i class="fas fa-network-wired me-2"></i>Memoria RAM
                         </h3>
-                        <div class="card-actions">
-                            <a href="#" class="btn btn-sm btn-outline" id="expandNetwork" title="Expandir">
-                                <i class="fas fa-expand"></i>
-                            </a>
-                        </div>
                     </div>
                     <div class="card-body p-0">
-                        <!-- Iframe de Grafana con panel de red -->
-                        <div class="grafana-container">
-                            <iframe
-                                    src="http://grafana:3000/d/zone_network?orgId=1&amp;refresh=30s&amp;var-zone=zone_a&amp;from=now-24h&amp;to=now&amp;theme=dark&amp;kiosk"
-                                    class="grafana-iframe"
-                                    title="Monitoreo de red"
-                                    id="networkFrame"
-                                    allowfullscreen>
-                            </iframe>
+                        <div class="row">
+                            <div th:each="server : ${ramList}" class="col-12 mb-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="card-title" th:text="'Servidor: ' + ${server.ip}"></h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="grafana-container">
+                                            <iframe th:src="${server.panelIframes.get('ram')}"
+                                                    class="grafana-iframe"
+                                                    frameborder="0"
+                                                    title="Memoria RAM"
+                                                    allowfullscreen>
+                                            </iframe>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
 
             <!-- Sección de dashboard de Disco -->
             <div id="vms" class="dashboard-section">
@@ -268,19 +281,29 @@
                         </div>
                     </div>
                     <div class="card-body p-0">
-                        <!-- Iframe de Grafana con panel de VMs -->
-                        <div class="grafana-container">
-                            <iframe
-                                    src="http://grafana:3000/d/zone_vms?orgId=1&amp;refresh=30s&amp;var-zone=zone_a&amp;from=now-24h&amp;to=now&amp;theme=dark&amp;kiosk"
-                                    class="grafana-iframe"
-                                    title="Rendimiento de Máquinas Virtuales"
-                                    id="vmsFrame"
-                                    allowfullscreen>
-                            </iframe>
+                        <div class="row">
+                            <div th:each="server : ${diskList}" class="col-12 mb-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="card-title" th:text="'Servidor: ' + ${server.ip}"></h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="grafana-container">
+                                            <iframe th:src="${server.panelIframes.get('disk')}"
+                                                    class="grafana-iframe"
+                                                    frameborder="0"
+                                                    title="Disco"
+                                                    allowfullscreen>
+                                            </iframe>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
 
             <!-- Sección de dashboard de Tráfico de red -->
             <div id="servers" class="dashboard-section">
@@ -290,34 +313,35 @@
                             <i class="fas fa-server me-2"></i>Tráfico de red
                         </h3>
                         <div class="card-actions">
-                            <div class="input-group input-group-sm" style="width: 200px;">
-                                <span class="input-group-text">Servidor</span>
-                                <select id="serverSelector" class="form-select form-select-sm">
-                                    <option value="all" selected>Todos</option>
-                                    <option value="server-a1">server-a1</option>
-                                    <option value="server-a2">server-a2</option>
-                                    <option value="server-a3">server-a3</option>
-                                </select>
-                            </div>
                             <a href="#" class="btn btn-sm btn-outline ms-2" id="expandServers" title="Expandir">
                                 <i class="fas fa-expand"></i>
                             </a>
                         </div>
                     </div>
                     <div class="card-body p-0">
-                        <!-- Iframe de Grafana con panel de servidores físicos -->
-                        <div class="grafana-container">
-                            <iframe
-                                    src="http://grafana:3000/d/zone_servers?orgId=1&amp;refresh=30s&amp;var-zone=zone_a&amp;var-server=all&amp;from=now-24h&amp;to=now&amp;theme=dark&amp;kiosk"
-                                    class="grafana-iframe"
-                                    title="Servidores Físicos"
-                                    id="serversFrame"
-                                    allowfullscreen>
-                            </iframe>
+                        <div class="row">
+                            <div th:each="server : ${networkList}" class="col-12 mb-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="card-title" th:text="'Servidor: ' + ${server.ip}"></h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="grafana-container">
+                                            <iframe th:src="${server.panelIframes.get('net')}"
+                                                    class="grafana-iframe"
+                                                    frameborder="0"
+                                                    title="Tráfico de red"
+                                                    allowfullscreen>
+                                            </iframe>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
 
             <!-- Sección de dashboard de logs -->
             <div id="logs" class="dashboard-section">
