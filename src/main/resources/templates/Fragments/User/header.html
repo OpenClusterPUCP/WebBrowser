@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+<header th:fragment="header(title)" class="header">
+    <div class="header-left">
+        <button class="menu-toggle">
+            <i class="fas fa-bars"></i>
+        </button>
+        <h1 class="page-title mb-0" th:text="${title}">Título de la página</h1>
+    </div>
+
+    <div class="header-right">
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Buscar...">
+        </div>
+
+        <!-- Perfil de usuario -->
+        <div class="user-profile">
+            <div class="user-info">
+                <!-- Avatar con iniciales -->
+                <div class="avatar" th:text="${userInitials}">JD</div>
+                <div class="user-details">
+                    <!-- Nombre completo del usuario -->
+                    <div class="user-name" th:text="${userName}">Juan Díaz</div>
+                    <!-- Rol del usuario -->
+                    <div class="user-role" th:text="${userRole}">Administrador</div>
+                </div>
+            </div>
+
+            <!-- Dropdown del perfil -->
+            <div class="user-dropdown">
+                <div class="user-dropdown-header">
+                    <div class="user-dropdown-name" th:text="${userName}">Juan Díaz</div>
+                    <div class="user-dropdown-role" th:text="${userRole}">Administrador</div>
+                </div>
+                <div class="user-dropdown-items">
+                    <a th:href="@{/admin/profile}" class="user-dropdown-item">
+                        <i class="fas fa-user"></i>
+                        <span>Mi Perfil</span>
+                    </a>
+                    <a th:href="@{/admin/settings}" class="user-dropdown-item">
+                        <i class="fas fa-cog"></i>
+                        <span>Configuración</span>
+                    </a>
+                    <a href="javascript:void(0)" class="user-dropdown-item logout-item" onclick="document.getElementById('logout-form').submit();">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Cerrar Sesión</span>
+                    </a>
+                    <form id="logout-form" th:action="@{/logout}" method="post" style="display: none;"></form>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+</body>
+</html>

@@ -198,12 +198,12 @@
 <body class="bg-gray-100">
 <div class="app-container">
     <!-- Sidebar -->
-    <div th:replace="~{Fragments/Admin/sidebar :: sidebar('sketch')}"></div>
+    <div th:replace="~{Fragments/User/sidebar :: sidebar('sketch')}"></div>
 
     <!-- Contenido principal -->
     <main class="main-content">
         <!-- Header -->
-        <div th:replace="~{Fragments/Admin/header :: header(title='Sketch')}"></div>
+        <div th:replace="~{Fragments/User/header :: header(title='Sketch')}"></div>
 
         <section class="page-content">
             <div class="row mb-4">
@@ -365,7 +365,7 @@
         <!-- Fin de los elementos de la Topología uwu -->
 
         <!-- Footer -->
-        <div th:replace="~{Fragments/Admin/footer :: footer}"></div>
+        <div th:replace="~{Fragments/User/footer :: footer}"></div>
     </main>
 </div>
 

@@ -262,12 +262,12 @@
 <body class="bg-gray-100">
 <div class="app-container">
     <!-- Sidebar -->
-    <div th:replace="~{Fragments/Admin/sidebar :: sidebar('slices')}"></div>
+    <div th:replace="~{Fragments/User/sidebar :: sidebar('slices')}"></div>
 
     <!-- Contenido principal -->
     <main class="main-content">
         <!-- Header -->
-        <div th:replace="~{Fragments/Admin/header :: header(title='Slice')}"></div>
+        <div th:replace="~{Fragments/User/header :: header(title='Slice')}"></div>
 
         <section class="page-content">
             <div class="row mb-4">
@@ -488,7 +488,7 @@
         <!-- Fin de los elementos uwu -->
 
         <!-- Footer -->
-        <div th:replace="~{Fragments/Admin/footer :: footer}"></div>
+        <div th:replace="~{Fragments/User/footer :: footer}"></div>
     </main>
 </div>
 
