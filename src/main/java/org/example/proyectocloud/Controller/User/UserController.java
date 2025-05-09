@@ -12,23 +12,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 public class UserController {
 
     @GetMapping("/slices")
-    public String verSlices(){
+    public String verSlicesXD(){
         return "/UserPages/SlicesList";
     }
 
-    @GetMapping("/sketch")
-    public String verSketch(){
-        return "/UserPages/Sketch";
-    }
-
-    @GetMapping({"/slice","/slice/","/slice/{sliceId}"})
-    public String verSlice(@PathVariable("sliceId") String sliceId, Model model) {
-        try {
-            model.addAttribute("sliceId", sliceId);
-            return "/UserPages/SliceView";
-        } catch (Exception e) {
-            model.addAttribute("error", "Error al cargar el Slice: " + e.getMessage());
-            return "redirect:/User/sketch";
-        }
-    }
 }

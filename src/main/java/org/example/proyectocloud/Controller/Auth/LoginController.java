@@ -7,7 +7,6 @@ import org.example.proyectocloud.Bean.UserInfo;
 import org.example.proyectocloud.Dao.AuthDao;
 import org.example.proyectocloud.Service.Auth.AuthService;
 import org.example.proyectocloud.Service.Auth.PasswordResetService;
-import org.example.proyectocloud.Service.SliceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -32,8 +31,6 @@ public class LoginController {
     @Autowired
     AuthDao authDao;
     @Autowired
-    SliceService sliceService;
-    @Autowired
     private PasswordResetService passwordResetService;
 
     //Ver frontEnd
@@ -46,7 +43,7 @@ public class LoginController {
                 return "redirect:/Admin/slices";
             }
             if (rol.equals("User")) {
-                return "redirect:/Alumno/slices";
+                return "redirect:/User/slice";
             }
         }
         return "AuthPages/login";

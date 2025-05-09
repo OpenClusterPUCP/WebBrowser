@@ -1,41 +1,46 @@
-// ==============================================================================
-// | ARCHIVO: creator.js
-// ==============================================================================
-// | DESCRIPCIÓN:
-// | Implementa la lógica principal para crear y gestionar las topologías de red
-// | en el frontend (topology-creator.html), mediante su visualización
-// | y la manipulación de los elementos de red.
-// ==============================================================================
-// | CONTENIDO PRINCIPAL:
-// | 1. CONFIGURACIÓN E INICIALIZACIÓN
-// |    - Importación de dependencias y datos
-// |    - Inicialización de variables globales
-// |    - Configuración de la librería para la gráfica de topologías
-// |
-// | 2. GESTIÓN DE MODALES/POP-UPS
-// |    - Creación/Edición de VMs
-// |    - Creación/Edición de Enlaces
-// |    - Gestión de las Plantillas de Topología
-// |    - Despliegue
-// |
-// | 3. OPERACIONES CRUD
-// |    - Creación de VMs y Enlaces
-// |    - Edición de elementos existentes
-// |    - Eliminación de elemntos
-// |
-// | 4. FUNCIONES DE TOPOLOGÍA
-// |    - Generación de topologías predefinidas (Lineal, Anillo, Malla, Estrella)
-// |    - Organización automática del layout
-// |    - Exportación/Importación de topologías
-// |    - Despliegue de Slices
-// |
-// | 5. UTILIDADES/HELPERS
-// |    - Generación de UUIDs
-// |    - Generación de MACs
-// |    - Mensajes breves de los elementos en la gráfica
-// |    - Helpers para poder manipular datos
-// ==============================================================================
-
+/*
+==============================================================================
+| ARCHIVO: sketch-editor.js
+==============================================================================
+| DESCRIPCIÓN:
+| Implementa la lógica principal para editar y gestionar las topologías de red
+| en el frontend, permitiendo la manipulación visual e interactiva de los
+| elementos de red mediante una interfaz gráfica.
+==============================================================================
+| CONTENIDO PRINCIPAL:
+| 1. CONFIGURACIÓN E INICIALIZACIÓN
+|    - Importación de dependencias y datos
+|    - Inicialización de variables globales
+|    - Configuración de Vis.js Network
+|    - Setup de eventos y listeners
+|
+| 2. GESTIÓN DE ELEMENTOS DE RED
+|    - Creación/Edición de VMs
+|    - Creación/Edición de Enlaces
+|    - Gestión de Interfaces
+|    - Tooltips y metadatos
+|
+| 3. PLANTILLAS Y LAYOUTS
+|    - Topologías predefinidas (Lineal, Anillo, Malla, Estrella)
+|    - Organización automática
+|    - Gestión de posiciones
+|    - Animaciones de layout
+|
+| 4. OPERACIONES DE SKETCH
+|    - Guardado de cambios
+|    - Importación/Exportación
+|    - Validaciones
+|    - Gestión de recursos
+|
+| 5. DEPENDENCIAS
+|    - Vis.js Network
+|    - Bootstrap 5.3.2
+|    - jQuery 3.7.0
+|    - SweetAlert2
+|    - Material Dashboard
+|    - Classes.js (TopologyManager)
+==============================================================================
+*/
 
 // ===================== IMPORTACIONES =====================
 import { TopologyManager, VM, Link, Interface, Flavor, Image, Slice, VisVM, VisLink } from './classes.js';
@@ -49,11 +54,12 @@ let visDataset = {
 };
 let nodeTooltips = new Map();
 let edgeTooltips = new Map();
+let currentSketch = null;
 const container = document.getElementById('network-container');
 const tooltip = document.getElementById('customTooltip');
 let addVMModal = null;
 let addLinkModal = null;
-let deployModal = null;
+let saveSketchModal = null;
 let templateModal = null;
 let BACKEND_IP = 'localhost';
 let BACKEND_PORT = 5001;
@@ -142,7 +148,7 @@ const options = {
     },
     nodes: {
         shape: 'image',
-        image: '/slice/topology-creator/host.png',
+        image: '/slice/sketch/host.png',
         size: 30,
         shadow: {
             enabled: true,
@@ -256,15 +262,25 @@ const options = {
 
 // ===================== INICIALIZACIÓN =====================
 document.addEventListener('DOMContentLoaded', async function() {
-    // Inicialización de la data de flavors e images
-    await loadResources();
-    // Inicialización de la red/topología
+    // 1. Inicializar el topology manager primero
     topologyManager = new TopologyManager();
+        
+    // 2. Inicializar la red con el dataset vacío
     network = new vis.Network(
         container,
         visDataset,
         options
     );
+
+    // 3. Cargar recursos necesarios
+    await loadResources();
+    
+    // 4. Inicializar modales y eventos
+    initializeModals();
+    
+    // 5. Cargar datos del sketch existente
+    await loadExistingSketch();
+
     // Listeners
     network.on('doubleClick', function(params) {
         if (params.nodes && params.nodes.length > 0) {
@@ -364,7 +380,7 @@ function initializeModals() {
     addVMModal = new bootstrap.Modal(document.getElementById('addVMModal'));
     addLinkModal = new bootstrap.Modal(document.getElementById('addLinkModal'));
     templateModal = new bootstrap.Modal(document.getElementById('templateModal'));
-    deployModal = new bootstrap.Modal(document.getElementById('deployModal'));
+    saveSketchModal = new bootstrap.Modal(document.getElementById('saveSketchModal'));
     populateSelects();
     setupModalEvents();
 }
@@ -470,9 +486,7 @@ function showEditVMModal(vmId) {
     if (!vm) return;
 
     window.currentNodeData = {
-        id: vmId,
-        x: visDataset.nodes.get(vmId).x,
-        y: visDataset.nodes.get(vmId).y
+        id: vmId
     };
 
     window.isEditMode = true;
@@ -488,10 +502,23 @@ function showEditVMModal(vmId) {
     updateFlavorDetails();
 
     const interfaces = Array.from(topologyManager.interfaces.values());
-    const vmInterfaces = interfaces.filter(iface => iface.vm_id === vm.id);
-    const hasExternal = vmInterfaces.some(iface => iface.external_access === true);
+    console.log('Todas las interfaces:', interfaces);
+
+    const vmInterfaces = interfaces.filter(iface => iface.vm_id === vmId);
+    console.log('Interfaces de la VM:', vmInterfaces);
+
+    const hasExternal = interfaces.some(iface => {
+        console.log('Checking interface:', iface);
+        console.log('vm_id match:', iface.vm_id === vmId);
+        console.log('external_access value:', iface.external_access);
+        return iface.vm_id === vmId && iface.external_access === true;
+    });
+    
+    console.log('¿Tiene acceso externo?:', hasExternal);
+    
     const checkbox = document.getElementById('vmExternalAccess');
     checkbox.checked = hasExternal;
+    console.log('Checkbox estado:', checkbox.checked);
 
     addVMModal.show();
 }
@@ -516,25 +543,6 @@ function showEditLinkModal(linkId) {
     addLinkModal.show();
 }
 
-window.showDeployModal = function() {
-    hideTooltip()
-    if (!topologyManager || topologyManager.vms.size === 0) {
-        Swal.fire({
-            title: 'Topología Vacía',
-            text: 'Por favor cree una topología antes de intentar desplegar',
-            icon: 'warning',
-            confirmButtonText: 'Entendido',
-            customClass: {
-                confirmButton: 'btn bg-gradient-primary'
-            },
-            buttonsStyling: false
-        });
-        return;
-    }
-    
-    document.getElementById('deployForm').reset();
-    deployModal.show();
-}
 
 function updateFlavorDetails() {
     const flavorId = document.getElementById('vmFlavor').value;
@@ -707,6 +715,8 @@ window.handleEditVM = function() {
     <b>Flavor:</b> ${flavor.name}
     <b>Acceso externo:</b> ${newExternalAccess ? 'Sí' : 'No'}`;
 
+    nodeTooltips.set(vmId, tooltipContent);
+
     const visData = {
         id: vm.id,
         label: vm.name,
@@ -746,8 +756,8 @@ window.handleEditLink = function() {
 
     link.name = newName || defaultName;
 
-    const tooltipContent = `<b>Nombre:</b> ${linkName || defaultName}`;
-    edgeTooltips.set(linkData.id, tooltipContent);
+    const tooltipContent = `<b>Nombre:</b> ${link.name}`;
+    edgeTooltips.set(link.id, tooltipContent);
 
     const visData = {
         id: linkId,
@@ -757,7 +767,7 @@ window.handleEditLink = function() {
         to: window.currentEdgeData.to
     };
 
-    topologyManager.visEdges.set(link.id, new VisLink(link,visData.from, visData.to));
+    topologyManager.visEdges.set(link.id, new VisLink(link, visData.from, visData.to));
     visDataset.edges.update(visData);
 
     addLinkModal.hide();
@@ -815,165 +825,112 @@ function handleDeleteLink(linkId) {
     console.log(topologyManager)
 }
 
-// ===================== DESPLIEGUE DE SLICEs =====================
-window.handleDeployTopology = function() { //Esta función fue de prueba :p
-    const form = document.getElementById('deployForm');
-    if (!form.checkValidity()) {
-        form.classList.add('was-validated');
-        return;
-    }
+// ===================== GUARDADO DE SKETCHs =====================
 
-    const sliceName = document.getElementById('sliceName').value;
-    const sliceDescription = document.getElementById('sliceDescription').value;
-    const slice = new Slice(topologyManager.generateUUID(),
-                            sliceName,
-                            sliceDescription || null,
-                            "usuario-69")
-    const deploymentData = {
-        slice_info: slice,
-        topology_info: {
-            vms: Array.from(topologyManager.vms.values()).map(vm => ({
-                id: vm.id,
-                name: vm.name,
-                image_id: vm.image_id,
-                flavor_id: vm.flavor_id
-            })),
-            links: Array.from(topologyManager.links.values()).map(link => ({
-                id: link.id,
-                name: link.name
-            })),
-            interfaces: Array.from(topologyManager.interfaces.values()).map(iface => ({
-                id: iface.id,
-                name: iface.name,
-                vm_id: iface.vm_id,
-                link_id: iface.link_id,
-                mac_address: iface.mac_address,
-                external_access: iface.external_access
-            }))
+window.saveSketch = async function() {
+    try {
+        if (!validateTopology()) return;
+
+        // Get form data
+        const modalNameInput = document.querySelector('#saveSketchModal #sketchName');
+        const modalDescInput = document.querySelector('#saveSketchModal #sketchDescription');
+        
+        if (!modalNameInput || !modalDescInput) {
+            throw new Error('No se pueden encontrar los campos del formulario');
         }
-    };
 
-    const jsonString = JSON.stringify(deploymentData, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+        const sketchData = {
+            name: modalNameInput.value.trim(),
+            description: modalDescInput.value.trim(),
+            topology_info: {
+                vms: Array.from(topologyManager.vms.values()).map(vm => ({
+                    id: vm.id,
+                    name: vm.name,
+                    image_id: parseInt(vm.image_id),
+                    flavor_id: parseInt(vm.flavor_id)
+                })),
+                links: Array.from(topologyManager.links.values()).map(link => ({
+                    id: link.id,
+                    name: link.name
+                })),
+                interfaces: Array.from(topologyManager.interfaces.values()).map(iface => ({
+                    id: iface.id,
+                    name: iface.name,
+                    vm_id: iface.vm_id,
+                    link_id: iface.link_id,
+                    mac_address: iface.mac_address,
+                    external_access: iface.external_access
+                }))
+            }
+        };
 
-    a.href = url;
-    a.download = `slice-${sliceName.toLowerCase().replace(/\s+/g, '-')}.json`;
-    document.body.appendChild(a);
-    a.click();
-    
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    deployModal.hide();
+        console.log('Sending update request with data:', sketchData);
+
+        const response = await fetch(`/User/api/sketch/${window.SKETCH_ID}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(sketchData)
+        });
+
+        const result = await response.json();
+        console.log('Update response:', result);
+
+        if (!response.ok) {
+            throw new Error(result.message || 'Error en la respuesta del servidor');
+        }
+
+        if (result.status === 'success') {
+            // Update current sketch data
+            currentSketch = {
+                ...currentSketch,
+                name: sketchData.name,
+                description: sketchData.description
+            };
+
+            // Update UI
+            updateSketchInfo(currentSketch);
+
+            // Close modal if it exists
+            const modal = bootstrap.Modal.getInstance(document.getElementById('saveSketchModal'));
+            if (modal) {
+                modal.hide();
+            }
+
+            Swal.fire({
+                icon: 'success',
+                title: '¡Cambios guardados!',
+                text: 'El sketch se ha actualizado correctamente',
+                confirmButtonText: 'Aceptar',
+                customClass: {
+                    confirmButton: 'btn bg-gradient-primary'
+                },
+                buttonsStyling: false
+            });
+        } else {
+            throw new Error(result.message || 'Error al actualizar el sketch');
+        }
+
+    } catch (error) {
+        console.error('Error details:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: error.message || 'Error al actualizar el sketch',
+            confirmButtonText: 'Entendido',
+            customClass: {
+                confirmButton: 'btn bg-gradient-primary'
+            },
+            buttonsStyling: false
+        });
+    }
 }
 
-window.deployTopology = function() {
-    hideTooltip()
-    const form = document.getElementById('deployForm');
-    if (!form.checkValidity()) {
-        form.classList.add('was-validated');
-        return;
-    }
+window.showSaveSketchModal = function() {
+    if (!validateTopology()) return;
 
-    const sliceName = document.getElementById('sliceName').value;
-    const sliceDescription = document.getElementById('sliceDescription').value;
-    const slice = new Slice(topologyManager.generateUUID(),
-                            sliceName,
-                            sliceDescription || null,
-                            "usuario-69")              
-    const deploymentData = {
-        slice_info: slice,
-        topology_info: {
-            vms: Array.from(topologyManager.vms.values()).map(vm => ({
-                id: vm.id,
-                name: vm.name,
-                image_id: vm.image_id,
-                flavor_id: vm.flavor_id
-            })),
-            links: Array.from(topologyManager.links.values()).map(link => ({
-                id: link.id,
-                name: link.name
-            })),
-            interfaces: Array.from(topologyManager.interfaces.values()).map(iface => ({
-                id: iface.id,
-                name: iface.name,
-                vm_id: iface.vm_id,
-                link_id: iface.link_id,
-                mac_address: iface.mac_address,
-                external_access: iface.external_access
-            }))
-        }
-    };
-    const topology = deploymentData;
-
-    console.log(topology)
-    console.log(JSON.stringify(topology))
-
-    Swal.fire({
-        title: '¿Desplegar Topología?',
-        text: '¿Estás seguro de que deseas desplegar esta topología como una Slice?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Sí, desplegar',
-        cancelButtonText: 'Cancelar',
-        customClass: {
-            confirmButton: 'btn bg-gradient-primary',
-            cancelButton: 'btn bg-gradient-secondary ms-2'
-        },
-        buttonsStyling: false
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire({
-                title: 'Desplegando',
-                text: 'Por favor espera mientras se despliega la Slice...',
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                showConfirmButton: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-
-            $.ajax({
-                url: `http://${BACKEND_IP}:${BACKEND_PORT}/deploy-slice`, // Cambia por la URL del backend al probar uwu
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(topology),
-                success: function(response) {
-                    if (response.status === 'success') {
-                        const sliceId = response.content.slice_info.id;
-                        Swal.fire({
-                            title: 'Éxito',
-                            text: 'Slice desplegada correctamente',
-                            icon: 'success',
-                            confirmButtonText: 'Ver Slice',
-                            customClass: {
-                                confirmButton: 'btn bg-gradient-primary'
-                            },
-                            buttonsStyling: false
-                        }).then((result) => {
-                            window.location.href = `/User/slice/${sliceId}`;
-                        });
-                        console.log(response);
-                    }
-                },
-                error: function(xhr, status, error) {
-                    Swal.fire({
-                        title: 'Error',
-                        text: 'Ocurrió un error al desplegar la Slice',
-                        icon: 'error',
-                        confirmButtonText: 'OK',
-                        customClass: {
-                            confirmButton: 'btn bg-gradient-primary'
-                        },
-                        buttonsStyling: false
-                    });
-                    console.log(error);
-                }
-            });
-        }
-    });
+    saveSketchModal.show();
 }
 
 window.showSuccessMessage = function(message) {
@@ -1323,8 +1280,11 @@ window.clearTopology = function() {
     });
 }
 
-// ===================== IMPORTAR Y EXPORTAR =====================
+// ===================== IMPORTAR Y EXPORTAR | FUNCIONES ÚTILES =====================
 window.exportTopology = function() {
+    console.log('=== exportTopology ===');
+    console.log('Estado actual del topologyManager:', topologyManager);
+
     if (!topologyManager || topologyManager.vms.size === 0) {
         Swal.fire({
             title: 'Topología Vacía',
@@ -1339,53 +1299,82 @@ window.exportTopology = function() {
         return;
     }
 
-    const exportData = {
-        topology_info: {
-            vms: Array.from(topologyManager.vms.values()).map(vm => ({
-                id: vm.id,
-                name: vm.name,
-                image_id: vm.image_id,
-                flavor_id: vm.flavor_id
-            })),
-            links: Array.from(topologyManager.links.values()).map(link => ({
-                id: link.id,
-                name: link.name
-            })),
-            interfaces: Array.from(topologyManager.interfaces.values()).map(iface => ({
-                id: iface.id,
-                name: iface.name,
-                vm_id: iface.vm_id,
-                link_id: iface.link_id,
-                mac_address: iface.mac_address,
-                external_access: iface.external_access
-            }))
-        },
-        topology_graph: {
-            nodes: Array.from(topologyManager.visNodes.values()).map(node => ({
-                id: node.id,
-                label: node.label,
-                title: nodeTooltips.get(node.id) || node.title,
-            })),
-            edges: Array.from(topologyManager.visEdges.values()).map(edge => ({
-                id: edge.id,
-                from: visDataset.edges.get(edge.id).from,
-                to: visDataset.edges.get(edge.id).to,
-                label: edge.label
-            }))
-        }
-    };
-    const jsonString = JSON.stringify(exportData, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    try {
+        const exportData = {
+            topology_info: {
+                vms: Array.from(topologyManager.vms.values()).map(vm => ({
+                    id: vm.id,
+                    name: vm.name,
+                    image_id: vm.image_id,
+                    flavor_id: vm.flavor_id
+                })),
+                links: Array.from(topologyManager.links.values()).map(link => ({
+                    id: link.id,
+                    name: link.name
+                })),
+                interfaces: Array.from(topologyManager.interfaces.values()).map(iface => {
+                    console.log('Procesando interfaz para export:', iface);
+                    console.log('external_access original:', iface.external_access);
+                    
+                    return {
+                        id: iface.id,
+                        name: iface.name,
+                        vm_id: iface.vm_id,
+                        link_id: iface.link_id,
+                        mac_address: iface.mac_address,
+                        external_access: Boolean(iface.external_access)
+                    };
+                })
+            },
+            topology_graph: {
+                nodes: Array.from(topologyManager.visNodes.values()).map(node => ({
+                    id: node.id,
+                    label: node.label,
+                    title: nodeTooltips.get(node.id) || ''
+                })),
+                edges: Array.from(topologyManager.visEdges.values()).map(edge => {
+                    const edgeData = visDataset.edges.get(edge.id);
+                    return {
+                        id: edge.id,
+                        from: edgeData ? edgeData.from : edge.from,
+                        to: edgeData ? edgeData.to : edge.to,
+                        label: edge.label || ''
+                    };
+                })
+            }
+        };
 
-    a.href = url;
-    a.download = `topology-${new Date().toISOString().slice(0,10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+        const jsonString = JSON.stringify(exportData, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+
+        a.href = url;
+        a.download = `topology-${timestamp}.json`;
+        document.body.appendChild(a);
+        a.click();
+        
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        console.log('Datos finales a exportar:', exportData);
+
+        showSuccessMessage('Topología exportada correctamente');
+
+    } catch (error) {
+        console.error('Error al exportar topología:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo exportar la topología: ' + error.message,
+            confirmButtonText: 'Entendido',
+            customClass: {
+                confirmButton: 'btn bg-gradient-primary'
+            },
+            buttonsStyling: false
+        });
+    }
 }
 
 window.importTopology = function() {
@@ -1523,18 +1512,17 @@ function hideTooltip() {
     }
 }
 
-// Función para cargar los recursos desde el backend
 async function loadResources() {
     try {
         // Cargar flavors
-        const flavorsResponse = await fetch(`http://${BACKEND_IP}:${BACKEND_PORT}/resources/flavors`);
+        const flavorsResponse = await fetch('/User/api/sketch/resources/flavors');
         const flavorsData = await flavorsResponse.json();
         if (flavorsData.status === 'success') {
             AVAILABLE_FLAVORS = flavorsData.content;
         }
 
         // Cargar imágenes
-        const imagesResponse = await fetch(`http://${BACKEND_IP}:${BACKEND_PORT}/resources/images`);
+        const imagesResponse = await fetch('/User/api/sketch/resources/images');
         const imagesData = await imagesResponse.json();
         if (imagesData.status === 'success') {
             AVAILABLE_IMAGES = imagesData.content;
@@ -1544,7 +1532,226 @@ async function loadResources() {
 
     } catch (error) {
         console.error('Error cargando recursos:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudieron cargar los recursos necesarios',
+            confirmButtonText: 'Entendido',
+            customClass: {
+                confirmButton: 'btn bg-gradient-primary'
+            },
+            buttonsStyling: false
+        });
     }
+}
+
+function validateTopology() {
+    if (!topologyManager || topologyManager.vms.size === 0) {
+        Swal.fire({
+            title: 'Topología Vacía',
+            text: 'Por favor añade elementos a tu sketch antes de guardarlo',
+            icon: 'warning',
+            confirmButtonText: 'Entendido',
+            customClass: {
+                confirmButton: 'btn bg-gradient-primary'
+            },
+            buttonsStyling: false
+        });
+        return false;
+    }
+    return true;
+}
+
+
+async function loadExistingSketch() {
+    try {
+        const sketchId = window.SKETCH_ID;
+        if (!sketchId) {
+            throw new Error('ID de sketch no encontrado');
+        }
+
+        const response = await fetch(`/User/api/sketch/${sketchId}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('Datos del sketch:', result);
+
+        if (result.data.status === 'success') {
+            currentSketch = result.data.content;
+            
+            // Actualizar información en el panel
+            document.getElementById('sketchName').textContent = result.data.content.name || 'No disponible';
+            document.getElementById('sketchDescription').textContent = result.data.content.description || 'Sin descripción';
+            updateSketchInfo(currentSketch);
+            
+            // Renderizar topología
+            renderExistingTopology(currentSketch);
+        } else {
+            throw new Error(result.message || 'Error al cargar el sketch');
+        }
+
+    } catch (error) {
+        console.error('Error cargando sketch:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo cargar el sketch: ' + error.message,
+            confirmButtonText: 'Volver',
+            customClass: {
+                confirmButton: 'btn bg-gradient-primary'
+            },
+            buttonsStyling: false
+        }).then(() => {
+            window.location.href = '/User/sketch/list';
+        });
+    }
+}
+
+// Función para actualizar la información en el panel
+function updateSketchInfo(sketch) {
+    // Actualizar panel de información
+    document.getElementById('sketchName').value = sketch.name;
+    document.getElementById('sketchDescription').value = sketch.description || '';
+    
+    // También actualizar el formulario del modal de guardado
+    const modalNameInput = document.querySelector('#saveSketchModal #sketchName');
+    const modalDescInput = document.querySelector('#saveSketchModal #sketchDescription');
+    if (modalNameInput) modalNameInput.value = sketch.name;
+    if (modalDescInput) modalDescInput.value = sketch.description || '';
+}
+
+// Función para renderizar la topología existente
+function renderExistingTopology(sketchData) {
+    console.log('=== Starting renderExistingTopology ===');
+    console.log('Received sketch data:', sketchData);
+    
+    if (!sketchData.topology_info) return;
+    
+    // Limpiar datos existentes
+    clearTopology();
+    
+    const nodes = new vis.DataSet();
+    const edges = new vis.DataSet();
+
+    // Crear VMs primero
+    sketchData.topology_info.vms.forEach(vmData => {
+        console.log('Processing VM:', vmData);
+        
+        const vm = new VM(
+            vmData.id,
+            vmData.name,
+            vmData.image_id,
+            vmData.flavor_id
+        );
+        
+        const visVM = new VisVM(vm, undefined);
+        topologyManager.vms.set(vm.id, vm);
+        topologyManager.visNodes.set(vm.id, visVM);
+
+        const image = AVAILABLE_IMAGES.find(img => img.id === parseInt(vm.image_id));
+        const flavor = AVAILABLE_FLAVORS.find(f => f.id === parseInt(vm.flavor_id));
+        
+        // Check interfaces for external access
+        const vmInterfaces = sketchData.topology_info.interfaces.filter(
+            iface => iface.vm_id === vm.id
+        );
+        console.log(`Interfaces for VM ${vm.id}:`, vmInterfaces);
+        
+        const hasExternal = vmInterfaces.some(iface => {
+            console.log(`Checking interface ${iface.id} external_access:`, iface.external_access);
+            return iface.external_access === true;
+        });
+        
+        console.log(`VM ${vm.id} has external access:`, hasExternal);
+
+        const tooltipContent = `<b>Nombre:</b> ${vm.name}
+            <b>Imagen:</b> ${image ? image.name : 'N/A'}
+            <b>Flavor:</b> ${flavor ? flavor.name : 'N/A'}
+            <b>Acceso externo:</b> ${hasExternal ? 'Sí' : 'No'}`;
+        
+        nodeTooltips.set(vm.id, tooltipContent);
+
+        nodes.add({
+            id: vm.id,
+            label: vm.name
+        });
+    });
+
+    // Agregar todas las interfaces primero, incluyendo las externas
+    console.log('Adding interfaces to topology manager...');
+    sketchData.topology_info.interfaces.forEach(ifaceData => {
+        console.log('Processing interface:', ifaceData);
+        const iface = new Interface(
+            ifaceData.id,
+            ifaceData.name,
+            ifaceData.vm_id,
+            ifaceData.link_id,
+            ifaceData.mac_address,
+            ifaceData.external_access === true // Ensure boolean conversion
+        );
+        console.log('Created interface object:', iface);
+        topologyManager.interfaces.set(iface.id, iface);
+    });
+
+    // Crear enlaces después
+    console.log('Creating links...');
+    sketchData.topology_info.links.forEach(linkData => {
+        console.log('Processing link:', linkData);
+        const link = new Link(linkData.id, linkData.name);
+        
+        // Encontrar las interfaces conectadas
+        const interfaces = sketchData.topology_info.interfaces.filter(
+            iface => iface.link_id === link.id
+        );
+        console.log(`Found ${interfaces.length} interfaces for link ${link.id}:`, interfaces);
+
+        if (interfaces.length === 2) {
+            const sourceVM = topologyManager.vms.get(interfaces[0].vm_id);
+            const targetVM = topologyManager.vms.get(interfaces[1].vm_id);
+
+            if (sourceVM && targetVM) {
+                // Crear el enlace visual
+                const visLink = new VisLink(link, interfaces[0].vm_id, interfaces[1].vm_id);
+                topologyManager.links.set(link.id, link);
+                topologyManager.visEdges.set(link.id, visLink);
+
+                edges.add({
+                    id: link.id,
+                    from: interfaces[0].vm_id,
+                    to: interfaces[1].vm_id,
+                    label: link.name
+                });
+
+                const tooltipContent = `<b>Nombre:</b> ${link.name}
+                    <b>Conecta:</b> ${sourceVM.name} ↔ ${targetVM.name}`;
+                edgeTooltips.set(link.id, tooltipContent);
+            }
+        }
+    });
+
+    // Final state check
+    console.log('=== Final Topology State ===');
+    console.log('VMs:', Array.from(topologyManager.vms.values()));
+    console.log('Interfaces:', Array.from(topologyManager.interfaces.values()));
+    console.log('Links:', Array.from(topologyManager.links.values()));
+
+    // Actualizar red
+    network.setData({ nodes, edges });
+
+    // Organizar topología
+    arrangeTopology();
+    
+    // Ajustar vista
+    setTimeout(() => {
+        network.fit({
+            animation: {
+                duration: 1000,
+                easingFunction: 'easeInOutQuad'
+            }
+        });
+    }, 500);
 }
 
 export { network, topologyManager };

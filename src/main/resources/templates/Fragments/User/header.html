@@ -2,6 +2,21 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <style>
+        .avatar {
+            background: linear-gradient(135deg, #6a11cb, #2575fc); /* Degradado */
+            color: white; /* Color del texto */
+            font-weight: bold; /* Texto en negrita */
+            font-size: 1.2rem; /* Tamaño del texto */
+            width: 50px; /* Ancho */
+            height: 50px; /* Alto */
+            display: flex; /* Centrar contenido */
+            align-items: center; /* Centrar verticalmente */
+            justify-content: center; /* Centrar horizontalmente */
+            border-radius: 50%; /* Bordes redondeados */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Sombra */
+        }
+    </style>
 </head>
 <body>
 <header th:fragment="header(title)" class="header">

@@ -37,7 +37,6 @@ public class AdminFlavorsApiController {
         UserInfo userInfo = (UserInfo) session.getAttribute(SESSION_TOKEN_KEY);
         if (userInfo.getJwt() == null) {
             log.warn("No se encontró token en la sesión");
-            // Podrías lanzar una excepción aquí o manejar de otra forma
         }
         return userInfo.getJwt();
     }

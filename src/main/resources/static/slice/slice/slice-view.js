@@ -1,46 +1,46 @@
-// ==============================================================================
-// | ARCHIVO: view.js
-// ==============================================================================
-// | DESCRIPCIÓN:
-// | Implementa la visualización y gestión de los Slices desplegados. Te permite 
-// | ver detalles de la topología, estado de VMs y recursos asignados.
-// ==============================================================================
-// | CONTENIDO PRINCIPAL:
-// | 1. CONFIGURACIÓN E INICIALIZACIÓN
-// |    - Importación de dependencias y datos
-// |    - Inicialización de variables globales
-// |    - Configuración de Vis.js Network
-// |    - Carga inicial de datos del Slice
-// |
-// | 2. VISUALIZACIÓN DE DATOS
-// |    - Renderizado de topología
-// |    - Actualización de información de red
-// |    - Gestión de interfaces y enlaces
-// |    - Tooltips y etiquetas informativas
-// |
-// | 3. GESTIÓN DE MODALES
-// |    - Detalles de VMs
-// |    - Información de enlaces
-// |    - Acceso a consola VNC
-// |    - Confirmaciones de acciones
-// |
-// | 4. OPERACIONES DE SLICE
-// |    - Detención de Slice
-// |    - Acceso a VMs (Cliente noVNC usando websockets)
-// |    - Exportación de topología
-// |    - Organización visual del layout
-// |    - (Por implementar) Pausa de Slice / Reanudación de Slice
-// |    - (Por implementar) Acco a VMs mediante SSH para Slices en AWS
-// |
-// | 5. UTILIDADES/HELPERS
-// |    - Generación de tooltips
-// |    - Verificación de acceso externo
-// |    - Formateo de datos para visualización
-// |    - Helpers para manipulación del DOM
-// ==============================================================================
+/* 
+==============================================================================
+| ARCHIVO: slice-view.js
+==============================================================================
+| DESCRIPCIÓN:
+| Implementa la visualización y gestión de los Slices desplegados. Te permite 
+| ver detalles de la topología, estado de VMs y recursos asignados.
+==============================================================================
+| CONTENIDO PRINCIPAL:
+| 1. CONFIGURACIÓN E INICIALIZACIÓN
+|    - Importación de dependencias y datos
+|    - Inicialización de variables globales
+|    - Configuración de Vis.js Network
+|    - Carga inicial de datos del Slice
+|
+| 2. VISUALIZACIÓN DE DATOS
+|    - Renderizado de topología
+|    - Actualización de información de red
+|    - Gestión de interfaces y enlaces
+|    - Tooltips y etiquetas informativas
+|
+| 3. GESTIÓN DE MODALES
+|    - Detalles de VMs
+|    - Información de enlaces
+|    - Acceso a consola VNC
+|    - Confirmaciones de acciones
+|
+| 4. OPERACIONES DE SLICE
+|    - Detención de Slice
+|    - Acceso a VMs (Cliente noVNC usando websockets)
+|    - Exportación de topología
+|    - Organización visual del layout
+|    - (Por implementar) Pausa de Slice / Reanudación de Slice
+|    - (Por implementar) Acco a VMs mediante SSH para Slices en AWS
+|
+| 5. UTILIDADES/HELPERS
+|    - Generación de tooltips
+|    - Verificación de acceso externo
+|    - Formateo de datos para visualización
+|    - Helpers para manipulación del DOM
+==============================================================================
+*/
 
-
-// ===================== IMPORTACIONES =====================
 // ===================== VARIABLES GLOBALES =====================
 let network = null;
 let visDataset = {
@@ -98,7 +98,7 @@ const options = {
     },
     nodes: {
         shape: 'image',
-        image: '/slice/slice-view/host.png',
+        image: '/slice/slice/host.png',
         size: 30,
         shadow: {
             enabled: true,
@@ -186,6 +186,8 @@ async function getSliceData(flag){
         return;
     }
 
+    let data = null;
+
     try {
         Swal.fire({
             title: 'Cargando',
@@ -196,10 +198,12 @@ async function getSliceData(flag){
             }
         });
 
-        const response = await fetch(`http://${BACKEND_IP}:${BACKEND_PORT}/slice/${sliceId}`); // Cambiar por URL del backend owo
-        const data = await response.json();
+        const response = await fetch(`/User/api/slice/${sliceId}`);
+        data = await response.json();
         
-        await new Promise(resolve => setTimeout(resolve, 700));
+        await new Promise(resolve => setTimeout(resolve, 600));
+
+        console.log("Respuesta: ", data);
 
         if (data.status === 'success') {
             SLICE_DATA = data;
@@ -395,7 +399,7 @@ async function getSliceData(flag){
                 console.error('Error :c : ', error);
                 Swal.fire({
                     title: 'Error',
-                    text: 'Ocurrió un error al inicializar la visualización del Slice',
+                    text: 'Error al inicializar la visualización del Slice',
                     icon: 'error',
                     confirmButtonText: 'OK',
                     customClass: {
@@ -405,13 +409,19 @@ async function getSliceData(flag){
                 });
             }
         } else {
-            throw new Error('Ocurrió un error al cargar la data del Slice');
+            throw new Error('Error al cargar la data del Slice');
         }
     } catch (error) {
+        let errorMessage = 'Error al cargar la Slice';
+        try {
+            errorMessage = data.message || errorMessage;
+        } catch (e) {
+
+        }
         console.error('Error :c : ', error);
         Swal.fire({
             title: 'Error',
-            text: 'Ocurrió un error al cargar la data del Slice',
+            text: errorMessage,
             icon: 'error',
             confirmButtonText: 'OK',
             customClass: {
@@ -437,43 +447,6 @@ function updateNetworkInfo(networkConfig, sliceInfo) {
     document.getElementById('networkRangeStart').textContent = networkConfig.dhcp_range[0];
     document.getElementById('networkRangeEnd').textContent = networkConfig.dhcp_range[1];
     document.getElementById('internalBridge').textContent = networkConfig.slice_bridge_name;
-
-    /*const descriptionBtn = document.getElementById('sliceDescriptionBtn');
-    if (descriptionBtn) {
-        const existingTooltip = bootstrap.Tooltip.getInstance(descriptionBtn);
-        if (existingTooltip) {
-            existingTooltip.dispose();
-        }
-
-        new bootstrap.Tooltip(descriptionBtn, {
-            title: `<div class="mb-2">
-                      <span style="font-weight: 800; font-size: 1.1rem; color: #344767; text-transform: uppercase; letter-spacing: 0.02em; display: block; border-bottom: 2px solid #e91e63; padding-bottom: 8px; margin-bottom: 10px;">
-                        Descripción de la Slice:
-                      </span>
-                    </div>
-                    <div style="font-size: 0.875rem; line-height: 1.7; color: #344767;">
-                      ${sliceInfo.description || 'Sin descripción disponible'}
-                    </div>`,
-            html: true,
-            template: `
-                <div class="tooltip" role="tooltip" style="max-width: none !important;">
-                    <div class="tooltip-arrow"></div>
-                    <div class="tooltip-inner bg-white text-dark p-4" 
-                         style="max-width: none !important; 
-                                width: 600px !important;
-                                min-width: 400px !important;
-                                font-size: 0.875rem; 
-                                box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1);
-                                border-radius: 0.5rem;">
-                    </div>
-                </div>
-            `,
-            trigger: 'hover click',
-            offset: [0, 10],
-            animation: true,
-            placement: 'left'
-        });
-    }*/
 
     const stopSliceBtn = document.querySelector('[onclick="stopSlice()"]');
     if (stopSliceBtn) {
@@ -1055,7 +1028,7 @@ window.toggleVMState = async function (vmId) {
     if (!vm) return;
 
     const isPaused = vm.status === 'paused';
-    const endpoint = isPaused ? 'resume-vm' : 'pause-vm';
+    const endpoint = `/User/api/slice/vm/${vmId}/${isPaused ? 'resume' : 'pause'}`;
 
     // Confirmación inicial
     const result = await Swal.fire({
@@ -1086,11 +1059,13 @@ window.toggleVMState = async function (vmId) {
             }
         });
 
-        const response = await fetch(`http://${BACKEND_IP}:${BACKEND_PORT}/${endpoint}/${vmId}`, {
+        const response = await fetch(endpoint, {
             method: 'POST'
         });
 
         const data = await response.json();
+
+        console.log('Respuesta: ', data);
 
         if (data.status === 'success') {
             
@@ -1116,7 +1091,7 @@ window.toggleVMState = async function (vmId) {
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: `Error ${isPaused ? 'reanudando' : 'pausando'} VM: ${error.message}`
+            text: error.message || (isPaused ? 'Ocurrió un error al resumir la VM' : 'Ocurrió un error al pausar la VM'),
         });
     }
 }
@@ -1154,35 +1129,43 @@ async function openVNCConsole(vmId) {
             }
         });
 
-        const startTime = Date.now();
-        const response = await fetch(`http://${BACKEND_IP}:${BACKEND_PORT}/vm-token/${vmId}`, {
-            method: 'POST'
+        // 1. Obtener el token
+        const tokenResponse = await fetch(`/User/api/slice/vm/${vmId}/token`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
-        const data = await response.json();
+        
+        const tokenData = await tokenResponse.json();
+        console.log('Token Response:', tokenData);
 
-        // Ensure minimum loading time of 1 second
-        const elapsed = Date.now() - startTime;
-        if (elapsed < 400) {
-            await new Promise(resolve => setTimeout(resolve, 400 - elapsed));
+        if (tokenData.status !== 'success') {
+            throw new Error(tokenData.message || 'Error al obtener token VNC');
         }
 
-        if (data.status === 'success') {
-            const token = data.content.token;
-            const url = `http://${BACKEND_IP}:${BACKEND_PORT}/vm-vnc/${vmId}?token=${token}`;
-            const newWindow = window.open(url, '_blank', 'noopener=yes,noreferrer=yes');
-            if (newWindow) {
-                window.focus();
-            }
+        // 2. Usar la URL proporcionada directamente por el backend
+        const vncUrl = tokenData.content.url;
+        if (!vncUrl) {
+            throw new Error('URL de VNC no proporcionada por el servidor');
+        }
+
+        // 3. Abrir la ventana VNC con la URL completa
+        const fullVncUrl = `http://localhost:5001/vm-vnc/${vmId}?token=${tokenData.content.token}`;
+        const vncWindow = window.open(fullVncUrl, '_blank');
+        
+        if (vncWindow) {
             Swal.close();
         } else {
-            throw new Error(data.message || 'Error al obtener token VNC');
+            throw new Error('El navegador bloqueó la ventana emergente. Por favor, permite las ventanas emergentes para este sitio.');
         }
 
     } catch (error) {
+        console.error('Error VNC:', error);
         Swal.fire({
-            title: 'Error',
-            text: 'No se pudo establecer la conexión VNC: ' + error.message,
             icon: 'error',
+            title: 'Error',
+            text: 'No se pudo establecer la conexión VNC: ' + (error.message || 'Error desconocido'),
             confirmButtonText: 'OK',
             customClass: {
                 confirmButton: 'btn bg-gradient-primary'
@@ -1335,15 +1318,18 @@ window.restartSlice = function() {
                 }
             });
             
-            fetch(`http://${BACKEND_IP}:${BACKEND_PORT}/restart-slice/${sliceId}`, {
+            fetch(`/User/api/slice/${sliceId}/restart`, {
                 method: 'POST'
             })
             .then(response => response.json())
             .then(data => {
+                console.log('Respuesta: ', data);
+
                 if (data.status === 'success') {
+                    const successMessage = data.message || 'Slice reiniciada correctamente';
                     Swal.fire({
                         title: 'Éxito',
-                        text: 'Slice reiniciada correctamente',
+                        text: successMessage,
                         icon: 'success',
                         timer: 2000,
                         showConfirmButton: false
@@ -1360,7 +1346,7 @@ window.restartSlice = function() {
             .catch(error => {
                 Swal.fire({
                     title: 'Error',
-                    text: 'Ocurrió un error al reiniciar la slice: ' + error.message,
+                    text: error.message || 'Error al reiniciar la slice',
                     icon: 'error',
                     confirmButtonText: 'OK',
                     customClass: {
@@ -1402,13 +1388,15 @@ window.stopSlice = function() {
             });
             
             $.ajax({
-                url: `http://${BACKEND_IP}:${BACKEND_PORT}/stop-slice/${sliceId}`,
+                url: `/User/api/slice/${sliceId}/stop`,
                 method: 'POST',
                 success: function(response) {
+                    console.log('Respuesta: ', response);
+                    const successMessage = response.message || 'Slice detenida correctamente';
                     if (response.status === 'success') {
                         Swal.fire({
                             title: 'Éxito',
-                            text: 'Slice detenida correctamente',
+                            text: successMessage,
                             icon: 'success',
                             confirmButtonText: 'OK',
                             customClass: {
@@ -1425,9 +1413,12 @@ window.stopSlice = function() {
 
                 },
                 error: function(xhr, status, error) {
+                    const response = JSON.parse(xhr.responseText);
+                    const errorMessage = response.message || response.details || 'Error al detener la slice';
+                    console.log('Respuesta: ', response);
                     Swal.fire({
                         title: 'Error',
-                        text: 'Ocurrió un error al detener la slice',
+                        text: errorMessage,
                         icon: 'error',
                         confirmButtonText: 'OK',
                         customClass: {
@@ -1473,7 +1464,7 @@ window.restartVM = async function(vmId) {
             }
         });
 
-        const response = await fetch(`http://${BACKEND_IP}:${BACKEND_PORT}/restart-vm/${vmId}`, {
+        const response = await fetch(`/User/api/slice/vm/${vmId}/restart`, {
             method: 'POST'
         });
 
@@ -1482,10 +1473,12 @@ window.restartVM = async function(vmId) {
         if (data.status === 'success') {
             closeAllModals();
 
+            const successMessage = data.message || 'VM reiniciada correctamente';
+
             Swal.fire({
                 icon: 'success',
                 title: 'Éxito',
-                text: data.message,
+                text: successMessage,
                 timer: 1500,
                 showConfirmButton: false
             });
@@ -1502,7 +1495,7 @@ window.restartVM = async function(vmId) {
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: `Error reiniciando VM: ${error.message}`
+            text: error.message || 'Ocurrió un error al reiniciar la VM',
         });
     }
 }
@@ -1511,22 +1504,36 @@ window.restartVM = async function(vmId) {
 async function loadResources() {
     try {
         // Cargar flavors
-        const flavorsResponse = await fetch(`http://${BACKEND_IP}:${BACKEND_PORT}/resources/flavors`);
+        const flavorsResponse = await fetch('/User/api/sketch/resources/flavors');
         const flavorsData = await flavorsResponse.json();
         if (flavorsData.status === 'success') {
             AVAILABLE_FLAVORS = flavorsData.content;
         }
 
         // Cargar imágenes
-        const imagesResponse = await fetch(`http://${BACKEND_IP}:${BACKEND_PORT}/resources/images`);
+        const imagesResponse = await fetch('/User/api/sketch/resources/images');
         const imagesData = await imagesResponse.json();
         if (imagesData.status === 'success') {
             AVAILABLE_IMAGES = imagesData.content;
         }
+
+        console.log('Recursos cargados:', { flavors: AVAILABLE_FLAVORS, images: AVAILABLE_IMAGES });
+
     } catch (error) {
         console.error('Error cargando recursos:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudieron cargar los recursos necesarios',
+            confirmButtonText: 'Entendido',
+            customClass: {
+                confirmButton: 'btn bg-gradient-primary'
+            },
+            buttonsStyling: false
+        });
     }
 }
+
 function showContextMenu(vm, event) {
     const contextMenu = document.getElementById('contextMenu');
     if (!contextMenu) return;
@@ -1613,10 +1620,8 @@ function hideContextMenu() {
         contextMenu.classList.remove('animate__jackInTheBox');
         contextMenu.classList.add('animate__fadeOut');
         setTimeout(() => {
-            if(!contextMenu.classList.contains('animate__jackInTheBox')) {
-                contextMenu.style.display = 'none';
-                currentContextNode = null;
-            }
+            contextMenu.style.display = 'none';
+            currentContextNode = null;
         }, 1000);
     }
 }
