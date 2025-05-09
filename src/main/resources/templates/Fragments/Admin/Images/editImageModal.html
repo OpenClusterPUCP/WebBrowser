@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="editImageModal" class="modal" id="editImageModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Editar Imagen</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="editImageForm" enctype="multipart/form-data">
+                <input type="hidden" id="editImageId">
+                <!-- Name field - 45 characters max -->
+                <div class="form-group">
+                    <label class="form-label required" for="editImageName">Nombre</label>
+                    <input type="text" id="editImageName" name="name" class="form-control"
+                           maxlength="45" required>
+                    <div class="char-counter">0/45</div>
+                </div>
+                <!-- Type field -->
+                <div class="form-group">
+                    <label class="form-label required" for="editImageType">Tipo</label>
+                    <select id="editImageType" name="type" class="form-control" required>
+                        <option value="public">Público</option>
+                        <option value="private">Privado</option>
+                    </select>
+                </div>
+                <!-- Description field - 200 characters max -->
+                <div class="form-group">
+                    <label class="form-label" for="editImageDescription">Descripción</label>
+                    <textarea id="editImageDescription" name="description" class="form-control"
+                              rows="3" placeholder="Descripción de la imagen" maxlength="200"></textarea>
+                    <div class="char-counter">0/200</div>
+                </div>
+                <!-- Hidden fields -->
+                <input type="hidden" id="editUserId" name="userId">
+                <input type="hidden" id="adminId" name="adminId">
+                <input type="hidden" id="editImageState" name="state" value="active">
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" id="cancelEditImage">Cancelar</button>
+            <button class="btn btn-primary" id="saveEditImage">Guardar Cambios</button>
+        </div>
+    </div>
+</div>
+</body>
+</html>

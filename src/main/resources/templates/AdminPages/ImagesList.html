@@ -266,6 +266,12 @@
             padding: 15px 20px;
             position: relative;
         }
+        /* Estilo para acciones deshabilitadas */
+        .disabled-actions {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
 
         .popup-title {
             margin: 0;
@@ -689,31 +695,32 @@
                     data: null,
                     orderable: false,
                     render: function(data) {
-                        // Action buttons: View description, Download, Edit, Delete
+                        console.log(data.show);
+
+                        // Determinar la clase de opacidad basada en data.show
+                        const opacityClass = data.show === false ? 'disabled-actions' : '';
+
+                        // Action buttons: View description, Edit, Delete
                         const descriptionBtn = `<button class="btn-action btn-info btn-description" data-id="${data.id}" data-description="${data.description || 'Sin descripción'}" title="Ver descripción">
-                <i class="fas fa-info-circle"></i>
-            </button>`;
+            <i class="fas fa-info-circle"></i>
+        </button>`;
 
-                        const downloadBtn = `<button class="btn-action btn-success btn-download" data-id="${data.id}" title="Descargar imagen">
-                <i class="fas fa-download"></i>
-            </button>`;
+                        const editBtn = `<button class="btn-action btn-edit ${opacityClass}" data-id="${data.id}" title="Editar imagen">
+            <i class="fas fa-edit"></i>
+        </button>`;
 
-                        const editBtn = `<button class="btn-action btn-edit" data-id="${data.id}" title="Editar imagen">
-                <i class="fas fa-edit"></i>
-            </button>`;
-
-                        // Always include delete button, regardless of state
-                        const deleteBtn = `<button class="btn-action btn-delete" data-id="${data.id}" title="Eliminar imagen">
-                <i class="fas fa-trash-alt"></i>
-            </button>`;
+                        const deleteBtn = `<button class="btn-action btn-delete ${opacityClass}" data-id="${data.id}" title="Eliminar imagen">
+            <i class="fas fa-trash-alt"></i>
+        </button>`;
 
                         return `
-                <div class="actions-container">
-                    ${descriptionBtn}
-                    ${editBtn}
-                    ${deleteBtn}
-                </div>
-            `;
+            <div class="actions-container">
+                ${descriptionBtn}
+                ${editBtn}
+                ${deleteBtn}
+            </div>
+        `;
+
                     }
                 }
                 ],
@@ -1565,7 +1572,8 @@
                             state: item.type.toLowerCase(),
                             exitState: item.state, // Save real state for delete button
                             description: item.description, // Save description for popup
-                            path: item.path // Path for downloads
+                            path: item.path , // Path for downloads
+                            show: item.show // Añadir el nuevo parámetro show
                         };
                     });
 
@@ -2225,7 +2233,35 @@
             });
         }
     });
+    // Event listener for action buttons in the table
+    document.querySelector('#imagesTable tbody').addEventListener('click', function(e) {
+        // Verificar si el botón está deshabilitado
+        if (e.target.closest('.disabled-actions')) {
+            return; // No hacer nada si el botón está deshabilitado
+        }
 
+        // El resto del código existente para manejar los botones...
+        // Description button
+        const descriptionBtn = e.target.closest('.btn-description');
+        if (descriptionBtn) {
+            const description = descriptionBtn.dataset.description;
+            showDescription(description);
+        }
+
+        // Edit button
+        const editBtn = e.target.closest('.btn-edit');
+        if (editBtn) {
+            const imageId = parseInt(editBtn.dataset.id);
+            openEditModal(imageId);
+        }
+
+        // Delete button
+        const deleteBtn = e.target.closest('.btn-delete');
+        if (deleteBtn) {
+            const imageId = deleteBtn.dataset.id;
+            // El resto de tu código para eliminar...
+        }
+    });
 </script>
 </body>
 </html>

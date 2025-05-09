@@ -350,7 +350,7 @@ document.addEventListener('DOMContentLoaded', function() {
             name: document.getElementById('flavorName').value,
             vcpu: parseInt(document.getElementById('flavorVcpu').value),
             ram: parseInt(document.getElementById('flavorRam').value),
-            disk: parseInt(document.getElementById('flavorStorage').value),
+            disk: document.getElementById('flavorStorage').value,
             type: document.getElementById('flavorState').value
         };
 
@@ -427,7 +427,7 @@ document.addEventListener('DOMContentLoaded', function() {
             name: document.getElementById('flavorName').value,
             vcpu: parseInt(document.getElementById('flavorVcpu').value),
             ram: parseInt(document.getElementById('flavorRam').value),
-            disk: parseInt(document.getElementById('flavorStorage').value),
+            disk: document.getElementById('flavorStorage').value,
             type: document.getElementById('flavorState').value
         };
 

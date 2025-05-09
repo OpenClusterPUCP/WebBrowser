@@ -60,9 +60,7 @@ public class AdminImagesApiController {
     public ResponseEntity<?> listUserImages(
             @PathVariable Integer userId,
             HttpSession session) {
-
         log.info("Request to list images for user ID: {}", userId);
-
         // Obtener el token de autenticación de la sesión
         String token = getTokenFromSession(session);
         if (token == null) {
@@ -70,10 +68,7 @@ public class AdminImagesApiController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Authentication required"));
         }
-
-        // Llamar al servicio para obtener las imágenes
         Object result = imageService.getUserImages(token, userId);
-
         return ResponseEntity.ok(result);
     }
 

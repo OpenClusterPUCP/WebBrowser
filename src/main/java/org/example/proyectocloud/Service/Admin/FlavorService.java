@@ -155,6 +155,7 @@ public class FlavorService {
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         // No es necesario crear un LinkedHashMap adicional, simplemente usamos el objeto FlavorRequest
+
         HttpEntity<FlavorRequest> entity = new HttpEntity<>(flavor, headers);
 
         try {

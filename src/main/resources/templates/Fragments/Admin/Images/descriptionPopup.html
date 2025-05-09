@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="descriptionPopup">
+    <div id="descriptionPopup" style="display: none;">
+        <div class="popup-header">
+            <h4 class="popup-title">Descripción de la Imagen</h4>
+            <button class="popup-close">&times;</button>
+        </div>
+        <div class="popup-body">
+            <p id="popupDescription"></p>
+        </div>
+    </div>
+    <div id="popupOverlay" style="display: none;"></div>
+</div>
+</body>
+</html>

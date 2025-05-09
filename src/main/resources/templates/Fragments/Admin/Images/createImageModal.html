@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="createImageModal" class="modal" id="createImageModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Crear Nueva Imagen</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="imageForm" enctype="multipart/form-data" novalidate>
+                <!-- Name field - 45 characters max -->
+                <div class="form-group">
+                    <label class="form-label required" for="imageName">Nombre</label>
+                    <input type="text" id="imageName" name="name" class="form-control"
+                           placeholder="Ingrese nombre de la imagen" maxlength="45" required>
+                    <div class="form-help-tooltip">
+                        <i class="fas fa-question-circle"></i>
+                        <span class="tooltip-text">Puede contener letras, números, guiones, puntos y espacios (máximo 45 caracteres)</span>
+                    </div>
+                    <div class="char-counter">0/45</div>
+                </div>
+
+                <!-- Type field - defaults to 'public' -->
+                <div class="form-group">
+                    <label class="form-label required" for="imageType">Tipo</label>
+                    <select id="imageType" name="type" class="form-control" required>
+                        <option value="public" selected>Público</option>
+                        <option value="private">Privado</option>
+                    </select>
+                    <div class="form-help-tooltip">
+                        <i class="fas fa-question-circle"></i>
+                        <span class="tooltip-text">Estado inicial de la imagen. Por defecto: Público</span>
+                    </div>
+                </div>
+
+                <!-- Hidden user ID field -->
+                <input type="hidden" id="userId" name="userId">
+
+                <!-- OS field - 45 characters max -->
+                <div class="form-group">
+                    <label class="form-label required" for="imageOS">Sistema Operativo</label>
+                    <select id="imageOS" name="so" class="form-control" required>
+                        <option value="" disabled selected>Seleccione un sistema operativo</option>
+                        <option value="ubuntu">Ubuntu</option>
+                        <option value="centos">CentOS</option>
+                        <option value="debian">Debian</option>
+                        <option value="fedora">Fedora</option>
+                        <option value="windows">Windows</option>
+                        <option value="other">Otro</option>
+                    </select>
+                </div>
+
+                <!-- Other OS field (hidden by default) -->
+                <div class="form-group" id="otherOSGroup" style="display: none;">
+                    <label class="form-label required" for="otherOS">Especificar otro OS</label>
+                    <input type="text" id="otherOS" name="otherOS" class="form-control"
+                           placeholder="Especifique el sistema operativo" maxlength="45">
+                    <div class="char-counter">0/45</div>
+                </div>
+
+                <!-- Version field -->
+                <div class="form-group">
+                    <label class="form-label required" for="imageVersion">Versión</label>
+                    <input type="text" id="imageVersion" name="version" class="form-control"
+                           placeholder="Ingrese versión del sistema operativo" maxlength="45" required>
+                    <div class="form-help-tooltip">
+                        <i class="fas fa-question-circle"></i>
+                        <span class="tooltip-text">Por ejemplo: 20.04, 8.5, 11 (máximo 45 caracteres)</span>
+                    </div>
+                    <div class="char-counter">0/45</div>
+                </div>
+
+                <!-- Disk size field - in MB -->
+                <div class="form-group">
+                    <label class="form-label required" for="imageDisco">Tamaño de Disco (MB)</label>
+                    <input type="number" id="imageDisco" name="size" class="form-control"
+                           min="1" placeholder="Ingrese tamaño en MB" required>
+                    <div class="form-help-tooltip">
+                        <i class="fas fa-question-circle"></i>
+                        <span class="tooltip-text">Tamaño de disco en megabytes (MB)</span>
+                    </div>
+                </div>
+
+                <!-- Hidden disk formatted field -->
+                <input type="hidden" id="imageSize" name="disco">
+
+                <!-- File upload field -->
+                <div class="form-group">
+                    <label class="form-label" for="imageFile">Archivo de Imagen</label>
+                    <div class="custom-file-input">
+                        <div id="dragLabel">Arrastra y suelta un archivo o haz clic para seleccionar</div>
+                        <input type="file" id="imageFile" name="imageFile" class="form-control"
+                               accept=".iso,.img,.qcow2,.vdi,.vmdk,.vhd,.vhdx,.ova">
+                        <small class="form-text text-muted">Formatos aceptados: ISO, QCOW2, VMDK, VDI, VHD, VHDX, OVA</small>
+                    </div>
+                </div>
+
+                <!-- Description field - 200 characters max -->
+                <div class="form-group">
+                    <label class="form-label" for="imageDescription">Descripción</label>
+                    <textarea id="imageDescription" name="description" class="form-control"
+                              rows="3" placeholder="Añada una descripción para esta imagen" maxlength="200"></textarea>
+                    <div class="char-counter">0/200</div>
+                </div>
+
+                <!-- Hidden state field - default to "active" -->
+                <input type="hidden" id="imageState" name="state" value="active">
+            </form>
+
+            <!-- Disk size warning banner -->
+            <div class="disk-size-warning" style="display: none;">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>Importante:</strong> El tamaño de disco especificado debe ser suficiente para que la máquina virtual pueda arrancar correctamente. Un tamaño insuficiente podría hacer que la VM no funcione.
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" id="cancelImage">Cancelar</button>
+            <button class="btn btn-primary" id="saveImage">Guardar</button>
+        </div>
+    </div>
+</div>
+</body>
+</html>

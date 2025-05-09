@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenCluster - Gestión de Imágenes</title>
+
+    <!-- CSS Dependencies -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" th:href="@{/css/admin-styles.css}">
+    <link rel="stylesheet" th:href="@{/css/enhanced-image-management.css}">
+    <link rel="stylesheet" th:href="@{/css/images-custom-styles.css}">
+</head>
+<body>
+<div class="app-container">
+    <!-- Sidebar -->
+    <div th:replace="~{Fragments/Admin/sidebar :: sidebar('images')}"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <div th:replace="~{Fragments/Admin/header :: header(title='Imágenes')}"></div>
+
+        <section class="page-content">
+            <div class="content-header">
+                <h2 class="content-title">Gestión de Imágenes</h2>
+                <div class="header-actions">
+                    <button class="btn btn-primary" id="btnCreateImage">
+                        <i class="fas fa-plus-circle"></i>
+                        <span class="btn-text">Nueva Imagen</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Alert Container -->
+            <div id="alertContainer" class="alert-container" style="display: none;">
+                <div id="alertMessage" class="alert"></div>
+            </div>
+
+            <!-- Images Table -->
+            <div class="card">
+                <div class="card-body">
+                    <table id="imagesTable" class="table table-striped" style="width:100%">
+                        <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Sistema Operativo</th>
+                            <th>Versión</th>
+                            <th>Disco (MB)</th>
+                            <th>Tamaño (MB)</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <!-- Data will be loaded with AJAX -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <div th:replace="~{Fragments/Admin/footer :: footer}"></div>
+    </main>
+</div>
+
+<!-- Modals -->
+<div th:replace="~{Fragments/Admin/Images/createImageModal :: createImageModal}"></div>
+<div th:replace="~{Fragments/Admin/Images/editImageModal :: editImageModal}"></div>
+<div th:replace="~{Fragments/Admin/Images/descriptionPopup :: descriptionPopup}"></div>
+
+<!-- JavaScript Dependencies -->
+<script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- Application JavaScript -->
+<script th:src="@{/js/admin/images/constants.js}"></script>
+<script th:src="@{/js/admin/images/validation.js}"></script>
+<script th:src="@{/js/admin/images/ui-helpers.js}"></script>
+<script th:src="@{/js/admin/images/file-handlers.js}"></script>
+<script th:src="@{/js/admin/images/modal-handlers.js}"></script>
+<script th:src="@{/js/admin/images/data-operations.js}"></script>
+<script th:src="@{/js/admin/images/table-renderer.js}"></script>
+<script th:src="@{/js/admin/images/event-handlers.js}"></script>
+<script th:src="@{/js/admin/images/main.js}"></script>
+
+</body>
+</html>
