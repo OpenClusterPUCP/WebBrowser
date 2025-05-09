@@ -907,6 +907,8 @@ window.saveSketch = async function() {
                     confirmButton: 'btn bg-gradient-primary'
                 },
                 buttonsStyling: false
+            }).then(() => {
+                window.location.href = '/User/sketch/list';
             });
         } else {
             throw new Error(result.message || 'Error al actualizar el sketch');
@@ -1241,7 +1243,6 @@ function createStarTopology(vmCount, imageId, flavorId) {
 // ===================== ACCIONES RÁPIDAS =====================
 
 function arrangeTopology() {
-    if (!network || visDataset.nodes.length === 0) return;
 
     network.setOptions({ physics: { enabled: true } });
     network.stabilize(80);
