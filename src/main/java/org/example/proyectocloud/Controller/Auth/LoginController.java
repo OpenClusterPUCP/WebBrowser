@@ -104,6 +104,7 @@ public class LoginController {
                 userInfo.setName((String) tokenData.get("name"));
                 userInfo.setLastname((String) tokenData.get("lastname"));
                 userInfo.setUsername((String) tokenData.get("username"));
+                userInfo.setCode((String) tokenData.get("code"));
                 userInfo.setJwt((String) tokenData.get("jwt"));
                 userInfo.setRole(role); // Store the original role without prefix
                 // Save UserInfo to session

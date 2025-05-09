@@ -2,21 +2,6 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <style>
-        .avatar {
-            background: linear-gradient(135deg, #6a11cb, #2575fc); /* Degradado */
-            color: white; /* Color del texto */
-            font-weight: bold; /* Texto en negrita */
-            font-size: 1.2rem; /* Tamaño del texto */
-            width: 50px; /* Ancho */
-            height: 50px; /* Alto */
-            display: flex; /* Centrar contenido */
-            align-items: center; /* Centrar verticalmente */
-            justify-content: center; /* Centrar horizontalmente */
-            border-radius: 50%; /* Bordes redondeados */
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Sombra */
-        }
-    </style>
 </head>
 <body>
 <header th:fragment="header(title)" class="header">
@@ -28,36 +13,27 @@
     </div>
 
     <div class="header-right">
-        <div class="search-box">
-            <i class="fas fa-search"></i>
-            <input type="text" placeholder="Buscar...">
-        </div>
 
         <!-- Perfil de usuario -->
         <div class="user-profile">
             <div class="user-info">
                 <!-- Avatar con iniciales -->
-                <div class="avatar" th:text="${userInitials}">JD</div>
-                <div class="user-details">
-                    <!-- Nombre completo del usuario -->
-                    <div class="user-name" th:text="${userName}">Juan Díaz</div>
-                    <!-- Rol del usuario -->
-                    <div class="user-role" th:text="${userRole}">Administrador</div>
-                </div>
+                <div class="avatar" th:text="${session.userInfo.getInitials()}">JD</div>
             </div>
 
             <!-- Dropdown del perfil -->
             <div class="user-dropdown">
                 <div class="user-dropdown-header">
-                    <div class="user-dropdown-name" th:text="${userName}">Juan Díaz</div>
-                    <div class="user-dropdown-role" th:text="${userRole}">Administrador</div>
+                    <div class="user-dropdown-name text-bolder" th:text="${session.userInfo.getFullName()}">Juan Díaz</div>
+                    <div class="user-dropdown-name text-secondary" th:text="${session.userInfo.getCode() != null ? session.userInfo.getCode() : '-'}">Juan Díaz</div>
+                    <div class="badge bg-dark mt-2" th:text="${session.userInfo.getRoleBonito()}">Administrador</div>
                 </div>
                 <div class="user-dropdown-items">
-                    <a th:href="@{/admin/profile}" class="user-dropdown-item">
+                    <a th:href="@{/User/profile}" class="user-dropdown-item">
                         <i class="fas fa-user"></i>
                         <span>Mi Perfil</span>
                     </a>
-                    <a th:href="@{/admin/settings}" class="user-dropdown-item">
+                    <a th:href="@{/User/settings}" class="user-dropdown-item">
                         <i class="fas fa-cog"></i>
                         <span>Configuración</span>
                     </a>

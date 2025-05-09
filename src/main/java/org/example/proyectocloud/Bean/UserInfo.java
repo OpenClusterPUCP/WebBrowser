@@ -7,6 +7,7 @@ public class UserInfo implements Serializable {
     private String name;
     private String lastname;
     private String username;
+    private String code;
     private String jwt;
     private String role;
 
@@ -56,5 +57,31 @@ public class UserInfo implements Serializable {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public void setCode(String code) {
+        this.code = code;
+    }
+
+    public String getInitials(){
+        return name.substring(0, 1).toUpperCase() + lastname.substring(0, 1).toUpperCase();
+    }
+
+    public String getFullName(){
+        return name + " " + lastname;
+    }
+
+    public String getRoleBonito(){
+        if(role.toLowerCase().contains("admin")){
+            return "Administrador";
+        }else if(role.toLowerCase().contains("user")){
+            return "Usuario";
+        }else{
+            return "Desconocido";
+        }
     }
 }

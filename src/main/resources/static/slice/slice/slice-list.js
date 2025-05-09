@@ -109,7 +109,7 @@ $(document).ready(async function() {
                 badgeClass = 'bg-secondary';
                 statusText = status;
         }
-        return `<span class="badge ${badgeClass}">${statusText}</span>`;
+        return `<span class="badge ${badgeClass}" style="min-width: 124px !important;">${statusText}</span>`;
     }
 
     // Función helper para truncar texto
@@ -178,7 +178,7 @@ $(document).ready(async function() {
                 { 
                     data: 'resources',
                     render: data => {
-                        const ramInGB = data?.ram ? Math.round(data.ram / 1024 * 10) / 10 : 0;
+                        const ramInGB = data?.ram ? Math.round(data.ram / 1000 * 1000) / 1000 : 0;
                         return `<span>${ramInGB} GB</span>`;
                     }
                 },
@@ -235,7 +235,7 @@ $(document).ready(async function() {
             dom: '<"row mb-3"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
                 '<"row"<"col-sm-12 table-responsive"tr>>' +
                 '<"row table-footer"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
-            order: [[0, 'asc']],
+            order: [[0, 'desc']],
             orderCellsTop: true,
             scrollX: true,
             scrollCollapse: true,
@@ -573,9 +573,10 @@ $(document).ready(async function() {
                     },
                     buttonsStyling: false,
                     reverseButtons: true
-                }).then((result) => {
-                    if (result.isConfirmed && result.data?.slice_id) {
-                        window.location.href = `/User/slice/${result.data.slice_id}`;
+                }).then((resultAlert) => {
+                    console.log('Resultado de la alerta:', result);
+                    if (resultAlert.isConfirmed && result.details?.slice_id) {
+                        window.location.href = `/User/slice/${result.details.slice_id}`;
                     }
                 });
             } else {
