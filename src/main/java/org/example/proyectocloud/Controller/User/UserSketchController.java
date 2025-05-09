@@ -17,12 +17,12 @@ public class UserSketchController {
 
     @GetMapping("/list")
     public String verSketchs(){
-        return "/UserPages/SketchList";
+        return "UserPages/SketchList";
     }
 
     @GetMapping("/creator")
     public String crearSketch(){
-        return "/UserPages/SketchCreator";
+        return "UserPages/SketchCreator";
     }
 
     @GetMapping("/{sketchId}")

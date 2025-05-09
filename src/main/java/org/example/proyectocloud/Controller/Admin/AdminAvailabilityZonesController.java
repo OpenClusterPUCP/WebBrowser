@@ -63,7 +63,7 @@ public class AdminAvailabilityZonesController {
         model.addAttribute("globalStats", stats);
         System.out.println(stats.getTotalCpu());
 
-        return "/AdminPages/AvailabilityZones";
+        return "AdminPages/AvailabilityZones";
     }
 
 

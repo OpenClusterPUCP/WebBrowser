@@ -10,6 +10,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 public class AdminScketchViewController {
     @GetMapping("/scketch")
     public String verScketch(){
-        return "/AdminPages/Scketch";
+        return "AdminPages/Scketch";
     }
 }

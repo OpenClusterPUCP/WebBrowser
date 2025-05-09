@@ -65,7 +65,7 @@ public class AdminController {
     public String verSlices(Model model) {
         log.info("Accediendo a gestión de slices");
         model.addAttribute("activeMenu", "slices");
-        return "/AdminPages/SlicesList";
+        return "AdminPages/SlicesList";
     }
 
     /**
@@ -187,7 +187,7 @@ public class AdminController {
             model.addAttribute("security", createStaticSecurity());
 
             model.addAttribute("activeMenu", "profile");
-            return "/AdminPages/AdminProfile";
+            return "AdminPages/AdminProfile";
         }
     }
 

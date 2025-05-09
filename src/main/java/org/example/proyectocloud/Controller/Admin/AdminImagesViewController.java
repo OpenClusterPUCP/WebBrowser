@@ -28,6 +28,6 @@ public class AdminImagesViewController {
         log.info("Accediendo a gestión de slices");
         model.addAttribute("activeMenu", "flavors");
         model.addAttribute("idUser" , getUserIdFromSession(session));
-        return "/AdminPages/ImagesList";
+        return "AdminPages/ImagesList";
     }
 }

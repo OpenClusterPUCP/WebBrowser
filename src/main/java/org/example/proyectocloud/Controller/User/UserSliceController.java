@@ -27,14 +27,14 @@ public class UserSliceController {
     @GetMapping("/list")
     public String verSlices(){
         System.out.println("UserInfo: "+ ((UserInfo) session.getAttribute("userInfo")).toString());
-        return "/UserPages/SliceList";
+        return "UserPages/SliceList";
     }
 
     @GetMapping({"/{sliceId}"})
     public String verSlice(@PathVariable("sliceId") String sliceId, Model model) {
         try {
             model.addAttribute("sliceId", sliceId);
-            return "/UserPages/SliceView";
+            return "UserPages/SliceView";
         } catch (Exception e) {
             model.addAttribute("error", "Error al cargar el Slice: " + e.getMessage());
             return "redirect:/User/slice/list";

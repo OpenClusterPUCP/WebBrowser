@@ -24,15 +24,15 @@ import org.springframework.web.client.RestTemplate;
 public class AuthDao {
     @Autowired
     private ObjectMapper objectMapper;
-    public String ipGateway ="localhost";
 
-    public String portGateway = "8090";
+    @Value("${api.gateway.url}")
+    private String API_GATEWAY_URL;
 
     @Autowired
     private RestTemplate restTemplate;
 
     public Object autenticarYObtenerJwt(String username, String password) {
-        String url = "http://" + ipGateway + ":" + portGateway + "/ayudenme";
+        String url = API_GATEWAY_URL+ "/ayudenme";
 
         // Crear mapa para la solicitud en lugar de usar la clase LoginRequest
         LinkedHashMap<String, Object> requestMap = new LinkedHashMap<>();

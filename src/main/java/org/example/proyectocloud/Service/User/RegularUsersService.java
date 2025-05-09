@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.example.proyectocloud.DTO.Admin.Users.UserDTO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -31,8 +32,8 @@ public class RegularUsersService {
     private ObjectMapper objectMapper = new ObjectMapper();
 
     // URL base para el API Gateway
-    private static final String API_GATEWAY_URL = "http://localhost:8090";
-
+    @Value("${api.gateway.url}")
+    private String API_GATEWAY_URL;
     /**
      * Método auxiliar para crear headers de autorización con token JWT.
      *

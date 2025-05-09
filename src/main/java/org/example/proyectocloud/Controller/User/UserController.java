@@ -13,7 +13,7 @@ public class UserController {
 
     @GetMapping("/slices")
     public String verSlicesXD(){
-        return "/UserPages/SlicesList";
+        return "UserPages/SlicesList";
     }
 
 }

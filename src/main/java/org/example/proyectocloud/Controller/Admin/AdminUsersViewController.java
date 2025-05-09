@@ -54,7 +54,7 @@ public class AdminUsersViewController {
         model.addAttribute("usersData", usersData);
         model.addAttribute("activeMenu", "users");
 
-        return "/AdminPages/UsersList";
+        return "AdminPages/UsersList";
     }
 
 
@@ -88,7 +88,7 @@ public class AdminUsersViewController {
         model.addAttribute("activeMenu", "users");
         model.addAttribute("isNew", false);
 
-        return "/AdminPages/UserForm";
+        return "AdminPages/UserForm";
     }
 
     /**
@@ -120,7 +120,7 @@ public class AdminUsersViewController {
         model.addAttribute("user", user);
         model.addAttribute("activeMenu", "users");
 
-        return "/AdminPages/UserDetail";
+        return "AdminPages/UserDetail";
     }
 
     /**
@@ -152,6 +152,6 @@ public class AdminUsersViewController {
         model.addAttribute("roleId", roleId);
         model.addAttribute("activeMenu", "users");
 
-        return "/AdminPages/UsersList";
+        return "AdminPages/UsersList";
     }
 }
