@@ -251,10 +251,10 @@ public class UserSliceApiController {
         }
     }
 
-    @PostMapping("/vm/{vmId}/token")
+    @GetMapping("/vm/{vmId}")
     @ResponseBody
-    public ResponseEntity<?> getVMToken(@PathVariable Integer vmId, HttpSession session) {
-        log.info("Recibida petición para obtener un token de acceso a consola/pantall de VM: {}", vmId);
+    public ResponseEntity<?> getVMDetails(@PathVariable Integer vmId, HttpSession session) {
+        log.info("Recibida petición para obtener detalles de VM: {}", vmId);
         try {
             String token = getTokenFromSession(session);
             Integer userId = getUserIdFromSession(session);
@@ -264,40 +264,13 @@ public class UserSliceApiController {
                     .body(Map.of("status", "error", "message", "Sesión no válida"));
             }
 
-            Object result = sliceService.getVMToken(token, vmId, userId);
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            log.error("Error al pausar la VM: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("status", "error", "message", e.getMessage()));
-        }
-    }
-
-    @GetMapping("/vm/{vmId}/vnc")
-    @ResponseBody
-    public ResponseEntity<?> getVMVncUrl(
-        @PathVariable Integer vmId, 
-        @RequestParam String token,  
-        HttpSession session
-    ) {
-        log.info("Recibida petición para obtener URL VNC de VM: {}", vmId);
-        try {
-
-            String tokenUser = getTokenFromSession(session);
-            Integer userId = getUserIdFromSession(session);
-            
-            if (tokenUser == null || userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("status", "error", "message", "Sesión no válida"));
-            }
-
-            Object result = sliceService.getVMVncUrl(token, tokenUser, vmId, userId);
-            log.info("Respuesta del service: {}", result);
+            Object result = sliceService.getVMDetails(token, vmId, userId);
+            log.info("Respuesta del service para VM {}: {}", vmId, result);
             
             return ResponseEntity.ok(result);
 
         } catch (Exception e) {
-            log.error("Error al obtener URL VNC: {}", e.getMessage());
+            log.error("Error al obtener detalles de VM: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of(
                     "status", "error",
@@ -305,7 +278,6 @@ public class UserSliceApiController {
                 ));
         }
     }
-
 
 
 }

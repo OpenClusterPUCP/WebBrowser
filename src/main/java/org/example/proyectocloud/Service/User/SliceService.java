@@ -247,31 +247,41 @@ public class SliceService {
             throw ex;
         }
     }
-    
-    public Object getVMToken(String token, Integer vmId, Integer userId) {
+
+    public Object getVMDetails(String token, Integer vmId, Integer userId) {
+        log.info("Obteniendo detalles de VM {} para usuario {}", vmId, userId);
+
+        String url = UriComponentsBuilder
+                .fromUriString(API_GATEWAY_URL + "/slice-manager/vm/" + vmId)
+                .queryParam("user_id", userId)
+                .toUriString();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+        
         try {
-            String url = UriComponentsBuilder
-            .fromUriString(API_GATEWAY_URL + "/slice-manager/vm-token/" + vmId)
-            .queryParam("user_id", userId)
-            .toUriString();
-            
-            HttpHeaders headers = createAuthHeaders(token);
-            HttpEntity<String> entity = new HttpEntity<>(headers);
-            
-            ResponseEntity<LinkedHashMap> response = restTemplate.exchange(
+            ResponseEntity<Object> response = restTemplate.exchange(
                 url,
-                HttpMethod.POST,
+                HttpMethod.GET,
                 entity,
-                LinkedHashMap.class
+                Object.class
             );
             
+            log.info("Respuesta del backend para VM {}: {}", vmId, response.getBody());
             return response.getBody();
-        } catch (Exception ex) {
-            log.error("Error al obtener token de VM: {}", ex.getMessage(), ex);
-            throw ex;
+            
+        } catch (HttpClientErrorException e) {
+            log.error("Error del cliente HTTP al obtener detalles de VM: {}", e.getMessage());
+            throw new RuntimeException("Error al obtener detalles de VM: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Error al obtener detalles de VM: {}", e.getMessage());
+            throw new RuntimeException("Error inesperado al obtener detalles de VM");
         }
     }
-
+    
     public Object getVMVncUrl(String tokenVM, String tokenUser, Integer vmId, Integer userId) {
         try {
             String url = UriComponentsBuilder

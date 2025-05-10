@@ -34,7 +34,13 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-
+                .headers(headers -> headers
+                        .frameOptions(frame -> frame.sameOrigin())
+                        .xssProtection(xss -> xss.disable())
+                        .contentSecurityPolicy(csp -> csp
+                        .policyDirectives("frame-ancestors 'self' http://localhost:* https://localhost:*; " +
+                                        "frame-src 'self' http://localhost:* https://localhost:*"))
+                )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.ALWAYS))
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(authenticationEntryPoint)
@@ -42,10 +48,9 @@ public class SecurityConfig {
                 ).authorizeHttpRequests(authorize -> authorize
                         // Rutas públicas para autenticación
                         .requestMatchers("/" , "/InicioSesion" , "/recuperarContraseña" , "/Logearse").permitAll()
-
-                        // Rutas públicas para autenticación
                         .requestMatchers("/ResetPassword", "/password-reset", "/password-reset/confirm").permitAll()
-
+                        // Permitir acceso a noVNC y recursos relacionados
+                        .requestMatchers("/novnc/**", "/VNC/**").permitAll()
                         // Rutas protegidas por roles
                         .requestMatchers("/Admin/**" , "Admin/*").hasRole("Admin")
                         .requestMatchers("/User/**", "User/*").hasAnyRole("User")

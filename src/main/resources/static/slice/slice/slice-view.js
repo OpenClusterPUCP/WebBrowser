@@ -1130,7 +1130,7 @@ async function openVNCConsole(vmId) {
         });
 
         // 1. Obtener el token
-        const tokenResponse = await fetch(`/User/api/slice/vm/${vmId}/token`, {
+        const tokenResponse = await fetch(`/User/api/vnc/vm/${vmId}/token`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1151,7 +1151,7 @@ async function openVNCConsole(vmId) {
         }
 
         // 3. Abrir la ventana VNC con la URL completa
-        const fullVncUrl = `http://localhost:5001/vm-vnc/${vmId}?token=${tokenData.content.token}`;
+        const fullVncUrl = `/VNC/vm/${vmId}?token=${tokenData.content.token}`;
         const vncWindow = window.open(fullVncUrl, '_blank');
         
         if (vncWindow) {
