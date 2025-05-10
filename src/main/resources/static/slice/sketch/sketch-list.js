@@ -206,7 +206,7 @@ $(document).ready(async function() {
             dom: '<"row mb-3"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
                 '<"row"<"col-sm-12 table-responsive"tr>>' +
                 '<"row table-footer"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
-            order: [[0, 'asc']],
+            order: [[0, 'desc']],
             orderCellsTop: true,
             scrollX: true,
             scrollCollapse: true,

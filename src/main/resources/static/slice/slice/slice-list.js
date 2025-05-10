@@ -109,7 +109,9 @@ $(document).ready(async function() {
                 badgeClass = 'bg-secondary';
                 statusText = status;
         }
-        return `<span class="badge ${badgeClass}" style="min-width: 124px !important;">${statusText}</span>`;
+        return `<div class="d-flex justify-content-center align-items-center w-100">
+                <span class="badge ${badgeClass}" style="min-width: 124px !important; text-align: center; margin: 0 auto;">${statusText}</span>
+            </div>`;
     }
 
     // Función helper para truncar texto
@@ -252,6 +254,37 @@ $(document).ready(async function() {
             }
         });
     }
+
+    $('.status-filter').on('click', function() {
+        $('.status-filter').removeClass('active');
+        $(this).addClass('active');
+
+        const status = $(this).data('status');
+        
+        table.search('').columns().search('').draw();
+
+        if (status !== 'all') {
+            table.column(8).search(status === 'running' ? 'EJECUCIÓN' : 'DETENIDO', true, false).draw();
+        } else {
+            table.draw();
+        }
+    });
+
+    $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+        const selectedStatus = $('.status-filter.active').data('status');
+        if (selectedStatus === 'all') return true;
+        
+        const statusCell = data[8];
+        
+        switch(selectedStatus) {
+            case 'running':
+                return statusCell.includes('EN EJECUCIÓN');
+            case 'stopped':
+                return statusCell.includes('DETENIDO');
+            default:
+                return true;
+        }
+    });
 
     // Handlers para el botón de acción
     $('#slicesTable').on('click', '.view-slice', function() {

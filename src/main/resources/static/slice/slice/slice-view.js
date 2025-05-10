@@ -806,7 +806,7 @@ function generateVMTooltip(vm) {
     <b>Nombre:</b> ${vm.name}
     <b>Imagen:</b> ${imageName}
     <b>Flavor:</b> ${flavorName}
-    <b>Worker:</b> ${vm.physical_server.name}
+    <b>Servidor Físico:</b> ${vm.physical_server.name}
     <b>Acceso externo:</b> ${hasExternalAccess(vm.id) ? 'Sí' : 'No'}`;
 }
 

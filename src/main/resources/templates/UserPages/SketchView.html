@@ -197,6 +197,23 @@
         :root {
             --animate-delay: 0.2s;
         }
+        
+        .icon-wrapper {
+            flex: 0 0 auto;
+            width: 36px;  /* Ancho fijo */
+            margin-right: 0.5rem;
+        }
+
+        .info-content {
+            flex: 1;
+            min-width: 0;  /* Permite que el contenido se ajuste */
+        }
+
+        .description-text {
+            word-wrap: break-word;
+            white-space: normal;
+            display: block;
+    }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -284,13 +301,17 @@
                             </div>
 
                             <!-- Descripción -->
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="icon icon-shape icon-sm bg-gradient-dark shadow text-center me-2">
-                                    <i class="material-symbols-rounded text-white opacity-10">description</i>
+                            <div class="d-flex align-items-start mb-3">
+                                <div class="icon-wrapper">
+                                    <div class="icon icon-shape icon-sm bg-gradient-dark shadow text-center">
+                                        <i class="material-symbols-rounded text-white opacity-10">description</i>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h6 class="mb-0 text-sm">Descripción</h6>
-                                    <span class="text-xs text-secondary mb-0" id="sketchDescription">Cargando...</span>
+                                <div class="info-content">
+                                    <h6 class="mb-1 text-sm">Descripción</h6>
+                                    <span class="text-xs text-secondary mb-0 description-text" id="sketchDescription">
+                                        Cargando...
+                                    </span>
                                 </div>
                             </div>
                         </div>

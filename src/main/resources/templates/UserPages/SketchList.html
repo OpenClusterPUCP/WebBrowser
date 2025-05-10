@@ -456,6 +456,13 @@
             transform: scale(1.1);
             transition: transform 0.2s ease;
         }
+
+        .table thead th {
+            font-weight: 700 !important;  /* Hace el texto más negrito */
+            color: #3f3f3f !important;    /* Color más oscuro para mejor contraste */
+            text-transform: uppercase;     /* Mantiene el texto en mayúsculas */
+            letter-spacing: 0.5px;        /* Mejor espaciado entre letras */
+        }
     </style>
 
 </head>
@@ -476,10 +483,12 @@
                         MIS SKETCHs
                     </h2>
                     <div class="header-actions">
-                        <button class="btn btn-primary animate__animated animate__fadeIn animate__delay-5s" id="btnCreateSketch">
-                            <i class="fas fa-plus me-2"></i>
-                            <span>Nuevo Sketch</span>
-                        </button>
+                        <div class="animate__animated animate__fadeInRight animate__slow animate__delay-5s">
+                            <button class="btn btn-primary animate__animated animate__fadeIn animate__delay-5s" id="btnCreateSketch">
+                                <i class="fas fa-plus me-2"></i>
+                                <span>Nuevo Sketch</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -493,12 +502,12 @@
                             <table id="sketchesTable" class="table table-hover align-middle mb-0">
                                 <thead>
                                     <tr>
-                                        <th class="text-start">ID</th>
-                                        <th class="text-start">NOMBRE</th>
-                                        <th class="text-start">DESCRIPCIÓN</th>
-                                        <th class="text-start">FECHA DE CREACIÓN</th>
-                                        <th class="text-start">ÚLTIMA EDICIÓN</th>
-                                        <th class="text-center">ACCIONES</th>
+                                        <th class="text-start fw-bold">ID</th>
+                                        <th class="text-start fw-bold">NOMBRE</th>
+                                        <th class="text-start fw-bold">DESCRIPCIÓN</th>
+                                        <th class="text-start fw-bold">FECHA DE CREACIÓN</th>
+                                        <th class="text-start fw-bold">ÚLTIMA EDICIÓN</th>
+                                        <th class="text-center fw-bold">ACCIONES</th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>

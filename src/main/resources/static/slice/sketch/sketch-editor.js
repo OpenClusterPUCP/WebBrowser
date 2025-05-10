@@ -831,7 +831,16 @@ window.saveSketch = async function() {
     try {
         if (!validateTopology()) return;
 
-        // Get form data
+        Swal.fire({
+            title: 'Guardando cambios...',
+            text: 'Por favor espere mientras se actualiza el sketch',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            willOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
         const modalNameInput = document.querySelector('#saveSketchModal #sketchName');
         const modalDescInput = document.querySelector('#saveSketchModal #sketchDescription');
         
@@ -1633,9 +1642,6 @@ function renderExistingTopology(sketchData) {
     // Limpiar datos existentes
     clearTopology();
     
-    const nodes = new vis.DataSet();
-    const edges = new vis.DataSet();
-
     // Crear VMs primero
     sketchData.topology_info.vms.forEach(vmData => {
         console.log('Processing VM:', vmData);
@@ -1674,7 +1680,7 @@ function renderExistingTopology(sketchData) {
         
         nodeTooltips.set(vm.id, tooltipContent);
 
-        nodes.add({
+        visDataset.nodes.add({
             id: vm.id,
             label: vm.name
         });
@@ -1718,7 +1724,7 @@ function renderExistingTopology(sketchData) {
                 topologyManager.links.set(link.id, link);
                 topologyManager.visEdges.set(link.id, visLink);
 
-                edges.add({
+                visDataset.edges.add({
                     id: link.id,
                     from: interfaces[0].vm_id,
                     to: interfaces[1].vm_id,
@@ -1739,7 +1745,7 @@ function renderExistingTopology(sketchData) {
     console.log('Links:', Array.from(topologyManager.links.values()));
 
     // Actualizar red
-    network.setData({ nodes, edges });
+    network.setData(visDataset);
 
     // Organizar topología
     arrangeTopology();

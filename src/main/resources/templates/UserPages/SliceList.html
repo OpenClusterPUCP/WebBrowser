@@ -68,19 +68,7 @@
 
     <!-- Estilos extra -->
     <style>
-        .avatar {
-            background: linear-gradient(135deg, #69666c, #1f1f20);
-            color: white;
-            font-weight: bold;
-            font-size: 1.2rem;
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
+
         #network-container {
             outline: none !important;
             position: relative !important;
@@ -543,6 +531,41 @@
             transition: transform 0.2s ease;
         }
 
+
+        .status-filter {
+            font-size: 0.875rem;
+            font-weight: 500;
+            border: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        .status-filter:hover {
+            transform: translateY(-2px);
+        }
+
+        .status-filter.active {
+            background-color: #f8f9fa;
+            border-color: #dee2e6;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,.05);
+        }
+
+        .status-filter:first-child {
+            border-top-left-radius: 0.5rem;
+            border-bottom-left-radius: 0.5rem;
+        }
+
+        .status-filter:last-child {
+            border-top-right-radius: 0.5rem;
+            border-bottom-right-radius: 0.5rem;
+        }
+
+        .table thead th {
+            font-weight: 700 !important;  /* Hace el texto más negrito */
+            color: #3f3f3f !important;    /* Color más oscuro para mejor contraste */
+            text-transform: uppercase;     /* Mantiene el texto en mayúsculas */
+            letter-spacing: 0.5px;        /* Mejor espaciado entre letras */
+        }
+
     </style>
 
 </head>
@@ -562,15 +585,30 @@
                     <h2 class="content-title text-3xl text-start font-weight-bolder font-weight-bold mb-2 animate__animated animate__zoomInLeft animate__slow" style="font-weight: 900">
                         MIS SLICEs
                     </h2>
+                
                     <div class="header-actions">
-                        <button class="btn btn-warning animate__animated animate__fadeIn animate__delay-5s" id="btnDeploySlice">
+                        <div class="btn-group animate__animated animate__backInDown animate__slow animate__delay-5s">
+                            <button type="button" class="btn btn-white px-3 py-2 status-filter active" data-status="all">
+                                <i class="fas fa-layer-group me-2 text-dark"></i>Todas
+                            </button>
+                            <button type="button" class="btn btn-white px-3 py-2 status-filter" data-status="running">
+                                <i class="fas fa-play me-2 text-warning"></i>En Ejecución
+                            </button>
+                            <button type="button" class="btn btn-white px-3 py-2 status-filter" data-status="stopped">
+                                <i class="fas fa-stop me-2 text-danger"></i>Detenidas
+                            </button>
+                        </div>
+                        <div class="animate__animated animate__fadeInRight animate__slow animate__delay-5s">
+                        <button class="ms-2 btn btn-warning" id="btnDeploySlice">
                             <i class="fas fa-plus me-2"></i>
                             <span>Nueva Slice</span>
                         </button>
+                        </div>
+                        
                     </div>
                 </div>
 
-                <p class="my-1 text-sm text-start text-secondary mb-4 animate__animated animate__backInLeft animate__delay-5s">Lista las slices asociadas a tu cuenta. Visualiza el estado, observa los recursos base y explora las interconexiones de tus slices, asegurando una visión unificada de tu entorno y un control sobre los componentes de tus topologías desplegadas.
+                <p class="my-1 text-sm text-start text-secondary mb-4 animate__animated animate__backInLeft animate__delay-5s">Observa el listado de las slices asociadas a tu cuenta. Visualiza tanto el estado como los recursos base y explora las conexiones de tus slices, asegurando una visión unificada de tu entorno y un control sobre los componentes de tus topologías desplegadas.
                 </p>
         
                 <div class="card animate__animated animate__fadeInLeft">
@@ -587,8 +625,8 @@
                                         <th class="text-start">DISCO</th>
                                         <th class="text-start">VMs</th>
                                         <th class="text-start">FECHA DE CREACIÓN</th>
-                                        <th class="text-center">ESTADO</th>
-                                        <th class="text-center">ACCIÓN</th>
+                                        <th class="text-center" style="text-align: center !important;">ESTADO</th>
+                                        <th class="text-center" style="text-align: center !important;">ACCIÓN</th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
