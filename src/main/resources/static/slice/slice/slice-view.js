@@ -1154,11 +1154,7 @@ async function openVNCConsole(vmId) {
         const fullVncUrl = `/VNC/vm/${vmId}?token=${tokenData.content.token}`;
         const vncWindow = window.open(fullVncUrl, '_blank');
         
-        if (vncWindow) {
-            Swal.close();
-        } else {
-            throw new Error('El navegador bloqueó la ventana emergente. Por favor, permite las ventanas emergentes para este sitio.');
-        }
+        Swal.close();
 
     } catch (error) {
         console.error('Error VNC:', error);
