@@ -1577,10 +1577,36 @@ async function loadSketchData() {
     }
 }
 
+function updateResourceInfo(sketchData) {
+    let totalVCPUs = 0;
+    let totalRAM = 0;
+    let totalDisk = 0;
+
+    sketchData.topology_info.vms.forEach(vm => {
+        const flavor = AVAILABLE_FLAVORS.find(f => f.id === parseInt(vm.flavor_id));
+        if (flavor) {
+            totalVCPUs += Number(flavor.vcpus) || 0;
+            totalRAM += Number(flavor.ram) || 0;
+            totalDisk += Number(flavor.disk) || 0;
+        }
+    });
+
+    // Convertir RAM a GB con hasta 3 decimales
+    const ramInGB = (totalRAM / 1000).toFixed(3);
+    const formattedRAM = parseFloat(ramInGB).toString();
+
+    // Actualizar los elementos en el DOM
+    document.getElementById('sketchVCPUs').textContent = totalVCPUs;
+    document.getElementById('sketchRAM').textContent = `${formattedRAM} GB`;
+    document.getElementById('sketchDisk').textContent = `${totalDisk} GB`;
+}
+
 // Renderizar topología
 function renderSketchTopology(sketchData) {
     console.log('=== Starting renderSketchTopology ===');
     console.log('Received sketch data:', sketchData);
+
+    updateResourceInfo(sketchData);
     
     const nodes = new vis.DataSet();
     const edges = new vis.DataSet();

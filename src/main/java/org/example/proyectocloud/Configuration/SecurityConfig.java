@@ -13,6 +13,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -39,18 +40,23 @@ public class SecurityConfig {
                         .xssProtection(xss -> xss.disable())
                         .contentSecurityPolicy(csp -> csp
                         .policyDirectives("frame-ancestors 'self' http://localhost:* https://localhost:*; " +
-                                        "frame-src 'self' http://localhost:* https://localhost:*"))
+                                        "frame-src 'self' http://localhost:* https://localhost:*; "))
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.ALWAYS))
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler)
-                ).authorizeHttpRequests(authorize -> authorize
+                )
+                .authorizeHttpRequests(authorize -> authorize
+                        // WebSocket endpoint permitido sin autenticación
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/User/api/vnc/vm/*/socket")).permitAll()
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/ws/**")).permitAll()
                         // Rutas públicas para autenticación
                         .requestMatchers("/" , "/InicioSesion" , "/recuperarContraseña" , "/Logearse").permitAll()
                         .requestMatchers("/ResetPassword", "/password-reset", "/password-reset/confirm").permitAll()
                         // Permitir acceso a noVNC y recursos relacionados
                         .requestMatchers("/novnc/**", "/VNC/**").permitAll()
+                        .requestMatchers("/css/material-dashboard.css").permitAll()
                         // Rutas protegidas por roles
                         .requestMatchers("/Admin/**" , "Admin/*").hasRole("Admin")
                         .requestMatchers("/User/**", "User/*").hasAnyRole("User")

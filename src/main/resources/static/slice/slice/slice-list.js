@@ -45,6 +45,7 @@ $(document).ready(async function() {
     // VARIABLES::
     // ==================
     let table;
+    let AVAILABLE_FLAVORS = [];
 
     // ==================
     // DATATABLES:
@@ -348,8 +349,25 @@ $(document).ready(async function() {
         }
     });
 
+    async function loadFlavors() {
+        try {
+            const response = await fetch('/User/api/sketch/resources/flavors');
+            const result = await response.json();
+            if (result.status === 'success') {
+                AVAILABLE_FLAVORS = result.content;
+                console.log('Flavors loaded:', AVAILABLE_FLAVORS);
+            } else {
+                throw new Error('Error cargando los flavors');
+            }
+        } catch (error) {
+            console.error('Error cargando los flavors:', error);
+            AVAILABLE_FLAVORS = [];
+        }
+    }
+
     async function loadSketches() {
         try {
+            await loadFlavors();
             console.log('Cargando lista de sketches...');
             const response = await fetch('/User/api/sketch/list');
             const result = await response.json();
@@ -439,6 +457,8 @@ $(document).ready(async function() {
         `);
     }
 
+
+
     $('#sketchSelect').on('select2:select', async function(e) {
         console.log('Sketch seleccionado:', this.value);
         const preview = document.getElementById('sketchPreview');
@@ -458,7 +478,30 @@ $(document).ready(async function() {
                         throw new Error('La estructura del sketch no es válida');
                     }
     
-                    // Actualizar contadores con la información detallada
+                    // Calcular recursos totales
+                    let totalVCPUs = 0;
+                    let totalRAM = 0;
+                    let totalDisk = 0;
+
+                    sketch.topology_info.vms.forEach(vm => {
+                        const flavor = AVAILABLE_FLAVORS.find(f => f.id === parseInt(vm.flavor_id));
+                        if (flavor) {
+                            totalVCPUs += Number(flavor.vcpus) || 0;
+                            totalRAM += Number(flavor.ram) || 0;
+                            totalDisk += Number(flavor.disk) || 0;
+                        }
+                    });
+
+                    // Convertir RAM a GB con formato preciso
+                    const ramInGB = (totalRAM / 1000).toFixed(3);
+                    const formattedRAM = parseFloat(ramInGB).toString();
+
+                    // Actualizar recursos
+                    document.getElementById('sketchPreviewVCPUs').textContent = totalVCPUs;
+                    document.getElementById('sketchPreviewRAM').textContent = `${formattedRAM} GB`;
+                    document.getElementById('sketchPreviewDisk').textContent = `${totalDisk} GB`;
+
+                    // Actualizar contadores
                     document.getElementById('vmCount').textContent = sketch.topology_info.vms?.length || 0;
                     document.getElementById('linkCount').textContent = sketch.topology_info.links?.length || 0;
                     document.getElementById('interfaceCount').textContent = sketch.topology_info.interfaces?.length || 0;
@@ -500,6 +543,92 @@ $(document).ready(async function() {
             preview.classList.remove('sketch-preview-enter');
         }, 300);
     });
+
+    // Manejo de mensajes de error:
+
+    function showErrorAlert(error) {
+        let errorMessage = '';
+        let errorDetails = [];
+
+        try {
+            // Parse the error object
+            let errorData = null;
+            
+            if (typeof error === 'object' && error.response) {
+                // If error comes from API response
+                errorData = error.response;
+            } else if (error.message && error.message.includes('{')) {
+                // If error message contains JSON
+                const jsonStr = error.message.substring(
+                    error.message.indexOf('{'),
+                    error.message.lastIndexOf('}') + 1
+                );
+                errorData = JSON.parse(jsonStr);
+            } else {
+                errorMessage = error.message || 'Error desconocido';
+            }
+
+            // If we have parsed data, extract message and details
+            if (errorData) {
+                errorMessage = errorData.message || 'Error desconocido';
+                
+                // Handle details that could be array or string
+                if (errorData.details) {
+                    if (Array.isArray(errorData.details)) {
+                        errorDetails = errorData.details;
+                    } else {
+                        errorDetails = [errorData.details];
+                    }
+                }
+            }
+
+            // Create HTML content for SweetAlert
+            const detailsHtml = errorDetails.length > 0
+                ? `
+                    <div class="text-start text-danger small mt-3">
+                        <hr class="my-2">
+                        ${errorDetails.map(detail => `
+                            <p class="mb-1 d-flex align-items-start">
+                                <i class="fas fa-exclamation-circle me-2 mt-1"></i>
+                                <span>${detail}</span>
+                            </p>
+                        `).join('')}
+                    </div>
+                `
+                : '';
+
+            return Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                html: `
+                    <p class="mb-2">${errorMessage}</p>
+                    ${detailsHtml}
+                `,
+                customClass: {
+                    icon: 'border-0',
+                    confirmButton: 'btn btn-danger',
+                    htmlContainer: 'text-left'
+                },
+                buttonsStyling: false
+            });
+        } catch (parseError) {
+            console.error('Error parsing error message:', parseError);
+            // Fallback for unparseable errors
+            return Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.message || 'Error desconocido',
+                customClass: {
+                    icon: 'border-0',
+                    confirmButton: 'btn btn-danger'
+                },
+                buttonsStyling: false
+            });
+        }
+    }
+
+
+    // Despliegue del Slice:
 
     window.deploySlice = async function() {
         const form = document.getElementById('deploySliceForm');
@@ -613,27 +742,25 @@ $(document).ready(async function() {
                     }
                 });
             } else {
-                throw new Error(result.message || 'Error al desplegar la slice');
+                throw { 
+                    message: result.message || 'Error al desplegar la slice',
+                    details: result.details || [],
+                    response: result
+                };
             }
         } catch (error) {
             console.error('Error:', error);
-            
-            // Cerrar loading alert y mostrar error
-            await Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: error.message || 'No se pudo desplegar la slice',
-                customClass: {
-                    icon: 'border-0',
-                    confirmButton: 'btn btn-danger'
-                },
-                buttonsStyling: false
-            });
+            await showErrorAlert(error);
         } finally {
             if (Swal.isVisible()) {
                 loadingAlert.close();
             }
         }
     };
+
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
 
 });

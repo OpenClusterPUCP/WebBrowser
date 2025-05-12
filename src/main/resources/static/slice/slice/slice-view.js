@@ -180,7 +180,7 @@ async function getSliceData(flag){
             buttonsStyling: false
         }).then((result) => {
             if (result.isConfirmed) {
-                window.location.href = '/topology-creator';
+                window.location.href = '/';
             }
         });
         return;
@@ -436,6 +436,7 @@ async function getSliceData(flag){
 function loadSliceData(data,flag) {
     updateNetworkInfo(data.network_config, data.slice_info);
     loadTopologyVisualization(data.topology_info,data.slice_info,flag);
+    updateSliceResources(SLICE_DATA);
 }
 
 function updateNetworkInfo(networkConfig, sliceInfo) {
@@ -1494,6 +1495,28 @@ window.restartVM = async function(vmId) {
             text: error.message || 'Ocurrió un error al reiniciar la VM',
         });
     }
+}
+
+function updateSliceResources(sliceData) {
+    let totalVCPUs = 0;
+    let totalRAM = 0;
+    let totalDisk = 0;
+
+    sliceData.content.topology_info.vms.forEach(vm => {
+        const flavor = AVAILABLE_FLAVORS.find(f => f.id === parseInt(vm.flavor_id));
+        if (flavor) {
+            totalVCPUs += Number(flavor.vcpus) || 0;
+            totalRAM += Number(flavor.ram) || 0;
+            totalDisk += Number(flavor.disk) || 0;
+        }
+    });
+
+    const ramInGB = (totalRAM / 1000).toFixed(3);
+    const formattedRAM = parseFloat(ramInGB).toString();
+
+    document.getElementById('sliceModalVCPUs').textContent = totalVCPUs;
+    document.getElementById('sliceModalRAM').textContent = `${formattedRAM} GB`;
+    document.getElementById('sliceModalDisk').textContent = `${totalDisk} GB`;
 }
 
 // Función para cargar los recursos desde el backend

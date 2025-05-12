@@ -312,6 +312,32 @@
                                     </span>
                                 </div>
                             </div>
+
+                            <!-- Recursos -->
+                            <div class="d-flex align-items-start mb-3">
+                                <div class="icon-wrapper">
+                                    <div class="icon icon-shape icon-sm bg-gradient-dark shadow text-center">
+                                        <i class="material-symbols-rounded text-white opacity-10">sdk</i>
+                                    </div>
+                                </div>
+                                <div class="info-content">
+                                    <h6 class="mb-1 text-sm">Recursos:</h6>
+                                    <div class="text-xs text-secondary d-flex align-items-center justify-content-center" style="gap: 1.2rem;">
+                                        <div class="d-flex align-items-center">
+                                            <i class="material-symbols-rounded me-1" style="font-size: 1rem;">developer_board</i>
+                                            <span>vCPUs: <span id="sketchVCPUs" class="fw-bold">0</span></span>
+                                        </div>
+                                        <div class="d-flex align-items-center">
+                                            <i class="material-symbols-rounded me-1" style="font-size: 1rem;">memory</i>
+                                            <span>RAM: <span id="sketchRAM" class="fw-bold">0 GB</span></span>
+                                        </div>
+                                        <div class="d-flex align-items-center">
+                                            <i class="material-symbols-rounded me-1" style="font-size: 1rem;">storage</i>
+                                            <span>Disco: <span id="sketchDisk" class="fw-bold">0 GB</span></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -480,18 +506,20 @@
                             <div class="row g-0">
                                 <div class="col-4 text-center border-end">
                                     <div class="p-3">
-                                        <i class="material-symbols-rounded text-gradient text-dark mb-1" style="font-size: 2.5rem;">memory</i>
-                                        <p class="text-xs text-secondary mb-0">RAM</p>
-                                        <h5 class="font-weight-bolder mb-0" id="flavorRAM">-</h5>
-                                    </div>
-                                </div>
-                                <div class="col-4 text-center border-end">
-                                    <div class="p-3">
                                         <i class="material-symbols-rounded text-gradient text-dark mb-1" style="font-size: 2.5rem;">developer_board</i>
                                         <p class="text-xs text-secondary mb-0">vCPUs</p>
                                         <h5 class="font-weight-bolder mb-0" id="flavorCPUs">-</h5>
                                     </div>
                                 </div>
+                                
+                                <div class="col-4 text-center border-end">
+                                    <div class="p-3">
+                                        <i class="material-symbols-rounded text-gradient text-dark mb-1" style="font-size: 2.5rem;">memory</i>
+                                        <p class="text-xs text-secondary mb-0">RAM</p>
+                                        <h5 class="font-weight-bolder mb-0" id="flavorRAM">-</h5>
+                                    </div>
+                                </div>
+                                
                                 <div class="col-4 text-center">
                                     <div class="p-3">
                                         <i class="material-symbols-rounded text-gradient text-dark mb-1" style="font-size: 2.5rem;">storage</i>

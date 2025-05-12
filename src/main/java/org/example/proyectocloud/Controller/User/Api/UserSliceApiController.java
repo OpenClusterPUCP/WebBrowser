@@ -1,5 +1,7 @@
 package org.example.proyectocloud.Controller.User.Api;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.example.proyectocloud.Bean.UserInfo;
@@ -100,12 +102,7 @@ public class UserSliceApiController {
             return ResponseEntity.ok(result);
 
         } catch (Exception e) {
-            log.error("Error al desplegar el slice: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of(
-                    "status", "error",
-                    "message", e.getMessage()
-                ));
+            return handleException(e, "Error al desplegar el slice");
         }
     }
 
@@ -279,5 +276,41 @@ public class UserSliceApiController {
         }
     }
 
+
+    // Función útil para los mensajes de error:
+    private ResponseEntity<?> handleException(Exception e, String errorPrefix) {
+        log.error(errorPrefix + ": {}", e.getMessage());
+        
+        String errorMessage = e.getMessage();
+        if (errorMessage != null && errorMessage.contains("{")) {
+            try {
+
+                String jsonPart = errorMessage.substring(
+                    errorMessage.indexOf("{"), 
+                    errorMessage.lastIndexOf("}") + 1
+                );
+
+                ObjectMapper mapper = new ObjectMapper();
+                Map<String, Object> errorResponse = mapper.readValue(
+                    jsonPart, 
+                    new TypeReference<Map<String, Object>>() {}
+                );
+                
+                return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(errorResponse);
+                    
+            } catch (Exception jsonException) {
+                log.error("Error parsing JSON error message: {}", jsonException.getMessage());
+            }
+        }
+
+        return ResponseEntity
+            .status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(Map.of(
+                "status", "error",
+                "message", errorMessage
+            ));
+    }
 
 }

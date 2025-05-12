@@ -5,6 +5,11 @@
     <title>OpenCluster - Consola VNC</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Material Icons -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <!-- Fonts and icons -->
+    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700,900" />
+    <link id="pagestyle" th:href="@{/css/material-dashboard.css}" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body, html {
@@ -15,28 +20,39 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            background-color: #f5f5f5 !important;
         }
         .info-bar {
-            background: linear-gradient(to right, #f8f9fa, #ffffff);
             padding: 1.25rem;
-            border-bottom: 2px solid #dee2e6;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border-bottom: 1px solid #32383e;
+            box-shadow: 0 4px 4px rgba(0,0,0,0.15);
+            height: 90px; 
+            display: flex;
+            align-items: center; 
+        }
+        .info-bar .container-fluid {
+            width: 100%;
+        }
+        .info-bar .row {
+            height: 100%;
+            align-items: center;
+        }
+        .info-bar .vm-title {
+            margin: 0; /* Remove default margin */
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
         .vm-title {
             font-size: 1.5rem;
-            font-weight: 600;
-            color: #2c3e50;
+            font-weight: 630;
+            color: #ffffff;
         }
         .vm-id {
             font-size: 0.9rem;
-            color: #6c757d;
+            color: #adb5bd;
             font-weight: 500;
             margin-left: 0.5rem;
-        }
-        .vnc-container {
-            flex-grow: 1;
-            position: relative;
-            height: calc(100vh - 80px);
         }
         iframe {
             width: 100%;
@@ -49,11 +65,13 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.5rem;
         }
         .info-value {
             color: #2c3e50;
             font-weight: 500;
+            line-height: 1.4;
+            word-break: break-word;
         }
         .vm-status {
             padding: 0.4rem 0.8rem;
@@ -71,8 +89,16 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             height: 100%;
         }
-        .status-running { background-color: #fb8c00; color: white; }
-        .status-stopped { background-color: #F44335; color: white; }
+        .status-running { 
+            background-color: #fb8c00; 
+            color: white;
+            box-shadow: 0 0 10px rgba(251, 140, 0, 0.2);
+        }
+        .status-stopped { 
+            background-color: #F44335; 
+            color: white;
+            box-shadow: 0 0 10px rgba(244, 67, 53, 0.2);
+        }
         .card {
             transition: transform 0.3s cubic-bezier(0.34, 1.61, 0.7, 1),
             box-shadow 0.3s cubic-bezier(0.34, 1.61, 0.7, 1);
@@ -87,12 +113,167 @@
         .uwu:hover{
             transform: translateY(-5.5px);
         }
+        .table {
+        font-size: 0.875rem;
+        }
+        
+        .table th {
+            font-weight: 700;
+            border-top: none;
+        }
+        
+        .table td {
+            padding: 0.5rem;
+            vertical-align: middle;
+        }
+        
+        .interface-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.8125rem;
+            font-weight: 630;
+            background-color: #e9ecef;
+            color: #495057;
+        }
+        
+        .interface-external {
+            background-color: #fb8c00;
+            color: white;
+        }
+        
+        .mac-address {
+            font-size: 0.875rem;
+            color: #495057;
+        }
+        
+        .link-name {
+            color: #2c3e50;
+            font-weight: 630;
+        }
+        .main-container {
+            display: flex;
+            height: calc(100vh);
+            padding: 0.8rem;
+            gap: 1rem;
+            overflow: hidden;
+        }
+
+        .vnc-container {
+            flex: 1;
+            min-width: 0;
+            background: #f8f9fa;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .network-sidebar {
+            width: 480px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding-left: 1rem;
+            padding-right: 1rem;
+            overflow-y: auto; 
+            max-height: 100%; 
+            height: 100%;
+            padding-bottom: 1rem; 
+        }
+
+        .network-sidebar .info-section {
+            padding-bottom: 0.75rem;
+        }
+
+        .vnc-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+
+        /* Scrollbar styling */
+        .network-sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .network-sidebar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .network-sidebar::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        .network-sidebar::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        .network-sidebar .table td,
+        .network-sidebar .table th {
+            padding: 0.5rem;
+            white-space: nowrap;
+        }
+
+        .info-cards {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .info-cards .info-section {
+            margin-bottom: 0 !important;
+            height: auto;
+        }
+
+        .info-section.card {
+            background: white;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: transform 0.3s cubic-bezier(0.34, 1.61, 0.7, 1),
+                        box-shadow 0.3s cubic-bezier(0.34, 1.61, 0.7, 1);
+            position: relative;
+            z-index: 1;
+        }
+
+        .info-section.card:hover {
+            transform: translateY(-5.5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 
+                        0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            z-index: 2;
+        }
+
+        .info-cards .info-section:last-child {
+            margin-bottom: 1.5rem;
+        }
+
+        .network-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .info-bar {
+            padding: 1rem;
+            margin-bottom: 0;
+        }
+
+        .main-container {
+            height: calc(100vh - 80px);
+        }
+
     </style>
 </head>
 <body>
-    <div class="info-bar">
+    <div class="info-bar bg-gradient-dark">
         <div class="container-fluid">
-            <div class="row align-items-center mb-3">
+            <div class="row align-items-center mb-0">
                 <div class="col">
                     <h5 class="mb-0 d-flex align-items-center vm-title">
                         <i class="uwu fas fa-laptop me-2"></i>
@@ -104,54 +285,107 @@
                     </h5>
                 </div>
                 <div class="col-auto">
-                    <button class="btn btn-sm btn-outline-secondary uwu" onclick="window.close()">
-                        <i class="fas fa-times me-1"></i>Cerrar
+                    <button class="mb-0 btn btn-sm btn-white uwu" onclick="window.close()">
+                        <i class="fas fa-close me-1"></i>Cerrar
                     </button>
-                </div>
-            </div>
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <div class="info-section card">
-                        <div class="info-label">
-                            <i class="fas fa-layer-group"></i>
-                            Slice
-                        </div>
-                        <div class="info-value" id="sliceName">Cargando...</div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="info-section card">
-                        <div class="info-label">
-                            <i class="fas fa-microchip"></i>
-                            Flavor
-                        </div>
-                        <div class="info-value" id="flavorInfo">Cargando...</div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="info-section card">
-                        <div class="info-label">
-                            <i class="fas fa-hdd"></i>
-                            Imagen
-                        </div>
-                        <div class="info-value" id="imageInfo">Cargando...</div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="info-section card">
-                        <div class="info-label">
-                            <i class="fas fa-server"></i>
-                            Servidor físico
-                        </div>
-                        <div class="info-value" id="workerInfo">Cargando...</div>
-                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="vnc-container">
-        <iframe th:src="@{'/novnc/vnc.html?path=User/api/vnc/vm/' + ${vmId} + '/socket?token=' + ${token}}" allowfullscreen></iframe>
+    <div class="main-container">
+        <!-- VNC viewer on the left -->
+        <div class="vnc-container">
+            <iframe th:src="@{'/novnc/vnc.html?path=User/api/vnc/vm/' + ${vmId} + '/socket?token=' + ${token}}" allowfullscreen></iframe>
+        </div>
+
+        <!-- Info -->
+        <div class="network-sidebar">
+            <!-- VM Info Cards -->
+            <div class="info-cards mb-1">
+                <div class="info-section card mb-3">
+                    <div class="info-label">
+                        <i class="fas fa-layer-group"></i>
+                        Slice
+                    </div>
+                    <div class="info-value" id="sliceName">Cargando...</div>
+                </div>
+                
+                <div class="info-section card mb-0">
+                    <div class="info-label">
+                        <i class="fas fa-window-restore"></i>
+                        Flavor
+                    </div>
+                    <div class="info-value" id="flavorInfo">Cargando...</div>
+                </div>
+                
+                <div class="row info-section" style="background-color: transparent !important; box-shadow: none !important; padding-top: 0px !important; padding-bottom: 0px !important;">
+                    <div class="col-4 info-section card mb-0">
+                        <div class="info-label">
+                            <i class="material-symbols-rounded me-1" style="font-size: 1rem;">developer_board</i>
+                            vCPUs
+                        </div>
+                        <div class="info-value" id="vcpusInfo">Cargando...</div>
+                    </div>
+
+                    <div class="col-4 info-section card mb-0">
+                        <div class="info-label">
+                            <i class="material-symbols-rounded me-1" style="font-size: 1rem;">memory</i>
+                            Ram
+                        </div>
+                        <div class="info-value" id="ramInfo">Cargando...</div>
+                    </div>
+
+                    <div class="col-4 info-section card mb-0">
+                        <div class="info-label">
+                            <i class="material-symbols-rounded me-1" style="font-size: 1rem;">storage</i>
+                            Disco
+                        </div>
+                        <div class="info-value" id="diskInfo">Cargando...</div>
+                    </div>
+                </div>
+                
+                <div class="info-section card mb-3">
+                    <div class="info-label">
+                        <i class="fas fa-hdd"></i>
+                        Imagen
+                    </div>
+                    <div class="info-value" id="imageInfo">Cargando...</div>
+                </div>
+                
+                <div class="info-section card mb-0">
+                    <div class="info-label">
+                        <i class="fas fa-server"></i>
+                        Servidor físico
+                    </div>
+                    <div class="info-value" id="workerInfo">Cargando...</div>
+                </div>
+            </div>
+
+            <!-- Network Interfaces Table -->
+            <div class="info-section card">
+                <div class="info-label mb-2">
+                    <i class="fas fa-network-wired"></i>
+                    Interfaces de Red
+                </div>
+                <div class="table-responsive flex-grow-1">
+                    <table class="table table-sm table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th class="text-muted">MAC</th>
+                                <th class="text-muted">Enlace</th>
+                                <th class="text-muted">Conexión</th>
+                            </tr>
+                        </thead>
+                        <tbody id="interfacesTable">
+                            <tr>
+                                <td colspan="3" class="text-center text-muted">Cargando interfaces...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
@@ -161,43 +395,133 @@
 
         async function loadVMInfo() {
             try {
-                const response = await fetch(`/User/api/slice/vm/${vmId}`);
-                const data = await response.json();
+                // VM info
+                const vmResponse = await fetch(`/User/api/slice/vm/${vmId}`);
+                const vmData = await vmResponse.json();
 
-                console.log('VM Info: ', data);
-                
-                if (data.content && data.content.vm_info) {
-                    // VM Name, ID and Status
-                    document.getElementById('vmName').textContent = data.content.vm_info.name;
-                    document.getElementById('vmId').textContent = `#${data.content.vm_info.id}`;
-                    const statusElement = document.getElementById('vmStatus');
-                    const isRunning = data.content.vm_info.status === 'running';
-                    statusElement.innerHTML = `
-                        <span>${isRunning ? 'En Ejecución' : 'Detenido'}</span>
-                    `;
-                    statusElement.className = `uwu vm-status ${isRunning ? 'status-running' : 'status-stopped'}`;
-                    
-                    // Slice info
-                    document.getElementById('sliceName').textContent = data.content.slice?.name || '----';
-                    
-                    // Resources info (Flavor)
-                    document.getElementById('flavorInfo').textContent = 
-                        data.content.resources?.flavor ? 
-                        `${data.content.resources.flavor.name} (${data.content.resources.flavor.vcpus} vCPUs, ${data.content.resources.flavor.ram/1024}GB RAM, ${data.content.resources.flavor.disk}GB Disco)` : 
-                        '----';
-                    
-                    // Image info
-                    document.getElementById('imageInfo').textContent = data.content.resources?.image?.name || '----';
-                    
-                    // Worker info
-                    document.getElementById('workerInfo').textContent = data.content.worker?.name || '----';
-                } else {
-                    console.warn('No VM info found in response:', data);
-                    setDefaultValues();
+                console.log('VM Info:', vmData);
+
+                if (!vmData.content?.vm_info) {
+                    throw new Error('No VM info available');
                 }
+
+                // Slice info
+                const sliceId = vmData.content.slice.id;
+                const sliceResponse = await fetch(`/User/api/slice/${sliceId}`);
+                const sliceData = await sliceResponse.json();
+
+                console.log('Slice Info:', sliceData);
+
+                // Info Básica
+                document.getElementById('vmName').textContent = vmData.content.vm_info.name;
+                document.getElementById('vmId').textContent = `#${vmData.content.vm_info.id}`;
+                
+                // VM status
+                const statusElement = document.getElementById('vmStatus');
+                const isRunning = vmData.content.vm_info.status === 'running';
+                statusElement.innerHTML = `
+                    <span>${isRunning ? 'En Ejecución' : 'Detenido'}</span>
+                `;
+                statusElement.className = `uwu vm-status ${isRunning ? 'status-running' : 'status-stopped'}`;
+
+                // Secciones básicas
+                document.getElementById('sliceName').textContent = vmData.content.slice?.name || '----';
+
+                document.getElementById('flavorInfo').textContent = vmData.content.resources.flavor.name;
+                
+                document.getElementById('vcpusInfo').textContent = 
+                    `${vmData.content.resources.flavor.vcpus}`;
+                
+                document.getElementById('ramInfo').textContent = 
+                    `${vmData.content.resources.flavor.ram/1024} GB`;
+                
+                document.getElementById('diskInfo').textContent = 
+                    `${vmData.content.resources.flavor.disk} GB`;
+                document.getElementById('imageInfo').textContent = vmData.content.resources?.image?.name || '----';
+                document.getElementById('workerInfo').textContent = vmData.content.worker?.name || '----';
+
+
+                const linksMap = new Map(
+                    sliceData.content.topology_info.links.map(link => [link.id, link])
+                );
+                
+                const vmsMap = new Map(
+                    sliceData.content.topology_info.vms.map(vm => [vm.id, vm])
+                );
+
+                // Tablita de interfaces
+                const interfacesTable = document.getElementById('interfacesTable');
+                const sliceInterfaces = sliceData.content.topology_info.interfaces;
+                
+                if (vmData.content.interfaces && vmData.content.interfaces.length > 0) {
+                    interfacesTable.innerHTML = vmData.content.interfaces.map(iface => {
+                        const sliceIface = sliceInterfaces.find(si => si.mac_address === iface.mac_address);
+                        const link = sliceIface ? linksMap.get(sliceIface.link_id) : null;
+                        
+                        let connectedVm = null;
+                        if (sliceIface && !sliceIface.external_access) {
+                            const connectedIface = sliceInterfaces.find(si => 
+                                si.link_id === sliceIface.link_id && si.vm_id !== vmId
+                            );
+                            if (connectedIface) {
+                                connectedVm = vmsMap.get(connectedIface.vm_id);
+                            }
+                        }
+
+                        return `
+                            <tr class="uwu">
+                                <td>
+                                    <span class="mac-address">${iface.mac_address}</span>
+                                </td>
+                                <td>
+                                    <span class="link-name">${link ? link.name : 'Externo'}</span>
+                                </td>
+                                <td>
+                                    ${sliceIface?.external_access ? 
+                                        `<span class="interface-chip interface-external text-bold uwu">
+                                            <i class="fas fa-globe me-1"></i>
+                                            Red Externa
+                                        </span>` :
+                                        `<span class="interface-chip text-bold uwu">
+                                            <i class="fas fa-link me-1"></i>
+                                            ${connectedVm ? `${connectedVm.name} #${connectedVm.id}` : '----'}
+                                        </span>`
+                                    }
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                } else {
+                    interfacesTable.innerHTML = `
+                        <tr>
+                            <td colspan="3" class="text-center text-muted">
+                                <i class="fas fa-info-circle me-2"></i>
+                                No hay interfaces configuradas
+                            </td>
+                        </tr>
+                    `;
+                }
+
             } catch (error) {
-                console.error('Error loading VM info:', error);
+                console.error('Error loading info:', error);
                 setDefaultValues();
+                
+                await Swal.fire({
+                    icon: 'error',
+                    title: 'Error al cargar información',
+                    text: 'No se pudo cargar la información de la máquina virtual',
+                    confirmButtonText: 'Reintentar',
+                    confirmButtonColor: '#fb8c00',
+                    showCancelButton: true,
+                    cancelButtonText: 'Cerrar',
+                    cancelButtonColor: '#F44335'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        loadVMInfo();
+                    } else {
+                        window.close();
+                    }
+                });
             }
         }
 
@@ -208,8 +532,18 @@
             statusElement.className = 'vm-status uwu';
             document.getElementById('sliceName').textContent = '----';
             document.getElementById('flavorInfo').textContent = '----';
+            document.getElementById('vcpusInfo').textContent = '----';
+            document.getElementById('ramInfo').textContent = '----';
+            document.getElementById('diskInfo').textContent = '----';
             document.getElementById('imageInfo').textContent = '----';
             document.getElementById('workerInfo').textContent = '----';
+            document.getElementById('interfacesTable').innerHTML = `
+            <tr>
+                <td colspan="3" class="text-center text-muted">
+                    ----
+                </td>
+            </tr>
+        `;
         }
 
         document.addEventListener('DOMContentLoaded', loadVMInfo);

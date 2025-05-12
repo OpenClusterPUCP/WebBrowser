@@ -1,5 +1,7 @@
 package org.example.proyectocloud.Controller.User.Api;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.example.proyectocloud.Bean.UserInfo;
@@ -106,9 +108,7 @@ public class UserSketchApiController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("Error al crear el sketch: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Collections.singletonMap("error", "Error al crear el sketch: " + e.getMessage()));
+            return handleException(e, "Error al crear el sketch");
         }
     }
 
@@ -195,13 +195,7 @@ public class UserSketchApiController {
             ));
 
         } catch (Exception e) {
-            log.error("Error al actualizar el sketch: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of(
-                    "status", "error",
-                    "message", "Error al actualizar el sketch",
-                    "details", e.getMessage()
-                ));
+            return handleException(e, "Error al actualizar el sketch");
         }
     }
 
@@ -282,5 +276,41 @@ public class UserSketchApiController {
                     "message", "Error al obtener imágenes: " + e.getMessage()
                 ));
         }
+    }
+
+    // Función útil para los mensajes de error:
+    private ResponseEntity<?> handleException(Exception e, String errorPrefix) {
+        log.error(errorPrefix + ": {}", e.getMessage());
+        
+        String errorMessage = e.getMessage();
+        if (errorMessage != null && errorMessage.contains("{")) {
+            try {
+
+                String jsonPart = errorMessage.substring(
+                    errorMessage.indexOf("{"), 
+                    errorMessage.lastIndexOf("}") + 1
+                );
+
+                ObjectMapper mapper = new ObjectMapper();
+                Map<String, Object> errorResponse = mapper.readValue(
+                    jsonPart, 
+                    new TypeReference<Map<String, Object>>() {}
+                );
+                
+                return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(errorResponse);
+                    
+            } catch (Exception jsonException) {
+                log.error("Error parsing JSON error message: {}", jsonException.getMessage());
+            }
+        }
+
+        return ResponseEntity
+            .status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(Map.of(
+                "status", "error",
+                "message", errorMessage
+            ));
     }
 }

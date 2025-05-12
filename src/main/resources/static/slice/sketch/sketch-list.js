@@ -47,6 +47,8 @@ $(document).ready(async function() {
     // VARIABLES::
     // ==================
     let table;
+    let flavorCache = {};
+
 
     // ==================
     // DATATABLES:
@@ -82,6 +84,28 @@ $(document).ready(async function() {
         }
     }
 
+    async function loadFlavors() {
+        try {
+            const response = await fetch('/User/api/sketch/resources/flavors');
+            if (!response.ok) throw new Error('Error cargando flavors');
+            const data = await response.json();
+            console.log('Respuesta del servidor de flavors:', data);
+
+            if (data.status === 'success' && Array.isArray(data.content)) {
+                data.content.forEach(flavor => {
+                    flavorCache[flavor.id] = {
+                        vcpus: Number(flavor.vcpus) || 0,
+                        ram: Number(flavor.ram) || 0,
+                        disk: Number(flavor.disk) || 0
+                    };
+                });
+                console.log('Cache de flavors después de conversión:', flavorCache);
+            }
+        } catch (error) {
+            console.error('Error cargando flavors:', error);
+        }
+    }
+
     function formatDate(dateString) {
         if (!dateString) return 'No disponible';
         const date = new Date(dateString);
@@ -105,7 +129,10 @@ $(document).ready(async function() {
 
     // Inicialización de DataTable
     async function initializeTable() {
+        await loadFlavors();
         const sketches = await loadSketches();
+        console.log('Sketches cargados:', sketches);
+
         table = $('#sketchesTable').DataTable({
             data: sketches,
             columns: [
@@ -156,6 +183,61 @@ $(document).ready(async function() {
                         }
                         return data;
                     }
+                },
+                {
+                    data: null,
+                    title: 'VCPUs',
+                    className: 'text-start',
+                    render: function(data) {
+                        let totalVCPUs = 0;
+                        if (data.vms && Array.isArray(data.vms)) {
+                            data.vms.forEach(vm => {
+                                if (vm.flavor_id && flavorCache[vm.flavor_id]) {
+                                    totalVCPUs += Number(flavorCache[vm.flavor_id].vcpus) || 0;
+                                }
+                            });
+                        }
+                        return `<span class="text-muted">${totalVCPUs}</span>`;
+                    }
+                },
+                {
+                    data: null,
+                    title: 'RAM',
+                    className: 'text-start',
+                    render: function(data) {
+                        let totalRAM = 0;
+                        if (data.vms && Array.isArray(data.vms)) {
+                            data.vms.forEach(vm => {
+                                if (vm.flavor_id && flavorCache[vm.flavor_id]) {
+                                    totalRAM += Number(flavorCache[vm.flavor_id].ram) || 0;
+                                }
+                            });
+                        }
+                        const ramInGB = (totalRAM / 1000).toFixed(3);
+                        const formattedRAM = parseFloat(ramInGB).toString();
+                        
+                        return `<span class="text-muted">${formattedRAM} GB</span>`;
+                    }
+                },
+                {
+                    data: null,
+                    title: 'Disco',
+                    className: 'text-start',
+                    render: function(data) {
+                        let totalDisk = 0;
+                        if (data.vms && Array.isArray(data.vms)) {
+                            data.vms.forEach(vm => {
+                                if (vm.flavor_id && flavorCache[vm.flavor_id]) {
+                                    totalDisk += Number(flavorCache[vm.flavor_id].disk) || 0;
+                                }
+                            });
+                        }
+                        return `<span class="text-muted">${totalDisk} GB</span>`;
+                    }
+                },
+                { 
+                    data: 'vm_count',
+                    render: data => `<span class="text-muted">${data}</span>`
                 },
                 { 
                     data: 'created_at',

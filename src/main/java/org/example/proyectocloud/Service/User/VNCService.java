@@ -1,5 +1,6 @@
 package org.example.proyectocloud.Service.User;
 
+import org.example.proyectocloud.Handler.VNCServerWebSocketHandler;
 import org.example.proyectocloud.Handler.VNCWebSocketHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,21 +79,24 @@ public class VNCService {
         WebSocketClient webSocketClient = new StandardWebSocketClient();
         WebSocketHttpHeaders headers = new WebSocketHttpHeaders();
         
-        log.info("Configurando headers de autenticación...");
-        headers.add("Authorization", "Bearer " + tokenUser);
-        
-        log.info("Headers configurados: {}", headers.toSingleValueMap());
+        if (tokenUser != null && !tokenUser.isEmpty()) {
+            log.info("Configurando headers de autenticación...");
+            headers.add("Authorization", "Bearer " + tokenUser);
+            log.info("Headers configurados: {}", headers.toSingleValueMap());
+        } else {
+            log.info("Procediendo sin autenticación");
+        }
         
         try {
-            WebSocketHandler serverHandler = new org.example.proyectocloud.Handler.VNCServerWebSocketHandler(clientSession);
-            
+
             log.info("Iniciando handshake...");
-            
-            @SuppressWarnings("removal") 
-            WebSocketSession serverSession = webSocketClient
-                .doHandshake(serverHandler, headers, URI.create(wsUrl))
-                .get(5, TimeUnit.SECONDS);
-            
+
+            WebSocketHandler serverHandler = new VNCServerWebSocketHandler(clientSession);
+
+            @SuppressWarnings("removal") WebSocketSession serverSession = webSocketClient
+                    .doHandshake(serverHandler, headers, URI.create(wsUrl))
+                    .get(5, TimeUnit.SECONDS);
+
             log.info("Conexión establecida con slice-manager. Session ID: {}", serverSession.getId());
             
             clientSession.getAttributes().put("serverSession", serverSession);

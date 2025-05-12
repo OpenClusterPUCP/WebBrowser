@@ -585,6 +585,8 @@ window.handleCreateVM = function() {
         topologyManager.addInterface(interfaceData);
     }
 
+    updateResourceInfo();
+    
     console.log(topologyManager)
 
     addVMModal.hide();
@@ -714,6 +716,8 @@ window.handleEditVM = function() {
         topologyManager.removeExternalAccess(vm.id);
     }
 
+    updateResourceInfo();
+
     console.log(topologyManager)
     addVMModal.hide();
     window.currentNodeData = null;
@@ -776,6 +780,7 @@ function handleDeleteVM(vmId) {
     topologyManager.vms.delete(vmId);
     topologyManager.visNodes.delete(vmId);
     visDataset.nodes.remove(vmId);
+    updateResourceInfo();
     network.disableEditMode();
     network.enableEditMode();
 }
@@ -800,6 +805,90 @@ function handleDeleteLink(linkId) {
 }
 
 // ===================== GUARDADO DE SKETCHs =====================
+
+// Manejo de mensajes de error:
+
+function showErrorAlert(error) {
+    let errorMessage = '';
+    let errorDetails = [];
+
+    try {
+        // Parse the error object
+        let errorData = null;
+        
+        if (typeof error === 'object' && error.response) {
+            // If error comes from API response
+            errorData = error.response;
+        } else if (error.message && error.message.includes('{')) {
+            // If error message contains JSON
+            const jsonStr = error.message.substring(
+                error.message.indexOf('{'),
+                error.message.lastIndexOf('}') + 1
+            );
+            errorData = JSON.parse(jsonStr);
+        } else {
+            errorMessage = error.message || 'Error desconocido';
+        }
+
+        // If we have parsed data, extract message and details
+        if (errorData) {
+            errorMessage = errorData.message || 'Error desconocido';
+            
+            // Handle details that could be array or string
+            if (errorData.details) {
+                if (Array.isArray(errorData.details)) {
+                    errorDetails = errorData.details;
+                } else {
+                    errorDetails = [errorData.details];
+                }
+            }
+        }
+
+        // Create HTML content for SweetAlert
+        const detailsHtml = errorDetails.length > 0
+            ? `
+                <div class="text-start text-danger small mt-3">
+                    <hr class="my-2">
+                    ${errorDetails.map(detail => `
+                        <p class="mb-1 d-flex align-items-start">
+                            <i class="fas fa-exclamation-circle me-2 mt-1"></i>
+                            <span>${detail}</span>
+                        </p>
+                    `).join('')}
+                </div>
+            `
+            : '';
+
+        return Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            html: `
+                <p class="mb-2">${errorMessage}</p>
+                ${detailsHtml}
+            `,
+            customClass: {
+                icon: 'border-0',
+                confirmButton: 'btn btn-danger',
+                htmlContainer: 'text-left'
+            },
+            buttonsStyling: false
+        });
+    } catch (parseError) {
+        console.error('Error parsing error message:', parseError);
+        // Fallback for unparseable errors
+        return Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: error.message || 'Error desconocido',
+            customClass: {
+                icon: 'border-0',
+                confirmButton: 'btn btn-danger'
+            },
+            buttonsStyling: false
+        });
+    }
+}
+
 
 window.saveSketch = async function() {
     const form = document.getElementById('saveSketchForm');
@@ -877,31 +966,16 @@ window.saveSketch = async function() {
                 }
             });
         } else {
-            // Si hay respuesta del backend pero con error, usar su mensaje
-            throw new Error(result.message);
+            throw { 
+                    message: result.message || 'Error al crear el sketch',
+                    details: result.details || [],
+                    response: result
+                };
         }
 
     } catch (error) {
         console.error('Error al guardar el sketch:', error);
-        
-        // Determinar el mensaje de error
-        let errorMessage;
-        if (error.message === 'Failed to fetch') {
-            errorMessage = 'No se pudo conectar con el servidor. Por favor intenta más tarde.';
-        } else {
-            errorMessage = error.message || 'Ocurrió un error inesperado al guardar el sketch';
-        }
-        
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: errorMessage,
-            confirmButtonText: 'Entendido',
-            customClass: {
-                confirmButton: 'btn bg-gradient-primary'
-            },
-            buttonsStyling: false
-        });
+        await showErrorAlert(error)
     }
 }
 
@@ -1155,6 +1229,7 @@ function createLinearTopology(vmCount, imageId, flavorId) {
         createTemplateLink(vmIds[i], vmIds[i + 1]);
     }
 
+    updateResourceInfo();
     arrangeTopology();
 }
 
@@ -1173,6 +1248,7 @@ function createRingTopology(vmCount, imageId, flavorId) {
         createTemplateLink(vmIds[i], vmIds[(i + 1) % vmCount]);
     }
 
+    updateResourceInfo();
     arrangeTopology();
 }
 
@@ -1193,6 +1269,7 @@ function createMeshTopology(vmCount, imageId, flavorId) {
         }
     }
 
+    updateResourceInfo();
     arrangeTopology();
 }
 
@@ -1213,6 +1290,7 @@ function createStarTopology(vmCount, imageId, flavorId) {
         createTemplateLink(centerId, vmIds[i]);
     }
 
+    updateResourceInfo();
     arrangeTopology();
 }
 
@@ -1250,6 +1328,7 @@ window.clearTopology = function() {
     topologyManager.visEdges.clear();
     nodeTooltips.clear();
     edgeTooltips.clear();
+    updateResourceInfo();
     network.fit({
         animation: {
             duration: 500,
@@ -1507,5 +1586,32 @@ function validateTopology() {
     }
     return true;
 }
+
+function updateResourceInfo() {
+    let totalVCPUs = 0;
+    let totalRAM = 0;
+    let totalDisk = 0;
+
+    // Iterate through all VMs in topology manager
+    topologyManager.vms.forEach(vm => {
+        // Find the flavor for this VM
+        const flavor = AVAILABLE_FLAVORS.find(f => f.id === parseInt(vm.flavor_id));
+        if (flavor) {
+            totalVCPUs += Number(flavor.vcpus) || 0;
+            totalRAM += Number(flavor.ram) || 0;
+            totalDisk += Number(flavor.disk) || 0;
+        }
+    });
+
+
+    const ramInGB = (totalRAM / 1000).toFixed(3);
+    const formattedRAM = parseFloat(ramInGB).toString();
+
+    // Update the DOM elements
+    document.getElementById('sketchVCPUs').textContent = totalVCPUs;
+    document.getElementById('sketchRAM').textContent = `${formattedRAM} GB`;
+    document.getElementById('sketchDisk').textContent = `${totalDisk} GB`;
+}
+
 
 export { network, topologyManager };

@@ -1107,9 +1107,9 @@ const UI = {
 
         let msg;
         if (UI.getSetting('encrypt')) {
-            msg = _("Connected (encrypted) to ") + UI.desktopName;
+            msg = _("Conectado con encriptación - ") + UI.desktopName;
         } else {
-            msg = _("Connected (unencrypted) to ") + UI.desktopName;
+            msg = _("Conectado sin encriptación - ") + UI.desktopName;
         }
         UI.showStatus(msg);
         UI.updateVisualState('connected');
@@ -1135,7 +1135,7 @@ const UI = {
                 UI.showStatus(_("Something went wrong, connection is closed"),
                               'error');
             } else {
-                UI.showStatus(_("Failed to connect to server"), 'error');
+                UI.showStatus(_("Ocurrió un error al intentar conectarse a la VM!"), 'error');
             }
         }
         // If reconnecting is allowed process it now
@@ -1147,7 +1147,7 @@ const UI = {
             return;
         } else {
             UI.updateVisualState('disconnected');
-            UI.showStatus(_("Disconnected"), 'normal');
+            UI.showStatus(_("Desconectado"), 'normal');
         }
 
         document.title = PAGE_TITLE;

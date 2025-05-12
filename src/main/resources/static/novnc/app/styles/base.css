@@ -885,13 +885,13 @@ html {
 }
 
 .noVNC_logo {
-  color:yellow;
+  color:rgb(176, 170, 170);
   font-family: 'Orbitron', 'OrbitronTTF', sans-serif;
   line-height:90%;
   text-shadow: 0.1em 0.1em 0 black;
 }
 .noVNC_logo span{
-  color:green;
+  color:rgb(255, 255, 255);
 }
 
 #noVNC_bell {

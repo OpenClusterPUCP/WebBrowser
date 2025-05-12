@@ -320,7 +320,7 @@
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
                                             <h6 class="mb-0 text-white">Información de Slice</h6>
-                                            <p class="text-white text-sm mb-0">Detalles de la Topología desplegada</p>
+                                            <p class="text-white text-sm mb-0">Detalles breves de la Topología desplegada</p>
                                         </div>
                                         <button type="button"
                                                 class="btn btn-icon-only btn-link text-white mb-0"
@@ -543,16 +543,16 @@
                         <div class="row g-0">
                             <div class="col-4 text-center border-end">
                                 <div class="p-3">
-                                    <i class="material-symbols-rounded text-gradient text-dark mb-1" style="font-size: 2.5rem;">memory</i>
-                                    <p class="text-xs text-secondary mb-0">RAM</p>
-                                    <h5 class="font-weight-bolder mb-0" id="vmModalRAM">-</h5>
+                                    <i class="material-symbols-rounded text-gradient text-dark mb-1" style="font-size: 2.5rem;">developer_board</i>
+                                    <p class="text-xs text-secondary mb-0">vCPUs</p>
+                                    <h5 class="font-weight-bolder mb-0" id="vmModalCPUs">-</h5>
                                 </div>
                             </div>
                             <div class="col-4 text-center border-end">
                                 <div class="p-3">
-                                    <i class="material-symbols-rounded text-gradient text-dark mb-1" style="font-size: 2.5rem;">developer_board</i>
-                                    <p class="text-xs text-secondary mb-0">vCPUs</p>
-                                    <h5 class="font-weight-bolder mb-0" id="vmModalCPUs">-</h5>
+                                    <i class="material-symbols-rounded text-gradient text-dark mb-1" style="font-size: 2.5rem;">memory</i>
+                                    <p class="text-xs text-secondary mb-0">RAM</p>
+                                    <h5 class="font-weight-bolder mb-0" id="vmModalRAM">-</h5>
                                 </div>
                             </div>
                             <div class="col-4 text-center">
@@ -703,6 +703,29 @@
                 <div class="card border mb-4">
                     <div class="card-body p-0">
                         <div class="row g-0">
+                            <!-- Resources Stats -->
+                            <div class="col-3 text-center border-end">
+                                <div class="p-3">
+                                    <i class="material-symbols-rounded text-gradient text-warning mb-1" style="font-size: 2.5rem;">developer_board</i>
+                                    <p class="text-xs text-secondary mb-0">vCPUs</p>
+                                    <h5 class="font-weight-bolder mb-0" id="sliceModalVCPUs">-</h5>
+                                </div>
+                            </div>
+                            <div class="col-3 text-center border-end">
+                                <div class="p-3">
+                                    <i class="material-symbols-rounded text-gradient text-warning mb-1" style="font-size: 2.5rem;">memory</i>
+                                    <p class="text-xs text-secondary mb-0">RAM</p>
+                                    <h5 class="font-weight-bolder mb-0" id="sliceModalRAM">-</h5>
+                                </div>
+                            </div>
+                            <div class="col-3 text-center border-end">
+                                <div class="p-3">
+                                    <i class="material-symbols-rounded text-gradient text-warning mb-1" style="font-size: 2.5rem;">storage</i>
+                                    <p class="text-xs text-secondary mb-0">Disco</p>
+                                    <h5 class="font-weight-bolder mb-0" id="sliceModalDisk">-</h5>
+                                </div>
+                            </div>
+                            <!-- Divider -->
                             <div class="col-3 text-center border-end">
                                 <div class="p-3">
                                     <i class="material-symbols-rounded text-gradient text-warning mb-1" style="font-size: 2.5rem;">computer</i>
@@ -710,21 +733,24 @@
                                     <h5 class="font-weight-bolder mb-0" id="sliceModalVMCount">-</h5>
                                 </div>
                             </div>
-                            <div class="col-3 text-center border-end">
+                        </div>
+                        <!-- Second Row -->
+                        <div class="row g-0 border-top">
+                            <div class="col-4 text-center border-end">
                                 <div class="p-3">
                                     <i class="material-symbols-rounded text-gradient text-warning mb-1" style="font-size: 2.5rem;">settings_ethernet</i>
                                     <p class="text-xs text-secondary mb-0">Interfaces</p>
                                     <h5 class="font-weight-bolder mb-0" id="sliceModalInterfaceCount">-</h5>
                                 </div>
                             </div>
-                            <div class="col-3 text-center border-end">
+                            <div class="col-4 text-center border-end">
                                 <div class="p-3">
                                     <i class="material-symbols-rounded text-gradient text-warning mb-1" style="font-size: 2.5rem;">link</i>
                                     <p class="text-xs text-secondary mb-0">Enlaces</p>
                                     <h5 class="font-weight-bolder mb-0" id="sliceModalLinkCount">-</h5>
                                 </div>
                             </div>
-                            <div class="col-3 text-center">
+                            <div class="col-4 text-center">
                                 <div class="p-3">
                                     <i class="material-symbols-rounded text-gradient text-warning mb-1" style="font-size: 2.5rem;">dns</i>
                                     <p class="text-xs text-secondary mb-0">Workers</p>

@@ -231,16 +231,35 @@
                 <div class="col-lg-8 animate__animated animate__fadeInLeft mb-3" style="min-height: 590px !important;">
                     <div class="card h-100">
                         <div class="card-header p-3 bg-gradient-dark">
-                            <div class="row">
+                            <div class="row align-items-center">
                                 <div class="col-md-6">
                                     <h6 class="mb-0 text-white">Workspace</h6>
                                     <p class="text-white text-sm mb-0">Área interactiva para diseñar tu red</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex justify-content-end align-items-center">
+                                        <div class="text-white text-end">
+                                            <div class="d-flex align-items-center gap-3">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="material-symbols-rounded me-1" style="font-size: 1rem;">developer_board</i>
+                                                    <span class="text-xs">vCPUs: <span id="sketchVCPUs" class="fw-bold">0</span></span>
+                                                </div>
+                                                <div class="d-flex align-items-center">
+                                                    <i class="material-symbols-rounded me-1" style="font-size: 1rem;">memory</i>
+                                                    <span class="text-xs">RAM: <span id="sketchRAM" class="fw-bold">0 GB</span></span>
+                                                </div>
+                                                <div class="d-flex align-items-center">
+                                                    <i class="material-symbols-rounded me-1" style="font-size: 1rem;">storage</i>
+                                                    <span class="text-xs">Disco: <span id="sketchDisk" class="fw-bold">0 GB</span></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         <div class="card-body p-3" style="height: calc(100vh - 80vh); ">
                             <div id="network-container" class="border border-radius-xl" style="width: 100%; height: 100%; outline: none !important; ">
-
                             </div>
                         </div>
                     </div>
@@ -414,18 +433,20 @@
                             <div class="row g-0">
                                 <div class="col-4 text-center border-end">
                                     <div class="p-3">
-                                        <i class="material-symbols-rounded text-gradient text-dark mb-1" style="font-size: 2.5rem;">memory</i>
-                                        <p class="text-xs text-secondary mb-0">RAM</p>
-                                        <h5 class="font-weight-bolder mb-0" id="flavorRAM">-</h5>
-                                    </div>
-                                </div>
-                                <div class="col-4 text-center border-end">
-                                    <div class="p-3">
                                         <i class="material-symbols-rounded text-gradient text-dark mb-1" style="font-size: 2.5rem;">developer_board</i>
                                         <p class="text-xs text-secondary mb-0">vCPUs</p>
                                         <h5 class="font-weight-bolder mb-0" id="flavorCPUs">-</h5>
                                     </div>
                                 </div>
+                                
+                                <div class="col-4 text-center border-end">
+                                    <div class="p-3">
+                                        <i class="material-symbols-rounded text-gradient text-dark mb-1" style="font-size: 2.5rem;">memory</i>
+                                        <p class="text-xs text-secondary mb-0">RAM</p>
+                                        <h5 class="font-weight-bolder mb-0" id="flavorRAM">-</h5>
+                                    </div>
+                                </div>
+                                
                                 <div class="col-4 text-center">
                                     <div class="p-3">
                                         <i class="material-symbols-rounded text-gradient text-dark mb-1" style="font-size: 2.5rem;">storage</i>

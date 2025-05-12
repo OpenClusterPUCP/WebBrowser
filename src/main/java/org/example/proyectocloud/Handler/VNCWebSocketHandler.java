@@ -32,16 +32,27 @@ public class VNCWebSocketHandler implements WebSocketHandler {
         
         // Extraer vmId de la URI
         String path = session.getUri().getPath();
-        String vmIdStr = path.substring(path.lastIndexOf('/') - 2, path.lastIndexOf('/'));
-        Integer vmId = Integer.parseInt(vmIdStr);
+        log.info("=== RUTA -> {} ===", path);
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("/vm/(\\d+)/socket");
+        java.util.regex.Matcher matcher = pattern.matcher(path);
         
+        if (!matcher.find()) {
+            log.error("No se pudo extraer el ID de VM de la ruta: {}", path);
+            session.sendMessage(new TextMessage("Error: formato de URL inválido"));
+            session.close(CloseStatus.PROTOCOL_ERROR);
+            return;
+        }
+        
+        Integer vmId = Integer.parseInt(matcher.group(1));
         log.info("=== SOCKET VNC CONSOLE VM ID-{} ===", vmId);
         
         try {
-            // Obtener token de VNC de query params
+            // Obtener tokens
             String vncToken = null;
+            String authToken = null;
             String query = session.getUri().getQuery();
             
+            // Extraer VNC token
             if (query != null && query.contains("token=")) {
                 vncToken = query.split("token=")[1];
                 if (vncToken.contains("&")) {
@@ -56,20 +67,16 @@ public class VNCWebSocketHandler implements WebSocketHandler {
                 return;
             }
 
-            // Obtener token de autenticación del handshake
+            // Extraer auth token del handshake (si existe)
             Map<String, Object> attributes = session.getAttributes();
-            String authToken = (String) attributes.get("jwt");
-            
-            if (authToken == null || authToken.isEmpty()) {
-                log.warn("Token de autenticación no encontrado para VM ID-{}", vmId);
-                session.sendMessage(new TextMessage("Acceso denegado: Token de autenticación no encontrado"));
-                session.close(CloseStatus.POLICY_VIOLATION);
-                return;
+            if (attributes.containsKey("jwt")) {
+                authToken = (String) attributes.get("jwt");
+                log.debug("Token de autenticación encontrado: {}", authToken);
+            } else {
+                log.debug("No se encontró token de autenticación - procediendo solo con token VNC");
             }
 
-            log.debug("Token VNC recibido: {}", vncToken);
-            log.debug("Token de autenticación recibido: {}", authToken);
-            
+            // Conectar al VNC service
             vncService.handleVNCSocket(vmId, vncToken, authToken, session);
             
         } catch (Exception e) {

@@ -2,14 +2,12 @@ package org.example.proyectocloud.Handler;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.socket.CloseStatus;
-import org.springframework.web.socket.WebSocketHandler;
-import org.springframework.web.socket.WebSocketMessage;
-import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.*;
 
 public class VNCServerWebSocketHandler implements WebSocketHandler {
     private static final Logger log = LoggerFactory.getLogger(VNCServerWebSocketHandler.class);
     private final WebSocketSession clientSession;
+
 
     public VNCServerWebSocketHandler(WebSocketSession clientSession) {
         this.clientSession = clientSession;
@@ -17,26 +15,43 @@ public class VNCServerWebSocketHandler implements WebSocketHandler {
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        log.info("Conexión establecida con servidor VNC: {}", session.getId());
+        log.info("Iniciando conexión VNC sin autenticación...");
+        clientSession.getAttributes().put("serverSession", session);
+        session.getAttributes().put("clientSession", clientSession);
     }
 
     @Override
     public void handleMessage(WebSocketSession session, WebSocketMessage<?> message) throws Exception {
+        // Forward messages without authentication check
         if (clientSession.isOpen()) {
-            clientSession.sendMessage(message);
+            try {
+                clientSession.sendMessage(message);
+            } catch (Exception e) {
+                log.error("Error al reenviar mensaje: {}", e.getMessage());
+                closeQuietly(session);
+            }
         }
     }
 
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
-        log.error("Error en conexión con servidor VNC: {}", exception.getMessage());
+        log.error("Error de transporte VNC: {}", exception.getMessage());
+        closeQuietly(session);
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) throws Exception {
-        log.info("Conexión cerrada con servidor VNC: {}", closeStatus);
-        if (clientSession.isOpen()) {
-            clientSession.close(closeStatus);
+        log.info("Conexión VNC cerrada: {}", closeStatus);
+        closeQuietly(clientSession);
+    }
+
+    private void closeQuietly(WebSocketSession session) {
+        if (session != null && session.isOpen()) {
+            try {
+                session.close(CloseStatus.NORMAL);
+            } catch (Exception e) {
+                log.warn("Error al cerrar sesión: {}", e.getMessage());
+            }
         }
     }
 

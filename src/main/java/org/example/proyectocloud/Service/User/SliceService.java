@@ -1,5 +1,8 @@
 package org.example.proyectocloud.Service.User;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +14,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -69,36 +73,43 @@ public class SliceService {
     }
 
     public Object deploySlice(String token, Map<String, Object> sliceData) {
-        log.info("Solicitando despliegue de slice");
+        log.info("Solicitando despliegue de slice con data: {}", sliceData);
 
         String url = UriComponentsBuilder
             .fromUriString(API_GATEWAY_URL + "/slice-manager/deploy-slice")
             .toUriString();
-        
+
         log.info("URL construida: {}", url);
 
         HttpHeaders headers = createAuthHeaders(token);
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(sliceData, headers);
 
-        try {
-            log.info("Enviando request al gateway...");
-            ResponseEntity<LinkedHashMap> response = restTemplate.exchange(
-                url,
-                HttpMethod.POST,
-                entity,
-                LinkedHashMap.class
-            );
-            log.info("Respuesta recibida: {}", response.getBody());
+        log.info("Enviando request al gateway...");
+        ResponseEntity<String> response = restTemplate.exchange(
+            url,
+            HttpMethod.POST,
+            entity,
+            String.class
+        );
 
-            return response.getBody();
-        } catch (HttpClientErrorException ex) {
-            log.error("Error HTTP al desplegar slice: {} - {}", ex.getStatusCode(), ex.getResponseBodyAsString());
-            log.error("Headers de la respuesta: {}", ex.getResponseHeaders());
-            throw ex;
-        } catch (Exception ex) {
-            log.error("Error al desplegar slice: {}", ex.getMessage(), ex);
-            throw ex;
+        log.info("Respuesta raw recibida: {}", response.getBody());
+
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            return mapper.readValue(response.getBody(), new TypeReference<Map<String, Object>>() {});
+        } catch (JsonProcessingException e) {
+            log.error("Error al procesar JSON de respuesta: {}", e.getMessage());
+            log.error("Contenido de respuesta: {}", response.getBody());
+
+            // Return a controlled error response
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", "Error al procesar respuesta del servidor");
+            errorResponse.put("details", e.getMessage());
+            errorResponse.put("rawResponse", response.getBody());
+            return errorResponse;
         }
+
     }
 
     public Object getSliceDetails(String token, Integer sliceId, Integer userId) {

@@ -44,7 +44,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
                                return true;
                            }
                        }
-                       return false;
+                       return true;
                    }
 
                    @Override
