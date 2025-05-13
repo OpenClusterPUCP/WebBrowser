@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.example.proyectocloud.Bean.UserInfo;
+import org.example.proyectocloud.Service.User.OperationService;
 import org.example.proyectocloud.Service.User.SliceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -20,6 +21,9 @@ public class UserSliceApiController {
 
     @Autowired
     private SliceService sliceService;
+
+    @Autowired
+    private OperationService operationService;
 
     private static final String SESSION_TOKEN_KEY = "userInfo";
     private static final String SESSION_USER_ID_KEY = "userInfo";
@@ -276,41 +280,102 @@ public class UserSliceApiController {
         }
     }
 
+    /**
+     * Consulta el estado de una operación específica
+     */
+    @GetMapping("/operations/{operationId}/status")
+    @ResponseBody
+    public ResponseEntity<?> getOperationStatus(@PathVariable Long operationId, HttpSession session) {
+        log.info("Recibida petición para consultar estado de operación ID: {}", operationId);
+        try {
+            String token = getTokenFromSession(session);
+            Integer userId = getUserIdFromSession(session);
+
+            if (token == null || userId == null) {
+                log.warn("Token o userId no encontrado en sesión");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of(
+                                "status", "error",
+                                "message", "Sesión no válida"
+                        ));
+            }
+
+            Object result = operationService.getOperationStatus(token, operationId);
+            log.info("Respuesta del service para operación {}: {}", operationId, result);
+
+            return ResponseEntity.ok(result);
+
+        } catch (Exception e) {
+            log.error("Error al consultar estado de la operación: {}", e.getMessage());
+            return handleException(e, "Error al consultar estado de la operación");
+        }
+    }
+
+    /**
+     * Consulta las operaciones pendientes del usuario actual
+     */
+    @GetMapping("/user/pending-operations")
+    @ResponseBody
+    public ResponseEntity<?> getUserPendingOperations(HttpSession session) {
+        log.info("Recibida petición para consultar operaciones pendientes del usuario");
+        try {
+            String token = getTokenFromSession(session);
+            Integer userId = getUserIdFromSession(session);
+
+            if (token == null || userId == null) {
+                log.warn("Token o userId no encontrado en sesión");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of(
+                                "status", "error",
+                                "message", "Sesión no válida"
+                        ));
+            }
+
+            Object result = operationService.getUserPendingOperations(token, userId);
+            log.info("Respuesta del service para operaciones pendientes: {}", result);
+
+            return ResponseEntity.ok(result);
+
+        } catch (Exception e) {
+            log.error("Error al consultar operaciones pendientes: {}", e.getMessage());
+            return handleException(e, "Error al consultar operaciones pendientes");
+        }
+    }
+
 
     // Función útil para los mensajes de error:
     private ResponseEntity<?> handleException(Exception e, String errorPrefix) {
         log.error(errorPrefix + ": {}", e.getMessage());
-        
+
         String errorMessage = e.getMessage();
         if (errorMessage != null && errorMessage.contains("{")) {
             try {
-
                 String jsonPart = errorMessage.substring(
-                    errorMessage.indexOf("{"), 
-                    errorMessage.lastIndexOf("}") + 1
+                        errorMessage.indexOf("{"),
+                        errorMessage.lastIndexOf("}") + 1
                 );
 
                 ObjectMapper mapper = new ObjectMapper();
                 Map<String, Object> errorResponse = mapper.readValue(
-                    jsonPart, 
-                    new TypeReference<Map<String, Object>>() {}
+                        jsonPart,
+                        new TypeReference<Map<String, Object>>() {}
                 );
-                
+
                 return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(errorResponse);
-                    
+                        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(errorResponse);
+
             } catch (Exception jsonException) {
                 log.error("Error parsing JSON error message: {}", jsonException.getMessage());
             }
         }
 
         return ResponseEntity
-            .status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body(Map.of(
-                "status", "error",
-                "message", errorMessage
-            ));
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of(
+                        "status", "error",
+                        "message", errorMessage
+                ));
     }
 
 }
