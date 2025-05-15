@@ -98,14 +98,14 @@ public class AdminAvailabilityZonesController {
 
         String port = ""; // Inicializamos port de su máquina al que enlazaremos con el puerto 3000 de Grafana, esto permitirá monitorear varios a la vez
         String jobName = ""; // Inicializamos job
-        if(id == 1){ // Zona de disponibilidad de Gabriel
-            port = "3000";
+        if(id == 1){ // Zona de disponibilidad de Hineill
+            port = "3002";
             jobName = "vnrt-servers-gabriel";
         } else if (id == 2) { // Zona de disponibilidad de Sergio
             port = "3001";
             jobName = "vnrt-servers";
-        } else if (id == 3) { // Zona de disponibilidad de Hineill
-            port = "3002";
+        } else if (id == 3) { // Zona de disponibilidad de Garbiel
+            port = "3000";
             jobName = "vnrt-servers-hineill";
         } else if (id == 4) { // Zona de disponibilidad de Denilson
             port = "3003";

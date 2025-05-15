@@ -90,13 +90,13 @@
                                 <strong>Advertencia:</strong> Para visualizar el monitoreo de esta zona correctamente, asegúrese de tener configurado el <strong>port forwarding</strong> desde su máquina.<br>
                                 <span th:switch="${zone.id}">
                                     <span th:case="1">
-                                        Ejemplo: <code>ssh -L 3000:localhost:3000 usuario@10.20.12.156 -p 5801</code>
+                                        Ejemplo: <code>ssh -L 3000:localhost:3000 usuario@10.20.12.137 -p 5801</code>
                                     </span>
                                     <span th:case="2">
                                         Ejemplo: <code>ssh -L 3001:localhost:3000 usuario@10.20.12.127 -p 5801</code>
                                     </span>
                                     <span th:case="3">
-                                        Ejemplo: <code>ssh -L 3002:localhost:3000 usuario@10.20.12.137 -p 5801</code>
+                                        Ejemplo: <code>ssh -L 3002:localhost:3000 usuario@10.20.12.127 -p 5801</code>
                                     </span>
                                     <span th:case="4">
                                         Ejemplo: <code>ssh -L 3003:localhost:3000 usuario@10.20.12.215 -p 5801</code>
