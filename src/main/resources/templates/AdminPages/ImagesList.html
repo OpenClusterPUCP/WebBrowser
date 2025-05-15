@@ -584,7 +584,7 @@
         const adminId = [[${idUser}]];       // Admin ID for operations
 
         // Constants for file validation
-        const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024;  // 2GB maximum file size
+        const MAX_FILE_SIZE = 9 * 1024 * 1024 * 1024;  // 9GB maximum file size
         const FILE_SIZE_WARNING = 1.5 * 1024 * 1024 * 1024; // 1.5GB warning threshold
 
         // Modal references
@@ -653,10 +653,10 @@
             },
             size: {
                 required: "El tamaño de es obligatorio",
-                min: "El tamaño del disco debe ser al menos 200MB"
+                min: "El tamaño del disco debe ser al menos 5MB"
             },
             file: {
-                size: "El archivo no debe superar los 2GB",
+                size: "El archivo no debe superar los 9GB",
                 format: "Formato de archivo no válido. Formatos permitidos: ISO, QCOW2, VMDK, VDI, VHD, VHDX, OVA"
             },
             userId: {

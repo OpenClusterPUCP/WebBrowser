@@ -130,9 +130,9 @@ public class AdminImagesApiController {
             // Validate file if provided
             if (imageFile != null && !imageFile.isEmpty()) {
                 // Check file size (2GB max)
-                long maxSize = 2L * 1024 * 1024 * 1024;
+                long maxSize = 9L * 1024 * 1024 * 1024;
                 if (imageFile.getSize() > maxSize) {
-                    errors.put("imageFile", "El archivo no debe superar los 2GB");
+                    errors.put("imageFile", "El archivo no debe superar los 9GB");
                 }
 
                 // Check file extension

@@ -32,44 +32,15 @@
                 <span>Slice</span>
             </a>
         </li>
-        <li>
-            <a th:href="@{/Admin/users}" th:classappend="${activeMenu == 'users' ? 'active' : ''}" data-section="users">
-                <i class="fas fa-users"></i>
-                <span>Usuarios</span>
-            </a>
-        </li>
-        <li>
-            <a th:href="@{/Admin/availability-zones}" th:classappend="${activeMenu == 'availability' ? 'active' : ''}" data-section="zones">
-                <i class="fas fa-network-wired"></i>
-                <span>Zonas</span>
-            </a>
-        </li>
+
     </ul>
 
     <div class="sidebar-section">Administración</div>
     <ul class="sidebar-menu">
         <li>
-            <a th:href="@{/Admin/flavors}" th:classappend="${activeMenu == 'flavors' ? 'active' : ''}" data-section="flavors">
-                <i class="fas fa-server"></i>
-                <span>Flavors</span>
-            </a>
-        </li>
-        <li>
-            <a th:href="@{/Admin/images}" th:classappend="${activeMenu == 'images' ? 'active' : ''}" data-section="images">
-                <i class="fas fa-laptop"></i>   <!-- Server/computer tower icon -->
-                <span>Imágenes</span>
-            </a>
-        </li>
-        <li>
             <a th:href="@{/User/sketch}" th:classappend="${activeMenu == 'sketch' ? 'active' : ''}" data-section="sketch">
                 <i class="fas fa-pencil-alt"></i>
                 <span>Sketch</span>
-            </a>
-        </li>
-        <li>
-            <a th:href="@{/Admin/requests}" th:classappend="${activeMenu == 'requests' ? 'active' : ''}" data-section="requests">
-                <i class="fas fa-clipboard-list"></i>
-                <span>Solicitudes</span>
             </a>
         </li>
     </ul>
@@ -77,7 +48,7 @@
     <div class="sidebar-section">Sistema</div>
     <ul class="sidebar-menu">
         <li>
-            <a th:href="@{/Admin/settings}" th:classappend="${activeMenu == 'settings' ? 'active' : ''}">
+            <a th:href="@{/User/settings}" th:classappend="${activeMenu == 'settings' ? 'active' : ''}">
                 <i class="fas fa-cog"></i>
                 <span>Configuración</span>
             </a>

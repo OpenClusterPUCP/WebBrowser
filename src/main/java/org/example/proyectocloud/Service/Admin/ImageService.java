@@ -1,5 +1,6 @@
 package org.example.proyectocloud.Service.Admin;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
 import org.example.proyectocloud.Bean.ImageRequest;
 import org.slf4j.Logger;
@@ -17,7 +18,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.io.IOException;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 @Service
@@ -78,70 +82,103 @@ public class ImageService {
             return Collections.emptyList();
         }
     }
-    
+
     /**
-     * Create a new image
-     * @param token Authorization token
-     * @param imageRequest Image metadata
-     * @param file The image file to upload (optional)
-     * @return Created image information or error details
+     * Crea una nueva imagen
+     * @param token Token de autorización
+     * @param imageRequest Metadatos de la imagen
+     * @param file El archivo de imagen a subir (opcional)
+     * @return Información de la imagen creada o detalles del error
      */
     public Object createImage(String token, ImageRequest imageRequest, MultipartFile file) {
-        log.info("Creating new image with name: {}", imageRequest.getName());
+        log.info("Creando nueva imagen con nombre: {}", imageRequest.getName());
         String url = API_GATEWAY_URL + "/Admin/images/create";
 
-        HttpHeaders headers = createAuthHeaders(token);
-        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-        
-        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        
-        // Add image request data
-        ObjectMapper mapper = new ObjectMapper();
         try {
-            String imageDataJson = mapper.writeValueAsString(imageRequest);
-            HttpHeaders imageDataHeaders = new HttpHeaders();
-            imageDataHeaders.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<String> imageDataEntity = new HttpEntity<>(imageDataJson, imageDataHeaders);
-            body.add("imageData", imageDataEntity);
-            
-            // Add file if provided
-            if (file != null && !file.isEmpty()) {
-                HttpHeaders fileHeaders = new HttpHeaders();
-                fileHeaders.setContentType(MediaType.valueOf(file.getContentType()));
-                ByteArrayResource fileResource = new ByteArrayResource(file.getBytes()) {
-                    @Override
-                    public String getFilename() {
-                        return file.getOriginalFilename();
+            String boundary = "----" + System.currentTimeMillis();
+
+            // Configurar la conexión
+            URL apiUrl = new URL(url);
+            HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
+            connection.setDoOutput(true);
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
+
+            // Agregar token de autorización
+            if (token != null && !token.isEmpty()) {
+                connection.setRequestProperty("Authorization", "Bearer " + token);
+            } else {
+                log.warn("Token de autorización no proporcionado o vacío");
+            }
+
+            connection.setChunkedStreamingMode(1024 * 1024); // Tamaño del buffer de streaming en bytes (1MB)
+
+            try (OutputStream output = connection.getOutputStream();
+                 PrintWriter writer = new PrintWriter(new OutputStreamWriter(output, StandardCharsets.UTF_8), true)) {
+
+                // Parte 1: Datos JSON
+                writer.append("--").append(boundary).append("\r\n");
+                writer.append("Content-Disposition: form-data; name=\"imageData\"\r\n");
+                writer.append("Content-Type: application/json\r\n\r\n");
+                writer.append(new ObjectMapper().writeValueAsString(imageRequest)).append("\r\n");
+
+                // Parte 2: Archivo
+                if (file != null && !file.isEmpty()) {
+                    writer.append("--").append(boundary).append("\r\n");
+                    writer.append("Content-Disposition: form-data; name=\"file\"; filename=\"")
+                            .append(file.getOriginalFilename()).append("\"\r\n");
+                    writer.append("Content-Type: ").append(file.getContentType()).append("\r\n\r\n");
+                    writer.flush();
+
+                    // Transmitir el archivo en bloques
+                    try (InputStream inputStream = file.getInputStream()) {
+                        byte[] buffer = new byte[8192]; // Buffer de 8KB
+                        int bytesRead;
+                        while ((bytesRead = inputStream.read(buffer)) != -1) {
+                            output.write(buffer, 0, bytesRead);
+                        }
+                        output.flush();
                     }
-                };
-                HttpEntity<ByteArrayResource> fileEntity = new HttpEntity<>(fileResource, fileHeaders);
-                body.add("file", fileEntity);
+                    writer.append("\r\n");
+                }
+
+                // Parte final: Cerrar el límite
+                writer.append("--").append(boundary).append("--").append("\r\n");
             }
-            
-            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
-            
-            ResponseEntity<LinkedHashMap> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.POST,
-                    requestEntity,
-                    LinkedHashMap.class
-            );
-            
-            return response.getBody();
-        } catch (HttpClientErrorException ex) {
-            log.error("Error creating image: {} - {}", ex.getStatusCode(), ex.getResponseBodyAsString());
-            try {
-                Map<String, Object> errorResponse = mapper.readValue(ex.getResponseBodyAsString(), Map.class);
-                return errorResponse;
-            } catch (Exception e) {
-                return Collections.singletonMap("error", "Error creating image: " + ex.getMessage());
+
+            // Obtener la respuesta
+            int responseCode = connection.getResponseCode();
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(
+                            responseCode >= 400 ? connection.getErrorStream() : connection.getInputStream()))) {
+                StringBuilder responseBody = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    responseBody.append(line);
+                }
+
+                // Procesar la respuesta
+                ObjectMapper mapper = new ObjectMapper();
+                if (responseCode >= 200 && responseCode < 300) {
+                    return mapper.readValue(responseBody.toString(), LinkedHashMap.class);
+                } else {
+                    log.error("Error del servidor al crear imagen: código {} - respuesta {}", responseCode, responseBody);
+                    try {
+                        return mapper.readValue(responseBody.toString(), Map.class);
+                    } catch (Exception e) {
+                        return Collections.singletonMap("error", "Error al crear imagen: código " + responseCode + " - " + responseBody);
+                    }
+                }
             }
+        } catch (JsonProcessingException e) {
+            log.error("Error al procesar JSON de imageRequest: {}", e.getMessage());
+            return Collections.singletonMap("error", "Error al procesar datos de imagen: " + e.getMessage());
         } catch (IOException e) {
-            log.error("Error processing file or JSON: {}", e.getMessage());
-            return Collections.singletonMap("error", "Error processing file: " + e.getMessage());
-        } catch (Exception ex) {
-            log.error("Error consuming image API: {}", ex.getMessage());
-            return Collections.singletonMap("error", "Error creating image: " + ex.getMessage());
+            log.error("Error de E/S al comunicarse con la API: {}", e.getMessage());
+            return Collections.singletonMap("error", "Error de comunicación con el servidor: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Error inesperado al crear imagen: {}", e.getMessage(), e);
+            return Collections.singletonMap("error", "Error inesperado al crear imagen: " + e.getMessage());
         }
     }
     
