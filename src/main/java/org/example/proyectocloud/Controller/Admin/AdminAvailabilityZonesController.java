@@ -81,7 +81,7 @@ public class AdminAvailabilityZonesController {
         model.addAttribute("serversData", detail.getServers());
         model.addAttribute("slicesData", detail.getSlices());
 
-        return "/AdminPages/AvailabilityZoneDetail";
+        return "AdminPages/AvailabilityZoneDetail";
     }
 
     @GetMapping("/{id}/monitoring")
@@ -151,7 +151,7 @@ public class AdminAvailabilityZonesController {
         model.addAttribute("networkList", networkList);
         model.addAttribute("port", port);
 
-        return "/AdminPages/AvailabilityZoneMonitoring";
+        return "AdminPages/AvailabilityZoneMonitoring";
     }
 
     // Método auxiliar para generar los paneles de cada servidor
