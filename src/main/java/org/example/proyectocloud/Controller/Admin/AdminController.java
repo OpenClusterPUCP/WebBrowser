@@ -176,7 +176,7 @@ public class AdminController {
             // Marcar enlace activo en el menú
             model.addAttribute("activeMenu", "profile");
 
-            return "/AdminPages/AdminProfile";
+            return "AdminPages/AdminProfile";
         } catch (Exception e) {
             log.error("Error al obtener datos para la vista de perfil: {}", e.getMessage(), e);
 
