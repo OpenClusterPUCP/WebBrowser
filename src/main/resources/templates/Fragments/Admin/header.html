@@ -18,24 +18,29 @@
             <input type="text" placeholder="Buscar...">
         </div>
 
-        <!-- Perfil de usuario -->
+        <!-- Perfil de usuario con datos dinámicos -->
         <div class="user-profile">
             <div class="user-info">
-                <!-- Avatar con iniciales -->
-                <div class="avatar" th:text="${userInitials}">JD</div>
+                <!-- Avatar con iniciales del usuario desde sesión -->
+                <div class="avatar" th:if="${session.userInfo}" th:text="${#strings.substring(session.userInfo.name,0,1) + #strings.substring(session.userInfo.lastname,0,1)}">AD</div>
+                <div class="avatar" th:unless="${session.userInfo}">JD</div>
                 <div class="user-details">
-                    <!-- Nombre completo del usuario -->
-                    <div class="user-name" th:text="${userName}">Juan Díaz</div>
-                    <!-- Rol del usuario -->
-                    <div class="user-role" th:text="${userRole}">Administrador</div>
+                    <!-- Nombre completo del usuario desde sesión -->
+                    <div class="user-name" th:if="${session.userInfo}" th:text="${session.userInfo.name + ' ' + session.userInfo.lastname}">Juan Díaz</div>
+                    <div class="user-name" th:unless="${session.userInfo}">Usuario</div>
+                    <!-- Rol del usuario desde sesión -->
+                    <div class="user-role" th:if="${session.userInfo}" th:text="${session.userInfo.role}">Administrador</div>
+                    <div class="user-role" th:unless="${session.userInfo}">Rol</div>
                 </div>
             </div>
 
             <!-- Dropdown del perfil -->
             <div class="user-dropdown">
                 <div class="user-dropdown-header">
-                    <div class="user-dropdown-name" th:text="${userName}">Juan Díaz</div>
-                    <div class="user-dropdown-role" th:text="${userRole}">Administrador</div>
+                    <div class="user-dropdown-name" th:if="${session.userInfo}" th:text="${session.userInfo.name + ' ' + session.userInfo.lastname}">Juan Díaz</div>
+                    <div class="user-dropdown-name" th:unless="${session.userInfo}">Usuario</div>
+                    <div class="user-dropdown-role" th:if="${session.userInfo}" th:text="${session.userInfo.role}">Administrador</div>
+                    <div class="user-dropdown-role" th:unless="${session.userInfo}">Rol</div>
                 </div>
                 <div class="user-dropdown-items">
                     <a th:href="@{/Admin/profile}" class="user-dropdown-item">

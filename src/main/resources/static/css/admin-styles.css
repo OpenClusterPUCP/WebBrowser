@@ -1984,6 +1984,21 @@ textarea.form-control {
 
 /* HEADER ADMIN */
 
+/* Estilos mejorados para el header y el perfil de usuario */
+.header {
+    height: var(--header-height);
+    background: white;
+    box-shadow: var(--shadow-sm);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+/* Estilos específicos para el perfil de usuario en el header */
 .header .user-profile {
     position: relative;
     cursor: pointer;
@@ -1994,9 +2009,10 @@ textarea.form-control {
 .header .user-info {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
 }
 
+/* Estilo mejorado para el avatar con iniciales */
 .header .avatar {
     width: 40px;
     height: 40px;
@@ -2006,51 +2022,48 @@ textarea.form-control {
     align-items: center;
     justify-content: center;
     color: white;
-    font-weight: 500;
+    font-weight: 600;
     font-size: 0.9rem;
-    /* Asegura que el avatar siempre sea visible */
-    flex-shrink: 0;
+    letter-spacing: -0.5px;
+    /* Añadir un sutil borde para mejorar la visibilidad */
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
 }
 
-
+/* Corregir la visualización de los detalles del usuario */
 .header .user-details {
-    /* Cambiar de 'none' a 'flex' para mostrar el contenido */
     display: flex;
-    /* Organizar el nombre y rol verticalmente */
     flex-direction: column;
-    /* Evita que este elemento se encoja demasiado */
-    min-width: 100px;
 }
 
 .header .user-name {
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     color: var(--text-color);
     margin: 0;
-    padding: 0;
+    line-height: 1.2;
 }
 
 .header .user-role {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: var(--text-muted);
     margin: 0;
-    padding: 0;
 }
 
+/* Mejorar el dropdown del perfil */
 .header .user-dropdown {
     position: absolute;
     right: 0;
     top: 100%;
-    margin-top: 8px;
+    margin-top: 12px;
     background: white;
     border-radius: var(--border-radius);
     box-shadow: var(--shadow-md);
-    width: 240px; /* Un poco más ancho para el contenido */
+    width: 220px;
     opacity: 0;
     visibility: hidden;
     transform: translateY(10px);
     transition: all var(--transition-speed);
-    z-index: 1000; /* Asegura que aparezca por encima de otros elementos */
+    z-index: 1000;
 }
 
 .header .user-profile:hover .user-dropdown {
@@ -2058,66 +2071,28 @@ textarea.form-control {
     visibility: visible;
     transform: translateY(0);
 }
-.header .user-dropdown-header {
-    padding: 16px;
-    border-bottom: 1px solid var(--border-color);
-}
 
-.header .user-dropdown-name {
-    font-weight: 600;
-    font-size: 0.95rem;
-    margin-bottom: 4px;
-}
-
-.header .user-dropdown-role {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-}
-
-.header .user-dropdown-items {
-    padding: 8px 0;
-}
-
-.header .user-dropdown-item {
-    padding: 10px 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    color: var(--text-color);
-    text-decoration: none;
-    transition: background var(--transition-speed);
-}
-
-.header .user-dropdown-item:hover {
-    background: var(--light-color);
-}
-
-.header .user-dropdown-item i {
-    color: var(--text-muted);
-    width: 20px;
-    text-align: center;
-}
-
-.header .logout-item {
-    border-top: 1px solid var(--border-color);
-    margin-top: 4px;
-    padding-top: 8px;
-}
-
-.header .logout-item i {
-    color: var(--danger-color);
-}
-
-
+/* Ajustes responsive */
 @media (max-width: 992px) {
     .header .user-details {
-        display: none; /* Ocultar en pantallas pequeñas */
+        display: none;
+    }
+
+    /* Mejorar el avatar en móviles */
+    .header .avatar {
+        margin-right: 0;
     }
 }
 
+/* Mejorar apariencia en pantallas muy pequeñas */
 @media (max-width: 576px) {
-    .header .user-dropdown {
-        width: 200px; /* Dropdown más pequeño en móviles */
-        right: -10px; /* Ajuste de posición */
+    .header {
+        padding: 0 16px;
+    }
+
+    .header .avatar {
+        width: 36px;
+        height: 36px;
+        font-size: 0.8rem;
     }
 }
