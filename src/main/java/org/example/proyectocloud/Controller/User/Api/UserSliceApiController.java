@@ -106,7 +106,7 @@ public class UserSliceApiController {
             return ResponseEntity.ok(result);
 
         } catch (Exception e) {
-            return handleException(e, "Error al desplegar el slice");
+            return handleException(e, "Error al desplegar la Slice");
         }
     }
 
@@ -133,12 +133,7 @@ public class UserSliceApiController {
             return ResponseEntity.ok(result);
 
         } catch (Exception e) {
-            log.error("Error al obtener los detalles del slice: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of(
-                    "status", "error",
-                    "message", e.getMessage()
-                ));
+            return handleException(e, "Error al obtener los detalles de la Slice");
         }
     }
 
@@ -158,9 +153,7 @@ public class UserSliceApiController {
             Object result = sliceService.pauseVM(token, vmId, userId);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
-            log.error("Error al pausar la VM: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("status", "error", "message", e.getMessage()));
+            return handleException(e, "Error al apagar la VM");
         }
     }
 
@@ -180,9 +173,7 @@ public class UserSliceApiController {
             Object result = sliceService.resumeVM(token, vmId, userId);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
-            log.error("Error al pausar la VM: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("status", "error", "message", e.getMessage()));
+            return handleException(e, "Error al encender la VM");
         }
     }
 
@@ -202,9 +193,7 @@ public class UserSliceApiController {
             Object result = sliceService.restartVM(token, vmId, userId);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
-            log.error("Error al pausar la VM: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("status", "error", "message", e.getMessage()));
+            return handleException(e, "Error al reiniciar la VM");
         }
     }
 
@@ -224,9 +213,7 @@ public class UserSliceApiController {
             Object result = sliceService.restartSlice(token, sliceId, userId);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
-            log.error("Error al pausar la VM: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("status", "error", "message", e.getMessage()));
+            return handleException(e, "Error al reiniciar la Slice");
         }
     }
 
@@ -246,9 +233,7 @@ public class UserSliceApiController {
             Object result = sliceService.stopSlice(token, sliceId, userId);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
-            log.error("Error al pausar la VM: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("status", "error", "message", e.getMessage()));
+            return handleException(e, "Error al detener la Slice");
         }
     }
 
@@ -271,12 +256,7 @@ public class UserSliceApiController {
             return ResponseEntity.ok(result);
 
         } catch (Exception e) {
-            log.error("Error al obtener detalles de VM: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of(
-                    "status", "error",
-                    "message", e.getMessage()
-                ));
+            return handleException(e, "Error al obtener detalles de la VM");
         }
     }
 

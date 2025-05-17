@@ -302,20 +302,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (tooltipContent) {
             tooltip.innerHTML = tooltipContent;
             
-            // Get mouse position and container position
-            const mouseX = params.pointer.DOM.x;
-            const mouseY = params.pointer.DOM.y;
-            const containerRect = container.getBoundingClientRect();
-            
-            // Calculate position relative to page instead of container
-            const tooltipX = mouseX;
-            const tooltipY = mouseY;
-            
-            // Position tooltip with fixed offset from cursor
-            tooltip.style.position = 'fixed'; // Change to fixed positioning
-            tooltip.style.left = `${tooltipX + 15}px`; // Small offset from cursor
-            tooltip.style.top = `${tooltipY - 10}px`;
-            
+            positionTooltip(tooltip, params.event);
+
             tooltip.classList.remove("animate__fadeOutDown");
             tooltip.classList.add("animate__delay-2s");
             tooltip.classList.add("animate__jackInTheBox");
@@ -331,32 +319,25 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     container.addEventListener("mousemove", function (event) {
         if (tooltip.style.display === "block") {
-            tooltip.style.left = (event.pageX + 10) + "px";
-            tooltip.style.top = (event.pageY - 10) + "px";
+            const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+            
+            const x = event.clientX + 10;
+            const y = event.clientY + 10;
+            
+            tooltip.style.position = 'fixed';
+            tooltip.style.left = `${x}px`;
+            tooltip.style.top = `${y}px`;
         }
     });
 
-    // Add hover event for edges
+
     network.on("hoverEdge", function (params) {
         const edgeId = params.edge;
         const tooltipContent = edgeTooltips.get(edgeId);
         if (tooltipContent) {
             tooltip.innerHTML = tooltipContent;
             
-            // Get mouse position and container position
-            const mouseX = params.pointer.DOM.x;
-            const mouseY = params.pointer.DOM.y;
-            const containerRect = container.getBoundingClientRect();
-            
-            // Calculate position relative to page instead of container
-            const tooltipX = mouseX;
-            const tooltipY = mouseY;
-            
-            // Position tooltip with fixed offset from cursor
-            tooltip.style.position = 'fixed'; // Change to fixed positioning
-            tooltip.style.left = `${tooltipX + 15}px`; // Small offset from cursor
-            tooltip.style.top = `${tooltipY - 10}px`;
-            
+            positionTooltip(tooltip, params.event);
 
             tooltip.classList.remove("animate__rotateOut");
             tooltip.classList.add("animate__delay-2s");
@@ -1590,6 +1571,8 @@ window.importTopology = function() {
                 visDataset.nodes.add(nodes);
                 visDataset.edges.add(edges);
 
+                updateResourceInfo();
+
                 setTimeout(() => {
                     arrangeTopology();
                 }, 700);
@@ -1881,6 +1864,52 @@ function renderExistingTopology(sketchData) {
             }
         });
     }, 500);
+}
+
+// Función genérica para posicionar tooltips
+function positionTooltip(tooltip, event, offset = { x: 15, y: -10 }) {
+    if (!tooltip) return;
+
+    tooltip.style.visibility = 'hidden';
+    tooltip.style.display = 'block';
+    
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const tooltipRect = tooltip.getBoundingClientRect();
+    
+    let mouseX, mouseY;
+    
+    if (event.pointer && event.pointer.DOM) {
+        const canvas = event.pointer.DOM.target;
+        const canvasRect = canvas.getBoundingClientRect();
+        
+        mouseX = event.clientX || (canvasRect.left + event.pointer.DOM.x);
+        mouseY = event.clientY || (canvasRect.top + event.pointer.DOM.y);
+    } else {
+
+        mouseX = event.clientX;
+        mouseY = event.clientY;
+    }
+    
+    let finalX = mouseX + offset.x;
+    let finalY = mouseY + offset.y;
+    
+    if (finalX + tooltipRect.width > viewportWidth) {
+        finalX = mouseX - tooltipRect.width - offset.x;
+    }
+    
+    if (finalY + tooltipRect.height > viewportHeight) {
+        finalY = mouseY - tooltipRect.height - offset.y;
+    }
+    
+    if (finalX < 0) finalX = 5;
+    if (finalY < 0) finalY = 5;
+    
+    tooltip.style.position = 'fixed';
+    tooltip.style.left = `${finalX}px`;
+    tooltip.style.top = `${finalY}px`;
+    tooltip.style.visibility = 'visible';
+    tooltip.style.zIndex = '9999';
 }
 
 export { network, topologyManager };

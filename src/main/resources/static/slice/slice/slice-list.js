@@ -553,14 +553,11 @@ $(document).ready(async function() {
         let errorDetails = [];
 
         try {
-            // Parse the error object
             let errorData = null;
             
             if (typeof error === 'object' && error.response) {
-                // If error comes from API response
                 errorData = error.response;
             } else if (error.message && error.message.includes('{')) {
-                // If error message contains JSON
                 const jsonStr = error.message.substring(
                     error.message.indexOf('{'),
                     error.message.lastIndexOf('}') + 1
@@ -570,7 +567,6 @@ $(document).ready(async function() {
                 errorMessage = error.message || 'Error desconocido';
             }
 
-            // If we have parsed data, extract message and details
             if (errorData) {
                 errorMessage = errorData.message || 'Error desconocido';
                 
@@ -584,7 +580,6 @@ $(document).ready(async function() {
                 }
             }
 
-            // Create HTML content for SweetAlert
             const detailsHtml = errorDetails.length > 0
                 ? `
                     <div class="text-start text-danger small mt-3">
@@ -615,7 +610,6 @@ $(document).ready(async function() {
             });
         } catch (parseError) {
             console.error('Error parsing error message:', parseError);
-            // Fallback for unparseable errors
             return Swal.fire({
                 icon: 'error',
                 title: 'Error',
@@ -771,7 +765,7 @@ $(document).ready(async function() {
                 }
             } else {
                 throw {
-                    message: result.message || 'Error al desplegar la slice',
+                    message: result.message || 'Error al desplegar la Slice',
                     details: result.details || [],
                     response: result
                 };

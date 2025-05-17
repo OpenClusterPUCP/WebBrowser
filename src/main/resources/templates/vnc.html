@@ -420,7 +420,7 @@
                 const statusElement = document.getElementById('vmStatus');
                 const isRunning = vmData.content.vm_info.status === 'running';
                 statusElement.innerHTML = `
-                    <span>${isRunning ? 'En Ejecución' : 'Detenido'}</span>
+                    <span>${isRunning ? 'En Ejecución' : 'Apagado'}</span>
                 `;
                 statusElement.className = `uwu vm-status ${isRunning ? 'status-running' : 'status-stopped'}`;
 
@@ -482,9 +482,9 @@
                                             <i class="fas fa-globe me-1"></i>
                                             Red Externa
                                         </span>` :
-                                        `<span class="interface-chip text-bold uwu">
+                                        `<span class="interface-chip text-bold uwu" title="${connectedVm ? `ID: #${connectedVm.id}` : 'Sin información'}">
                                             <i class="fas fa-link me-1"></i>
-                                            ${connectedVm ? `${connectedVm.name} #${connectedVm.id}` : '----'}
+                                            ${connectedVm ? `${connectedVm.name}` : '----'}
                                         </span>`
                                     }
                                 </td>
