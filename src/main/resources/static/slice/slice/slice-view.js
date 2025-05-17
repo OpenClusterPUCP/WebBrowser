@@ -30,8 +30,6 @@
 |    - Acceso a VMs (Cliente noVNC usando websockets)
 |    - Exportación de topología
 |    - Organización visual del layout
-|    - (Por implementar) Pausa de Slice / Reanudación de Slice
-|    - (Por implementar) Acco a VMs mediante SSH para Slices en AWS
 |
 | 5. UTILIDADES/HELPERS
 |    - Generación de tooltips
@@ -257,19 +255,7 @@ async function getSliceData(flag){
                     if (tooltipContent) {
                         tooltip.innerHTML = tooltipContent;
                         
-                        // Get mouse position and container position
-                        const mouseX = params.pointer.DOM.x;
-                        const mouseY = params.pointer.DOM.y;
-                        const containerRect = container.getBoundingClientRect();
-                        
-                        // Calculate position relative to page instead of container
-                        const tooltipX = mouseX;
-                        const tooltipY = mouseY;
-                        
-                        // Position tooltip with fixed offset from cursor
-                        tooltip.style.position = 'fixed'; // Change to fixed positioning
-                        tooltip.style.left = `${tooltipX + 15}px`; // Small offset from cursor
-                        tooltip.style.top = `${tooltipY - 10}px`;
+                        positionTooltip(tooltip, params.event);
                         
                         tooltip.classList.remove("animate__fadeOutDown");
                         tooltip.classList.add("animate__delay-2s");
@@ -286,32 +272,24 @@ async function getSliceData(flag){
                 
                 container.addEventListener("mousemove", function (event) {
                     if (tooltip.style.display === "block") {
-                        tooltip.style.left = (event.pageX + 10) + "px";
-                        tooltip.style.top = (event.pageY - 10) + "px";
+                        const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+                        
+                        const x = event.clientX + 10;
+                        const y = event.clientY + 10;
+                        
+                        tooltip.style.position = 'fixed';
+                        tooltip.style.left = `${x}px`;
+                        tooltip.style.top = `${y}px`;
                     }
                 });
             
-                // Add hover event for edges
                 network.on("hoverEdge", function (params) {
                     const edgeId = params.edge;
                     const tooltipContent = edgeTooltips.get(edgeId);
                     if (tooltipContent) {
                         tooltip.innerHTML = tooltipContent;
                         
-                        // Get mouse position and container position
-                        const mouseX = params.pointer.DOM.x;
-                        const mouseY = params.pointer.DOM.y;
-                        const containerRect = container.getBoundingClientRect();
-                        
-                        // Calculate position relative to page instead of container
-                        const tooltipX = mouseX;
-                        const tooltipY = mouseY;
-                        
-                        // Position tooltip with fixed offset from cursor
-                        tooltip.style.position = 'fixed'; // Change to fixed positioning
-                        tooltip.style.left = `${tooltipX + 15}px`; // Small offset from cursor
-                        tooltip.style.top = `${tooltipY - 10}px`;
-                        
+                        positionTooltip(tooltip, params.event);
             
                         tooltip.classList.remove("animate__rotateOut");
                         tooltip.classList.add("animate__delay-2s");
@@ -329,7 +307,25 @@ async function getSliceData(flag){
                 
 
                 if (network) {
-                    // Remover listener de click que oculta el menú
+
+                    const contextMenu = document.getElementById('contextMenu');
+                    const ctxVNCButton = document.getElementById('ctxVNCButton');
+                    const ctxRestartButton = document.getElementById('ctxRestartButton');
+                    const ctxToggleButton = document.getElementById('ctxToggleButton');
+                    
+                    if (ctxVNCButton) {
+                        const newVNCButton = ctxVNCButton.cloneNode(true);
+                        ctxVNCButton.parentNode.replaceChild(newVNCButton, ctxVNCButton);
+                    }
+                    if (ctxRestartButton) {
+                        const newRestartButton = ctxRestartButton.cloneNode(true);
+                        ctxRestartButton.parentNode.replaceChild(newRestartButton, ctxRestartButton);
+                    }
+                    if (ctxToggleButton) {
+                        const newToggleButton = ctxToggleButton.cloneNode(true);
+                        ctxToggleButton.parentNode.replaceChild(newToggleButton, ctxToggleButton);
+                    }
+
                     network.on('click', function(params) {
                         if (!params.event.target.closest('#contextMenu')) {
                             hideContextMenu();
@@ -339,10 +335,15 @@ async function getSliceData(flag){
                     network.on('dragStart', function(params) {
                         hideContextMenu();
                     });
-                
-                    container.addEventListener('contextmenu', function(event) {
+                    
+
+                    if (container.contextMenuListener) {
+                        container.removeEventListener('contextmenu', container.contextMenuListener);
+                    }
+
+                    container.contextMenuListener = function(event) {
                         event.preventDefault();
-                        event.stopPropagation(); // Evitar propagación
+                        event.stopPropagation();
                         
                         const pointer = {
                             x: event.offsetX,
@@ -360,6 +361,29 @@ async function getSliceData(flag){
                         } else {
                             hideContextMenu();
                         }
+                    };
+
+                    container.addEventListener('contextmenu', container.contextMenuListener);
+
+                    document.getElementById('ctxVNCButton')?.addEventListener('click', function() {
+                        if (currentContextNode) {
+                            openVNCConsole(currentContextNode.id);
+                            hideContextMenu();
+                        }
+                    });
+
+                    document.getElementById('ctxRestartButton')?.addEventListener('click', function() {
+                        if (currentContextNode) {
+                            restartVM(currentContextNode.id);
+                            hideContextMenu();
+                        }
+                    });
+
+                    document.getElementById('ctxToggleButton')?.addEventListener('click', function() {
+                        if (currentContextNode) {
+                            toggleVMState(currentContextNode.id);
+                            hideContextMenu();
+                        }
                     });
                 }
 
@@ -370,29 +394,6 @@ async function getSliceData(flag){
                     }
                 });
                 
-                document.getElementById('ctxRestartButton')?.addEventListener('click', function() {
-                    if (currentContextNode) {
-                        restartVM(currentContextNode.id);
-                        hideContextMenu();
-                    }
-                });
-                
-                document.getElementById('ctxToggleButton')?.addEventListener('click', function() {
-                    if (currentContextNode) {
-                        toggleVMState(currentContextNode.id);
-                        hideContextMenu();
-                    }
-                });
-                
-                document.getElementById('ctxVNCButton')?.addEventListener('click', function() {
-                    if (currentContextNode) {
-                        openVNCConsole(currentContextNode.id);
-                        hideContextMenu();
-                    }
-                });
-
-
-
                 Swal.close();
 
             } catch (error) {
@@ -667,7 +668,7 @@ function showVMInfo(vmId) {
         // Status badge
         document.getElementById('vmModalStatus').innerHTML = 
             `<span class="badge bg-gradient-${vm.status === 'running' ? 'warning' : 'danger'}">
-                ${vm.status === 'running' ? 'En ejecución' : 'Detenido'}
+                ${vm.status === 'running' ? 'En ejecución' : 'Apagado'}
              </span>`;
 
         // External access badge
@@ -722,7 +723,7 @@ function showVMInfo(vmId) {
             interfacesBody.appendChild(row);
         });
 
-        // Actualizar estado del botón de pausa/reanudar
+        // Actualizar estado del botón de apagado/encendido
         const toggleButton = document.getElementById('vmToggleButton');
         const toggleIcon = document.getElementById('vmToggleIcon');
         const toggleText = document.getElementById('vmToggleText');
@@ -731,12 +732,12 @@ function showVMInfo(vmId) {
             toggleButton.classList.remove('bg-gradient-danger');
             toggleButton.classList.add('bg-gradient-warning');
             toggleIcon.textContent = 'play_arrow';
-            toggleText.textContent = 'Reanudar VM';
+            toggleText.textContent = 'Encender VM';
         } else {
             toggleButton.classList.remove('bg-gradient-warning');
             toggleButton.classList.add('bg-gradient-danger');
             toggleIcon.textContent = 'pause';
-            toggleText.textContent = 'Pausar VM';
+            toggleText.textContent = 'Apagar VM';
         }
 
         const isSliceStopped = SLICE_DATA.content.slice_info.status === 'stopped';
@@ -760,7 +761,7 @@ function showVMInfo(vmId) {
             restartButton.setAttribute('data-vm-id', vm.id);
         }
         
-        // Deshabilitar botones si el slice está detenido
+        // Deshabilitar botones si la slice está detenida
         if (isSliceStopped) {
             toggleButton.classList.add('bg-gradient-secondary');
             toggleButton.style.pointerEvents = 'none';
@@ -778,7 +779,7 @@ function showVMInfo(vmId) {
             vncButton.classList.add('bg-gradient-secondary');
             vncButton.style.pointerEvents = 'none';
             vncButton.style.opacity = '0.25';
-            vncButton.title = 'Solo se puede acceder a la consola VNC mientras la Slice está en ejecución';
+            vncButton.title = 'Solo se puede acceder a la consola VNC mientras la VM y Slice están en ejecución';
         } else {
             vncButton.classList.remove('bg-gradient-secondary');
             vncButton.classList.add('bg-gradient-info');
@@ -1033,13 +1034,13 @@ window.toggleVMState = async function (vmId) {
 
     // Confirmación inicial
     const result = await Swal.fire({
-        title: isPaused ? '¿Reanudar VM?' : '¿Pausar VM?',
+        title: isPaused ? '¿Encender VM?' : '¿Apagar VM?',
         text: isPaused ? 
             'La máquina virtual se encenderá y estará disponible nuevamente.' : 
             'La máquina virtual se apagará. Sus datos en disco se mantendrán intactos, pero la configuración realizada no persistirá.',
         icon: 'question',
         showCancelButton: true,
-        confirmButtonText: isPaused ? 'Sí, reanudar' : 'Sí, pausar',
+        confirmButtonText: isPaused ? 'Sí, encender' : 'Sí, apagar',
         cancelButtonText: 'Cancelar',
         customClass: {
             confirmButton: `btn bg-gradient-${isPaused ? 'warning' : 'danger'}`,
@@ -1052,7 +1053,7 @@ window.toggleVMState = async function (vmId) {
 
     try {
         Swal.fire({
-            title: isPaused ? 'Reanudando VM...' : 'Pausando VM...',
+            title: isPaused ? 'Encendiendo VM...' : 'Apagando VM...',
             text: 'Por favor espere...',
             allowOutsideClick: false,
             didOpen: () => {
@@ -1086,14 +1087,15 @@ window.toggleVMState = async function (vmId) {
             }, 1000);
 
         } else {
-            throw new Error(data.message);
+            throw {
+                message: data.message || 'Ocurrió un error',
+                details: data.details || [],
+                response: data
+            };
         }
     } catch (error) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: error.message || (isPaused ? 'Ocurrió un error al resumir la VM' : 'Ocurrió un error al pausar la VM'),
-        });
+        console.error('Error:', error);
+        await showErrorAlert(error);
     }
 }
 
@@ -1290,7 +1292,7 @@ window.refreshSliceInfo = function() {
 window.restartSlice = function() {
     Swal.fire({
         title: '¿Reiniciar Slice?',
-        text: 'Todas las VMs serán detenidas y reiniciadas. Este proceso puede tomar unos minutos.',
+        text: 'Todas las VMs serán reiniciadas. Este proceso puede tomar un tiempo.',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Sí, reiniciar',
@@ -1335,22 +1337,18 @@ window.restartSlice = function() {
                     // Actualizar información después de un breve delay
                     setTimeout(() => {
                         getSliceData(false);
-                    }, 2000);
+                    }, 1500);
                 } else {
-                    throw new Error(data.message);
+                    throw {
+                        message: data.message || 'Error al reiniciar la Slice',
+                        details: data.details || [],
+                        response: data
+                    };
                 }
             })
-            .catch(error => {
-                Swal.fire({
-                    title: 'Error',
-                    text: error.message || 'Error al reiniciar la slice',
-                    icon: 'error',
-                    confirmButtonText: 'OK',
-                    customClass: {
-                        confirmButton: 'btn bg-gradient-primary'
-                    },
-                    buttonsStyling: false
-                });
+            .catch(async error => {
+                console.error('Error:', error);
+                await showErrorAlert(error);
             });
         }
     });
@@ -1372,7 +1370,7 @@ window.stopSlice = function() {
     }).then((result) => {
         if (result.isConfirmed) {
             const sliceId = SLICE_DATA.content.slice_info.id;
-            
+
             Swal.fire({
                 title: 'Deteniendo Slice',
                 text: 'Por favor espera mientras se detiene la Slice...',
@@ -1383,53 +1381,45 @@ window.stopSlice = function() {
                     Swal.showLoading();
                 }
             });
-            
-            $.ajax({
-                url: `/User/api/slice/${sliceId}/stop`,
-                method: 'POST',
-                success: function(response) {
-                    console.log('Respuesta: ', response);
-                    const successMessage = response.message || 'Slice detenida correctamente';
-                    if (response.status === 'success') {
+
+            fetch(`/User/api/slice/${sliceId}/stop`, {
+                method: 'POST'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Respuesta: ', data);
+
+                    if (data.status === 'success') {
+                        const successMessage = data.message || 'Slice detenida correctamente';
                         Swal.fire({
                             title: 'Éxito',
                             text: successMessage,
                             icon: 'success',
-                            confirmButtonText: 'OK',
-                            customClass: {
-                                confirmButton: 'btn bg-gradient-primary'
-                            },
-                            buttonsStyling: false
+                            timer: 2000,
+                            showConfirmButton: false
                         });
-                    }
 
-                    setTimeout(() => {
-                        getSliceData(false);
+                        // Actualizar información después de un breve delay
+                        setTimeout(() => {
+                            getSliceData(false);
+                        }, 1500);
+                    } else {
+                        throw {
+                            message: data.message || 'Error al detener la Slice',
+                            details: data.details || [],
+                            response: data
+                        };
                     }
-                    , 1000);
-
-                },
-                error: function(xhr, status, error) {
-                    const response = JSON.parse(xhr.responseText);
-                    const errorMessage = response.message || response.details || 'Error al detener la slice';
-                    console.log('Respuesta: ', response);
-                    Swal.fire({
-                        title: 'Error',
-                        text: errorMessage,
-                        icon: 'error',
-                        confirmButtonText: 'OK',
-                        customClass: {
-                            confirmButton: 'btn bg-gradient-primary'
-                        },
-                        buttonsStyling: false
-                    });
-                }
-            });
+                })
+                .catch(async error => {
+                    console.error('Error:', error);
+                    await showErrorAlert(error);
+                });
         }
     });
 }
 
-// Agregar al final del archivo view.js
+
 window.restartVM = async function(vmId) {
     const vm = SLICE_DATA.content.topology_info.vms.find(v => v.id === parseInt(vmId));
     if (!vm) return;
@@ -1468,32 +1458,29 @@ window.restartVM = async function(vmId) {
         const data = await response.json();
 
         if (data.status === 'success') {
-            closeAllModals();
-
             const successMessage = data.message || 'VM reiniciada correctamente';
-
             Swal.fire({
-                icon: 'success',
                 title: 'Éxito',
                 text: successMessage,
-                timer: 1500,
+                icon: 'success',
+                timer: 2000,
                 showConfirmButton: false
             });
 
-            // Actualizar datos del slice después de un breve delay
+            // Actualizar información después de un breve delay
             setTimeout(() => {
                 getSliceData(false);
-            }, 1000);
-
+            }, 1500);
         } else {
-            throw new Error(data.message);
+            throw {
+                message: data.message || 'Error al reiniciar la VM',
+                details: data.details || [],
+                response: data
+            };
         }
     } catch (error) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: error.message || 'Ocurrió un error al reiniciar la VM',
-        });
+        console.error('Error:', error);
+        await showErrorAlert(error);
     }
 }
 
@@ -1593,10 +1580,10 @@ function showContextMenu(vm, event) {
 
     if (vm.status === 'running') {
         toggleIcon.textContent = 'pause';
-        toggleText.textContent = 'Pausar VM';
+        toggleText.textContent = 'Apagar VM';
     } else {
         toggleIcon.textContent = 'play_arrow';
-        toggleText.textContent = 'Reanudar VM';
+        toggleText.textContent = 'Encender VM';
     }
 
     // Deshabilitar botones si el slice está detenido
@@ -1631,6 +1618,129 @@ function showContextMenu(vm, event) {
             }
         }
     });
+}
+
+// Manejo de mensajes de error:
+
+function showErrorAlert(error) {
+    let errorMessage = '';
+    let errorDetails = [];
+
+    try {
+        let errorData = null;
+
+        if (typeof error === 'object' && error.response) {
+            errorData = error.response;
+        } else if (error.message && error.message.includes('{')) {
+            const jsonStr = error.message.substring(
+                error.message.indexOf('{'),
+                error.message.lastIndexOf('}') + 1
+            );
+            errorData = JSON.parse(jsonStr);
+        } else {
+            errorMessage = error.message || 'Error desconocido';
+        }
+
+        if (errorData) {
+            errorMessage = errorData.message || 'Error desconocido';
+
+            if (errorData.details) {
+                if (Array.isArray(errorData.details)) {
+                    errorDetails = errorData.details;
+                } else {
+                    errorDetails = [errorData.details];
+                }
+            }
+        }
+
+        const detailsHtml = errorDetails.length > 0
+            ? `
+                    <div class="text-start text-danger small mt-3">
+                        <hr class="my-2">
+                        ${errorDetails.map(detail => `
+                            <p class="mb-1 d-flex align-items-start">
+                                <i class="fas fa-exclamation-circle me-2 mt-1"></i>
+                                <span>${detail}</span>
+                            </p>
+                        `).join('')}
+                    </div>
+                `
+            : '';
+
+        return Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            html: `
+                    <p class="mb-2">${errorMessage}</p>
+                    ${detailsHtml}
+                `,
+            customClass: {
+                icon: 'border-0',
+                confirmButton: 'btn btn-danger',
+                htmlContainer: 'text-left'
+            },
+            buttonsStyling: false
+        });
+    } catch (parseError) {
+        console.error('Error parsing error message:', parseError);
+
+        return Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: error.message || 'Error desconocido',
+            customClass: {
+                icon: 'border-0',
+                confirmButton: 'btn btn-danger'
+            },
+            buttonsStyling: false
+        });
+    }
+}
+
+// Función genérica para posicionar tooltips
+function positionTooltip(tooltip, event, offset = { x: 15, y: -10 }) {
+    if (!tooltip) return;
+
+    tooltip.style.visibility = 'hidden';
+    tooltip.style.display = 'block';
+    
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const tooltipRect = tooltip.getBoundingClientRect();
+    
+    let mouseX, mouseY;
+    
+    if (event.pointer && event.pointer.DOM) {
+        const canvas = event.pointer.DOM.target;
+        const canvasRect = canvas.getBoundingClientRect();
+        
+        mouseX = event.clientX || (canvasRect.left + event.pointer.DOM.x);
+        mouseY = event.clientY || (canvasRect.top + event.pointer.DOM.y);
+    } else {
+
+        mouseX = event.clientX;
+        mouseY = event.clientY;
+    }
+    
+    let finalX = mouseX + offset.x;
+    let finalY = mouseY + offset.y;
+    
+    if (finalX + tooltipRect.width > viewportWidth) {
+        finalX = mouseX - tooltipRect.width - offset.x;
+    }
+    
+    if (finalY + tooltipRect.height > viewportHeight) {
+        finalY = mouseY - tooltipRect.height - offset.y;
+    }
+    
+    if (finalX < 0) finalX = 5;
+    if (finalY < 0) finalY = 5;
+    
+    tooltip.style.position = 'fixed';
+    tooltip.style.left = `${finalX}px`;
+    tooltip.style.top = `${finalY}px`;
+    tooltip.style.visibility = 'visible';
+    tooltip.style.zIndex = '9999';
 }
 
 function hideContextMenu() {
