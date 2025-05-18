@@ -683,6 +683,20 @@ function showVMInfo(vmId) {
             `${vm.physical_server.name} (ID: ${vm.physical_server.id})`;
         document.getElementById('vmModalQemuPid').textContent = vm.qemu_pid || 'N/A';
         document.getElementById('vmModalVncDisplay').textContent = vm.vnc_display || 'N/A';
+        
+        // SSH Info
+        let sshIp = 'N/A';
+        console.log('Interfaces:', SLICE_DATA.content.topology_info.interfaces);
+        const vmInterfaces = SLICE_DATA.content.topology_info.interfaces.filter(i => i.vm_id === vmId);
+        console.log('Interfaces VM:',SLICE_DATA.content.topology_info.interfaces);
+        if (vmInterfaces && vmInterfaces.length > 0) {
+            const externalInterface = vmInterfaces.find(iface => iface.external_access);
+            console.log('Interfaz externa:', externalInterface);
+            if (externalInterface && externalInterface.ip) {
+                sshIp = externalInterface.ip;
+            }
+        }
+        document.getElementById('vmModalSshIp').textContent = sshIp;
 
         // Resources
         document.getElementById('vmModalRAM').textContent = `${flavor.ram} MB`;
