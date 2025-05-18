@@ -46,8 +46,11 @@ $(document).ready(async function() {
     // ==================
     let table;
     let AVAILABLE_FLAVORS = [];
+
+    // WebSocket y notificaciones en tiempo real
+    let socket = null;
     let pendingOperations = new Map(); // Mapa para controlar operaciones pendientes
-    let pollTimer = null; // Timer para consultar estado de operaciones
+    let isConnected = false;
 
     // ==================
     // DATATABLES:
@@ -297,12 +300,415 @@ $(document).ready(async function() {
 
     // Inicializar
     await initializeTable();
+    initializeWebSocket();
 
     const resizeObserver = new ResizeObserver(entries => {
         table.columns.adjust();
     });
 
     resizeObserver.observe(document.querySelector('.table-responsive'));
+
+    // ==================
+    // WEBSOCKET Y NOTIFICACIONES EN TIEMPO REAL:
+    // ==================
+
+    function initializeWebSocket() {
+        try {
+            console.log('🚀 Inicializando WebSocket...');
+
+            // Obtener token de autenticación
+            const token = getAuthToken();
+            if (!token) {
+                console.error('❌ No se encontró token JWT');
+                showNotification('No se puede conectar al sistema de notificaciones: Token no disponible', 'error');
+                return;
+            }
+
+            console.log('✅ Token JWT obtenido exitosamente');
+
+            // Desconectar socket existente si hay uno
+            if (socket && socket.connected) {
+                console.log('🔄 Desconectando socket existente...');
+                socket.disconnect();
+            }
+
+            // CONECTAR AL API GATEWAY (puerto 8090), NO al web module (8095)
+            const gatewayUrl = 'http://localhost:8090';  // Tu API Gateway
+            console.log(`🔗 Conectando a API Gateway: ${gatewayUrl}`);
+
+            socket = io(gatewayUrl, {
+                path: '/slice-manager/socket.io/',  // Path a través del gateway
+                auth: {
+                    token: token
+                },
+                transports: ['websocket', 'polling'],
+                upgrade: true,
+                rememberUpgrade: true,
+                forceNew: true,
+                timeout: 20000,
+                reconnection: true,
+                reconnectionAttempts: 5,
+                reconnectionDelay: 1000,
+                reconnectionDelayMax: 5000
+            });
+
+            // === EVENT LISTENERS ===
+
+            socket.on('connect', () => {
+                console.log('🟢 WebSocket conectado exitosamente');
+                console.log('   Socket ID:', socket.id);
+                console.log('   Transport:', socket.io.engine.transport.name);
+                isConnected = true;
+                updateConnectionStatus(true);
+
+                // Limpiar flag de error
+                window.websocketErrorShown = false;
+            });
+
+            socket.on('disconnect', (reason) => {
+                console.log('🔴 WebSocket desconectado:', reason);
+                isConnected = false;
+                updateConnectionStatus(false);
+
+                // Solo intentar reconectar si no fue una desconexión intencional
+                if (reason !== 'io client disconnect') {
+                    console.log('🔄 Programando reconexión en 5 segundos...');
+                    setTimeout(() => {
+                        if (!isConnected && socket && !socket.connected) {
+                            console.log('🔄 Intentando reconectar...');
+                            socket.connect();
+                        }
+                    }, 5000);
+                }
+            });
+
+            socket.on('connect_error', (error) => {
+                console.error('❌ Error de conexión WebSocket:', error);
+                console.error('   Descripción:', error.description);
+                console.error('   Tipo:', error.type);
+                isConnected = false;
+                updateConnectionStatus(false);
+
+                // Mostrar error solo una vez
+                if (!window.websocketErrorShown) {
+                    let errorMsg = 'Error conectando al sistema de notificaciones';
+                    if (error.description) {
+                        errorMsg += ': ' + error.description;
+                    }
+                    showNotification(errorMsg, 'error');
+                    window.websocketErrorShown = true;
+                }
+            });
+
+            // === EVENT LISTENERS DE LA APLICACIÓN ===
+
+            socket.on('connected', (data) => {
+                console.log('✅ WebSocket autenticado exitosamente:', data);
+                showNotification('Conectado al sistema de notificaciones en tiempo real', 'success');
+            });
+
+            socket.on('operation_started', (data) => {
+                console.log('🚀 Operación iniciada:', data);
+                handleOperationStarted(data);
+            });
+
+            socket.on('operation_update', (data) => {
+                console.log('🔄 Actualización de operación:', data);
+                handleOperationUpdate(data);
+            });
+
+            socket.on('operation_completed', (data) => {
+                console.log('✅ Operación completada:', data);
+                handleOperationCompleted(data);
+            });
+
+            socket.on('operation_failed', (data) => {
+                console.log('❌ Operación fallida:', data);
+                handleOperationFailed(data);
+            });
+
+            // === DEBUG EVENTS ===
+            socket.on('error', (error) => {
+                console.error('🐛 Socket.IO Error:', error);
+            });
+
+            socket.onAny((event, ...args) => {
+                console.log(`📨 Evento recibido: ${event}`, args);
+            });
+
+        } catch (error) {
+            console.error('💥 Error fatal inicializando WebSocket:', error);
+            showNotification('Error crítico en el sistema de notificaciones', 'error');
+        }
+    }
+
+    function getAuthToken() {
+        try {
+            // Obtener desde meta tag
+            const tokenMeta = document.querySelector('meta[name="jwt-token"]');
+            if (tokenMeta && tokenMeta.content && tokenMeta.content.trim() !== '') {
+                console.log('Token obtenido desde meta tag');
+                return tokenMeta.content.trim();
+            }
+
+            // Obtener desde variable global si está disponible
+            if (typeof window.jwtToken !== 'undefined' && window.jwtToken) {
+                console.log('Token obtenido desde variable global');
+                return window.jwtToken;
+            }
+
+            // Intentar desde localStorage como fallback
+            const localToken = localStorage.getItem('jwtToken');
+            if (localToken) {
+                console.log('Token obtenido desde localStorage');
+                return localToken;
+            }
+
+            console.warn('No se encontró token JWT en ninguna fuente');
+            return null;
+        } catch (error) {
+            console.error('Error obteniendo token de autenticación:', error);
+            return null;
+        }
+    }
+
+    function updateConnectionStatus(connected) {
+        // Actualizar indicador visual de conexión si existe
+        const indicator = document.getElementById('ws-connection-indicator');
+        if (indicator) {
+            indicator.className = connected ? 'ws-connected' : 'ws-disconnected';
+            indicator.title = connected ? 'Conectado al sistema de notificaciones' : 'Desconectado del sistema de notificaciones';
+        }
+    }
+
+    // Manejadores de eventos WebSocket
+    function handleOperationStarted(data) {
+        console.log('🚀 Operación iniciada:', data);
+
+        // Agregar a operaciones pendientes
+        pendingOperations.set(data.operation_id, {
+            ...data,
+            startTime: new Date()
+        });
+
+        // Mostrar progress card
+        showProgressCard(data);
+
+        // Mostrar notificación
+        showNotification(`Solicitud "${data.slice_name || 'Nueva slice'}" iniciada`, 'info');
+    }
+
+    function handleOperationUpdate(data) {
+        console.log('🔄 Actualización de operación:', data);
+
+        // Actualizar progress card si existe
+        updateProgressCard(data.operation_id, data);
+
+        // Mostrar notificación
+        showNotification(data.message || 'Operación en progreso...', 'info');
+    }
+
+
+    function handleOperationCompleted(data) {
+        console.log('✅ Operación completada:', data);
+
+        // Remover de operaciones pendientes
+        pendingOperations.delete(data.operation_id);
+
+        // Actualizar progress card a éxito
+        completeProgressCard(data.operation_id, true, data.message || 'Operación completada');
+
+        // Actualizar tabla de slices después de un breve delay
+        setTimeout(async () => {
+            console.log('🔄 Actualizando tabla de slices...');
+            try {
+                const newSlices = await loadSlices();
+                table.clear().rows.add(newSlices).draw();
+                console.log('✅ Tabla actualizada exitosamente');
+            } catch (error) {
+                console.error('❌ Error actualizando tabla:', error);
+            }
+        }, 1500);
+
+        // Mostrar notificación de éxito
+        showNotification(data.message || 'Slice desplegada exitosamente', 'success');
+    }
+
+    function handleOperationFailed(data) {
+        console.log('❌ Operación fallida:', data);
+
+        // Remover de operaciones pendientes
+        pendingOperations.delete(data.operation_id);
+
+        // Actualizar progress card a error
+        completeProgressCard(data.operation_id, false, data.error || data.message || 'Error en la operación');
+
+        // Mostrar notificación de error
+        showNotification(data.error || data.message || 'Error en la operación', 'error');
+    }
+
+    // ==================
+    // PROGRESS CARDS (NOTIFICACIONES VISUALES):
+    // ==================
+
+    function showProgressCard(operationData) {
+        const containerId = 'progress-cards-container';
+        let container = document.getElementById(containerId);
+
+        // Crear contenedor si no existe
+        if (!container) {
+            container = document.createElement('div');
+            container.id = containerId;
+            container.className = 'progress-cards-container';
+            document.body.appendChild(container);
+        }
+
+        // Crear progress card
+        const card = document.createElement('div');
+        card.id = `progress-card-${operationData.operation_id}`;
+        card.className = 'progress-card';
+        card.innerHTML = `
+            <div class="progress-card-header">
+                <h6 class="mb-1">${operationData.slice_name || 'Operación'}</h6>
+                <button class="btn-close-card" onclick="closeProgressCard('${operationData.operation_id}')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="progress-card-body">
+                <div class="progress-message">${operationData.message}</div>
+                <div class="progress-bar-container mt-2">
+                    <div class="progress-bar">
+                        <div class="progress-bar-fill" style="width: 10%"></div>
+                    </div>
+                </div>
+                <div class="progress-status mt-2">
+                    <span class="status-badge status-pending">
+                        <i class="fas fa-clock"></i> ${operationData.status}
+                    </span>
+                </div>
+            </div>
+        `;
+
+        // Agregar al contenedor con animación
+        container.appendChild(card);
+        setTimeout(() => card.classList.add('show'), 100);
+
+        // Auto-cerrar después de 30 segundos si no se completa
+        setTimeout(() => {
+            if (document.getElementById(card.id)) {
+                closeProgressCard(operationData.operation_id);
+            }
+        }, 30000);
+    }
+
+    function updateProgressCard(operationId, data) {
+        const card = document.getElementById(`progress-card-${operationId}`);
+        if (!card) {
+            console.warn(`No se encontró progress card para operación ${operationId}`);
+            return;
+        }
+
+        // Actualizar mensaje
+        const messageEl = card.querySelector('.progress-message');
+        if (messageEl) messageEl.textContent = data.message;
+
+        // Actualizar barra de progreso
+        const progressFill = card.querySelector('.progress-bar-fill');
+        if (progressFill) {
+            let progress = '50%'; // Default
+            if (data.status === 'PROCESSING') progress = '70%';
+            if (data.status === 'IN_PROGRESS') progress = '60%';
+            progressFill.style.width = progress;
+        }
+
+        // Actualizar status badge
+        const statusBadge = card.querySelector('.status-badge');
+        if (statusBadge) {
+            statusBadge.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${data.status}`;
+            statusBadge.className = 'status-badge status-processing';
+        }
+    }
+
+    function completeProgressCard(operationId, success, message) {
+        const card = document.getElementById(`progress-card-${operationId}`);
+        if (!card) return;
+
+        // Actualizar mensaje
+        const messageEl = card.querySelector('.progress-message');
+        if (messageEl) messageEl.textContent = message;
+
+        // Completar barra de progreso
+        const progressFill = card.querySelector('.progress-bar-fill');
+        if (progressFill) {
+            progressFill.style.width = '100%';
+            progressFill.className = `progress-bar-fill ${success ? 'success' : 'error'}`;
+        }
+
+        // Actualizar status badge
+        const statusBadge = card.querySelector('.status-badge');
+        if (statusBadge) {
+            const icon = success ? 'fa-check' : 'fa-times';
+            const status = success ? 'COMPLETADO' : 'ERROR';
+            statusBadge.innerHTML = `<i class="fas ${icon}"></i> ${status}`;
+            statusBadge.className = `status-badge ${success ? 'status-success' : 'status-error'}`;
+        }
+
+        // Auto-cerrar después de 5 segundos si es éxito, 10 si es error
+        const autoCloseDelay = success ? 5000 : 10000;
+        setTimeout(() => {
+            closeProgressCard(operationId);
+        }, autoCloseDelay);
+    }
+
+    window.closeProgressCard = function(operationId) {
+        const card = document.getElementById(`progress-card-${operationId}`);
+        if (card) {
+            card.classList.add('hide');
+            setTimeout(() => {
+                if (card.parentNode) {
+                    card.parentNode.removeChild(card);
+                }
+            }, 300);
+        }
+    }
+
+    function showNotification(message, type = 'info') {
+        // Crear notificación toast simple
+        const toast = document.createElement('div');
+        toast.className = `notification-toast notification-${type}`;
+        toast.innerHTML = `
+            <div class="notification-content">
+                <i class="fas ${getNotificationIcon(type)}"></i>
+                <span>${message}</span>
+            </div>
+        `;
+
+        // Agregar al body
+        document.body.appendChild(toast);
+
+        // Mostrar con animación
+        setTimeout(() => toast.classList.add('show'), 100);
+
+        // Auto-remover después de 4 segundos
+        setTimeout(() => {
+            toast.classList.add('hide');
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 300);
+        }, 4000);
+    }
+
+    function getNotificationIcon(type) {
+        switch (type) {
+            case 'success': return 'fa-check-circle';
+            case 'error': return 'fa-exclamation-circle';
+            case 'warning': return 'fa-exclamation-triangle';
+            case 'info':
+            default: return 'fa-info-circle';
+        }
+    }
 
     // ==================
     // NAVEGACIÓN:
@@ -713,30 +1119,47 @@ $(document).ready(async function() {
                 // Cerrar el indicador de carga
                 loadingAlert.close();
 
-                // Si tenemos un operation_id, registrar la operación para seguimiento
+                // Si tenemos un operation_id, las notificaciones llegarán vía WebSocket
                 if (result.content?.operation_id) {
                     const operationId = result.content.operation_id;
-                    console.log(`Registrando operación de despliegue ID: ${operationId}`);
+                    console.log(`Solicitud encolada con ID: ${operationId}`);
 
-                    // Añadir a las operaciones pendientes
-                    addPendingOperation(operationId, {
-                        type: 'DEPLOY_SLICE',
-                        sliceName: sliceName,
-                        userId: result.content.user_id || null,
-                        startTime: new Date()
-                    });
-
-                    // Mostrar mensaje de operación encolada
+                    // Mostrar mensaje de confirmación
                     Swal.fire({
-                        icon: 'info',
+                        icon: 'success',
                         title: 'Solicitud Encolada',
-                        text: 'Su solicitud de despliegue ha sido encolada y está siendo procesada. Puede monitorear su progreso en el panel de operaciones.',
+                        text: 'Su solicitud de despliegue ha sido encolada exitosamente. Recibirá notificaciones en tiempo real sobre el progreso.',
                         confirmButtonText: 'Entendido',
                         customClass: {
                             confirmButton: 'btn btn-warning'
                         },
-                        buttonsStyling: false
+                        buttonsStyling: false,
+                        timer: 3000,
+                        timerProgressBar: true
                     });
+
+                    // Si WebSocket no está conectado, mostrar opción de polling
+                    if (!isConnected) {
+                        setTimeout(() => {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Sin Notificaciones en Tiempo Real',
+                                text: 'No hay conexión WebSocket activa. ¿Desea monitorear manualmente?',
+                                showCancelButton: true,
+                                confirmButtonText: 'Monitorear',
+                                cancelButtonText: 'Continuar',
+                                customClass: {
+                                    confirmButton: 'btn btn-primary',
+                                    cancelButton: 'btn btn-secondary'
+                                },
+                                buttonsStyling: false
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    startManualPolling(operationId);
+                                }
+                            });
+                        }, 3000);
+                    }
                 } else {
                     // Si no tenemos operation_id, mostrar mensaje de éxito tradicional
                     Swal.fire({
@@ -785,428 +1208,488 @@ $(document).ready(async function() {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
 
+    // // ==================
+    // // MONITOREO DE OPERACIONES:
+    // // ==================
+    //
+    // /**
+    //  * Añade una nueva operación al registro de operaciones pendientes
+    //  */
+    // function addPendingOperation(operationId, operationData) {
+    //     pendingOperations.set(operationId, {
+    //         ...operationData,
+    //         startTime: new Date(),
+    //         lastChecked: new Date(),
+    //         checkCount: 0
+    //     });
+    //
+    //     // Iniciar el poll si no está corriendo
+    //     startPollingIfNeeded();
+    //
+    //     // Mostrar indicador visual
+    //     showPendingOperationsIndicator();
+    // }
+    //
+    // /**
+    //  * Inicia el proceso de consulta periódica si hay operaciones pendientes
+    //  */
+    // function startPollingIfNeeded() {
+    //     if (pendingOperations.size > 0 && !pollTimer) {
+    //         console.log('Iniciando monitoreo de operaciones pendientes');
+    //         pollTimer = setInterval(checkPendingOperations, 5000); // Revisar cada 5 segundos
+    //     }
+    // }
+    //
+    // /**
+    //  * Detiene el proceso de consulta periódica si no hay operaciones pendientes
+    //  */
+    // function stopPollingIfDone() {
+    //     if (pendingOperations.size === 0 && pollTimer) {
+    //         console.log('Deteniendo monitoreo, no hay operaciones pendientes');
+    //         clearInterval(pollTimer);
+    //         pollTimer = null;
+    //         hidePendingOperationsIndicator();
+    //     }
+    // }
+    //
+    // /**
+    //  * Verifica el estado de todas las operaciones pendientes
+    //  */
+    // async function checkPendingOperations() {
+    //     console.log(`Verificando ${pendingOperations.size} operaciones pendientes...`);
+    //
+    //     // Si no hay operaciones, detener el polling
+    //     if (pendingOperations.size === 0) {
+    //         stopPollingIfDone();
+    //         return;
+    //     }
+    //
+    //     // Array para Promise.all
+    //     const checkPromises = [];
+    //
+    //     // Para cada operación, crear una promesa de verificación
+    //     pendingOperations.forEach((opData, opId) => {
+    //         const checkPromise = checkOperationStatus(opId, opData)
+    //             .catch(err => {
+    //                 console.error(`Error verificando operación ${opId}:`, err);
+    //                 // Incrementar contador de errores
+    //                 opData.errorCount = (opData.errorCount || 0) + 1;
+    //
+    //                 // Si hay demasiados errores, considerar la operación como fallida
+    //                 if (opData.errorCount > 5) {
+    //                     console.warn(`Demasiados errores, marcando operación ${opId} como fallida`);
+    //                     removePendingOperation(opId);
+    //
+    //                     // Mostrar alerta al usuario
+    //                     Swal.fire({
+    //                         icon: 'error',
+    //                         title: 'Error',
+    //                         text: `No se pudo verificar el estado de la operación ${opId} después de varios intentos.`,
+    //                         footer: 'La operación podría haberse completado pero no pudimos confirmar su estado.'
+    //                     });
+    //                 }
+    //
+    //                 return null; // Para que Promise.all no falle
+    //             });
+    //
+    //         checkPromises.push(checkPromise);
+    //     });
+    //
+    //     // Esperar a que todas las verificaciones terminen
+    //     await Promise.all(checkPromises);
+    //
+    //     // Actualizar indicador
+    //     updatePendingOperationsIndicator();
+    //
+    //     // Si no quedan operaciones, detener el polling
+    //     stopPollingIfDone();
+    // }
+    //
+    // /**
+    //  * Verifica el estado de una operación específica
+    //  */
+    // async function checkOperationStatus(operationId, opData) {
+    //     console.log(`Verificando estado de operación ${operationId}...`);
+    //
+    //     // Actualizar contador y última verificación
+    //     opData.checkCount += 1;
+    //     opData.lastChecked = new Date();
+    //
+    //     try {
+    //         const response = await fetch('/User/api/slice/operations/' + operationId + '/status');
+    //         if (!response.ok) {
+    //             throw new Error(`Error en respuesta del servidor: ${response.status}`);
+    //         }
+    //
+    //         const result = await response.json();
+    //         console.log(`Estado de operación ${operationId}:`, result);
+    //
+    //         // Guardar el último estado recibido
+    //         opData.lastStatus = result.content?.operation_status;
+    //
+    //         // Si la operación ya no está pendiente o en progreso
+    //         if (opData.lastStatus === 'COMPLETED' ||
+    //             opData.lastStatus === 'FAILED' ||
+    //             opData.lastStatus === 'CANCELLED' ||
+    //             opData.lastStatus === 'TIMEOUT') {
+    //
+    //             // Eliminar de las operaciones pendientes
+    //             removePendingOperation(operationId);
+    //
+    //             // Si se completó correctamente
+    //             if (opData.lastStatus === 'COMPLETED') {
+    //                 handleCompletedOperation(operationId, result, opData);
+    //             } else {
+    //                 // Si falló
+    //                 handleFailedOperation(operationId, result, opData);
+    //             }
+    //         } else {
+    //             // Actualizar la UI para mostrar progreso
+    //             updateOperationProgress(operationId, result, opData);
+    //         }
+    //
+    //     } catch (error) {
+    //         console.error(`Error consultando estado de operación ${operationId}:`, error);
+    //         throw error; // Re-lanzar para manejo en checkPendingOperations
+    //     }
+    // }
+    //
+    // /**
+    //  * Maneja una operación completada correctamente
+    //  */
+    // function handleCompletedOperation(operationId, result, opData) {
+    //     console.log(`Operación ${operationId} completada correctamente`);
+    //
+    //     // Si tiene slice_id, podemos navegar a ella
+    //     const sliceId = result.content?.slice_id;
+    //
+    //     // Mostrar notificación apropiada según el tipo de operación
+    //     let message = 'Operación completada exitosamente.';
+    //     let icon = 'success';
+    //     let showViewButton = false;
+    //
+    //     switch (opData.type) {
+    //         case 'DEPLOY_SLICE':
+    //             message = `¡Slice "${opData.sliceName}" desplegada exitosamente!`;
+    //             showViewButton = true;
+    //             break;
+    //         case 'STOP_SLICE':
+    //             message = `Slice "${opData.sliceName}" detenida correctamente.`;
+    //             break;
+    //         case 'RESTART_SLICE':
+    //             message = `Slice "${opData.sliceName}" reiniciada correctamente.`;
+    //             showViewButton = true;
+    //             break;
+    //     }
+    //
+    //     // Notificar al usuario
+    //     Swal.fire({
+    //         icon: icon,
+    //         title: '¡Operación Completada!',
+    //         text: message,
+    //         showCancelButton: showViewButton,
+    //         confirmButtonText: 'Aceptar',
+    //         cancelButtonText: showViewButton ? 'Ver Slice' : null,
+    //         customClass: {
+    //             confirmButton: 'btn btn-success',
+    //             cancelButton: showViewButton ? 'btn btn-warning' : ''
+    //         },
+    //         buttonsStyling: false
+    //     }).then((result) => {
+    //         if (result.dismiss === Swal.DismissReason.cancel && sliceId) {
+    //             // Navegar a la slice
+    //             window.location.href = `/User/slice/${sliceId}`;
+    //         } else {
+    //             // Actualizar la tabla de slices
+    //             refreshSlicesTable();
+    //         }
+    //     });
+    // }
+    //
+    // /**
+    //  * Maneja una operación que ha fallado
+    //  */
+    // function handleFailedOperation(operationId, result, opData) {
+    //     console.log(`Operación ${operationId} ha fallado:`, result);
+    //
+    //     // Preparar mensaje de error apropiado
+    //     let message = 'La operación no pudo completarse.';
+    //     let details = result.content?.error || result.message || 'Error desconocido';
+    //
+    //     switch (opData.type) {
+    //         case 'DEPLOY_SLICE':
+    //             message = `Error al desplegar slice "${opData.sliceName}".`;
+    //             break;
+    //         case 'STOP_SLICE':
+    //             message = `Error al detener slice "${opData.sliceName}".`;
+    //             break;
+    //         case 'RESTART_SLICE':
+    //             message = `Error al reiniciar slice "${opData.sliceName}".`;
+    //             break;
+    //     }
+    //
+    //     // Notificar al usuario
+    //     Swal.fire({
+    //         icon: 'error',
+    //         title: 'Error en la Operación',
+    //         html: `
+    //             <p>${message}</p>
+    //             <div class="border-top border-light mt-3 pt-3">
+    //                 <p class="mb-2 text-start text-danger small">
+    //                     <i class="fas fa-exclamation-circle me-2"></i>
+    //                     <strong>Detalles del error:</strong>
+    //                 </p>
+    //                 <p class="text-start text-muted small">${details}</p>
+    //             </div>
+    //         `,
+    //         confirmButtonText: 'Entendido',
+    //         customClass: {
+    //             confirmButton: 'btn btn-danger'
+    //         },
+    //         buttonsStyling: false
+    //     }).then(() => {
+    //         // Actualizar la tabla de slices
+    //         refreshSlicesTable();
+    //     });
+    // }
+    //
+    // /**
+    //  * Actualiza la UI para mostrar el progreso de una operación
+    //  */
+    // function updateOperationProgress(operationId, result, opData) {
+    //     const status = result.content?.operation_status;
+    //     const statusMessage = result.content?.status_message || 'En proceso...';
+    //
+    //     // Si tenemos un elemento donde mostrar el progreso
+    //     const progressContainer = $('#operationsProgressContainer');
+    //     if (progressContainer.length) {
+    //         // Actualizar o añadir el elemento de progreso
+    //         let progressItem = $(`#operation-${operationId}`);
+    //         if (!progressItem.length) {
+    //             // Crear nuevo elemento de progreso
+    //             progressItem = $(`
+    //                 <div id="operation-${operationId}" class="operation-progress-item mb-2">
+    //                     <div class="d-flex justify-content-between align-items-center">
+    //                         <span class="operation-name">${opData.type}: ${opData.sliceName || operationId}</span>
+    //                         <span class="operation-status badge bg-primary">${status}</span>
+    //                     </div>
+    //                     <div class="progress mt-1" style="height: 10px;">
+    //                         <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning"
+    //                             role="progressbar" style="width: 0%">
+    //                         </div>
+    //                     </div>
+    //                     <p class="status-message text-muted small mt-1">${statusMessage}</p>
+    //                 </div>
+    //             `);
+    //             progressContainer.append(progressItem);
+    //         } else {
+    //             // Actualizar elemento existente
+    //             progressItem.find('.operation-status').text(status);
+    //             progressItem.find('.status-message').text(statusMessage);
+    //
+    //             // Actualizar barra de progreso según tiempo transcurrido
+    //             const elapsedSeconds = (Date.now() - opData.startTime) / 1000;
+    //             const progressPercent = Math.min(
+    //                 Math.round(elapsedSeconds / 60 * 100), // Suponemos 1 minuto para completar
+    //                 95  // Nunca llegamos al 100% hasta que termine
+    //             );
+    //             progressItem.find('.progress-bar').css('width', `${progressPercent}%`);
+    //         }
+    //     }
+    // }
+    //
+    // /**
+    //  * Elimina una operación del registro de pendientes
+    //  */
+    // function removePendingOperation(operationId) {
+    //     pendingOperations.delete(operationId);
+    //
+    //     // Si ya no hay operaciones pendientes, detener el polling
+    //     stopPollingIfDone();
+    //
+    //     // Eliminar elemento visual si existe
+    //     $(`#operation-${operationId}`).fadeOut('slow', function() {
+    //         $(this).remove();
+    //     });
+    // }
+    //
+    // /**
+    //  * Muestra el indicador de operaciones pendientes
+    //  */
+    // function showPendingOperationsIndicator() {
+    //     // Verificar si ya existe el contenedor
+    //     if ($('#operationsProgressContainer').length === 0) {
+    //         // Crear el contenedor flotante
+    //         const operationsContainer = $(`
+    //             <div id="operationsProgressContainer" class="operations-progress-container">
+    //                 <div class="operations-header">
+    //                     <h6 class="mb-2">
+    //                         <i class="fas fa-tasks me-2"></i>
+    //                         Operaciones en Progreso
+    //                         <span class="badge bg-warning text-white ms-2 operations-count">0</span>
+    //                     </h6>
+    //                 </div>
+    //                 <div class="operations-list"></div>
+    //             </div>
+    //         `);
+    //
+    //         // Añadir estilos CSS necesarios
+    //         const styles = `
+    //             <style>
+    //                 .operations-progress-container {
+    //                     position: fixed;
+    //                     bottom: 20px;
+    //                     right: 20px;
+    //                     background-color: white;
+    //                     border-radius: 5px;
+    //                     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+    //                     width: 300px;
+    //                     max-height: 400px;
+    //                     overflow-y: auto;
+    //                     padding: 15px;
+    //                     z-index: 1000;
+    //                     transition: all 0.3s ease;
+    //                 }
+    //                 .operations-header {
+    //                     border-bottom: 1px solid #f0f0f0;
+    //                     margin-bottom: 10px;
+    //                     padding-bottom: 8px;
+    //                 }
+    //                 .operation-progress-item {
+    //                     padding: 8px;
+    //                     border-radius: 4px;
+    //                     background-color: #f8f9fa;
+    //                 }
+    //             </style>
+    //         `;
+    //
+    //         $('head').append(styles);
+    //         $('body').append(operationsContainer);
+    //     }
+    //
+    //     // Actualizar contador
+    //     updatePendingOperationsIndicator();
+    // }
+    //
+    // /**
+    //  * Actualiza el contador de operaciones pendientes
+    //  */
+    // function updatePendingOperationsIndicator() {
+    //     const count = pendingOperations.size;
+    //     $('.operations-count').text(count);
+    //
+    //     // Si no hay operaciones, ocultar el contenedor
+    //     if (count === 0) {
+    //         $('#operationsProgressContainer').fadeOut('slow');
+    //     } else {
+    //         $('#operationsProgressContainer').fadeIn('fast');
+    //     }
+    // }
+    //
+    // /**
+    //  * Oculta el indicador de operaciones pendientes
+    //  */
+    // function hidePendingOperationsIndicator() {
+    //     $('#operationsProgressContainer').fadeOut('slow');
+    // }
+    //
+    // /**
+    //  * Actualiza la tabla de slices
+    //  */
+    // async function refreshSlicesTable() {
+    //     const newSlices = await loadSlices();
+    //     table.clear().rows.add(newSlices).draw();
+    // }
+    //
+    // // Verificar inicialmente si hay operaciones pendientes en sesión
+    // async function checkForPendingOperationsOnLoad() {
+    //     try {
+    //         const response = await fetch('/User/api/slice/user/pending-operations');
+    //         if (response.ok) {
+    //             const result = await response.json();
+    //             if (result.content && Array.isArray(result.content.operations)) {
+    //                 const pendingOps = result.content.operations;
+    //
+    //                 if (pendingOps.length > 0) {
+    //                     console.log(`Encontradas ${pendingOps.length} operaciones pendientes durante carga`);
+    //
+    //                     // Registrar cada operación pendiente
+    //                     pendingOps.forEach(op => {
+    //                         addPendingOperation(op.id, {
+    //                             type: op.operationType,
+    //                             sliceName: op.sliceName || 'Slice',
+    //                             userId: op.userId
+    //                         });
+    //                     });
+    //                 }
+    //             }
+    //         }
+    //     } catch (error) {
+    //         console.error('Error verificando operaciones pendientes:', error);
+    //     }
+    // }
+    //
+    // // Comprobar operaciones pendientes al cargar la página
+    // checkForPendingOperationsOnLoad();
+
+
     // ==================
-    // MONITOREO DE OPERACIONES:
+    // POLLING MANUAL (FALLBACK):
     // ==================
 
-    /**
-     * Añade una nueva operación al registro de operaciones pendientes
-     */
-    function addPendingOperation(operationId, operationData) {
-        pendingOperations.set(operationId, {
-            ...operationData,
-            startTime: new Date(),
-            lastChecked: new Date(),
-            checkCount: 0
-        });
+    function startManualPolling(operationId) {
+        let pollCount = 0;
+        const maxPolls = 60; // 5 minutos máximo
 
-        // Iniciar el poll si no está corriendo
-        startPollingIfNeeded();
+        const pollInterval = setInterval(async () => {
+            pollCount++;
 
-        // Mostrar indicador visual
-        showPendingOperationsIndicator();
-    }
-
-    /**
-     * Inicia el proceso de consulta periódica si hay operaciones pendientes
-     */
-    function startPollingIfNeeded() {
-        if (pendingOperations.size > 0 && !pollTimer) {
-            console.log('Iniciando monitoreo de operaciones pendientes');
-            pollTimer = setInterval(checkPendingOperations, 5000); // Revisar cada 5 segundos
-        }
-    }
-
-    /**
-     * Detiene el proceso de consulta periódica si no hay operaciones pendientes
-     */
-    function stopPollingIfDone() {
-        if (pendingOperations.size === 0 && pollTimer) {
-            console.log('Deteniendo monitoreo, no hay operaciones pendientes');
-            clearInterval(pollTimer);
-            pollTimer = null;
-            hidePendingOperationsIndicator();
-        }
-    }
-
-    /**
-     * Verifica el estado de todas las operaciones pendientes
-     */
-    async function checkPendingOperations() {
-        console.log(`Verificando ${pendingOperations.size} operaciones pendientes...`);
-
-        // Si no hay operaciones, detener el polling
-        if (pendingOperations.size === 0) {
-            stopPollingIfDone();
-            return;
-        }
-
-        // Array para Promise.all
-        const checkPromises = [];
-
-        // Para cada operación, crear una promesa de verificación
-        pendingOperations.forEach((opData, opId) => {
-            const checkPromise = checkOperationStatus(opId, opData)
-                .catch(err => {
-                    console.error(`Error verificando operación ${opId}:`, err);
-                    // Incrementar contador de errores
-                    opData.errorCount = (opData.errorCount || 0) + 1;
-
-                    // Si hay demasiados errores, considerar la operación como fallida
-                    if (opData.errorCount > 5) {
-                        console.warn(`Demasiados errores, marcando operación ${opId} como fallida`);
-                        removePendingOperation(opId);
-
-                        // Mostrar alerta al usuario
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: `No se pudo verificar el estado de la operación ${opId} después de varios intentos.`,
-                            footer: 'La operación podría haberse completado pero no pudimos confirmar su estado.'
-                        });
-                    }
-
-                    return null; // Para que Promise.all no falle
-                });
-
-            checkPromises.push(checkPromise);
-        });
-
-        // Esperar a que todas las verificaciones terminen
-        await Promise.all(checkPromises);
-
-        // Actualizar indicador
-        updatePendingOperationsIndicator();
-
-        // Si no quedan operaciones, detener el polling
-        stopPollingIfDone();
-    }
-
-    /**
-     * Verifica el estado de una operación específica
-     */
-    async function checkOperationStatus(operationId, opData) {
-        console.log(`Verificando estado de operación ${operationId}...`);
-
-        // Actualizar contador y última verificación
-        opData.checkCount += 1;
-        opData.lastChecked = new Date();
-
-        try {
-            const response = await fetch('/User/api/slice/operations/' + operationId + '/status');
-            if (!response.ok) {
-                throw new Error(`Error en respuesta del servidor: ${response.status}`);
-            }
-
-            const result = await response.json();
-            console.log(`Estado de operación ${operationId}:`, result);
-
-            // Guardar el último estado recibido
-            opData.lastStatus = result.content?.operation_status;
-
-            // Si la operación ya no está pendiente o en progreso
-            if (opData.lastStatus === 'COMPLETED' ||
-                opData.lastStatus === 'FAILED' ||
-                opData.lastStatus === 'CANCELLED' ||
-                opData.lastStatus === 'TIMEOUT') {
-
-                // Eliminar de las operaciones pendientes
-                removePendingOperation(operationId);
-
-                // Si se completó correctamente
-                if (opData.lastStatus === 'COMPLETED') {
-                    handleCompletedOperation(operationId, result, opData);
-                } else {
-                    // Si falló
-                    handleFailedOperation(operationId, result, opData);
-                }
-            } else {
-                // Actualizar la UI para mostrar progreso
-                updateOperationProgress(operationId, result, opData);
-            }
-
-        } catch (error) {
-            console.error(`Error consultando estado de operación ${operationId}:`, error);
-            throw error; // Re-lanzar para manejo en checkPendingOperations
-        }
-    }
-
-    /**
-     * Maneja una operación completada correctamente
-     */
-    function handleCompletedOperation(operationId, result, opData) {
-        console.log(`Operación ${operationId} completada correctamente`);
-
-        // Si tiene slice_id, podemos navegar a ella
-        const sliceId = result.content?.slice_id;
-
-        // Mostrar notificación apropiada según el tipo de operación
-        let message = 'Operación completada exitosamente.';
-        let icon = 'success';
-        let showViewButton = false;
-
-        switch (opData.type) {
-            case 'DEPLOY_SLICE':
-                message = `¡Slice "${opData.sliceName}" desplegada exitosamente!`;
-                showViewButton = true;
-                break;
-            case 'STOP_SLICE':
-                message = `Slice "${opData.sliceName}" detenida correctamente.`;
-                break;
-            case 'RESTART_SLICE':
-                message = `Slice "${opData.sliceName}" reiniciada correctamente.`;
-                showViewButton = true;
-                break;
-        }
-
-        // Notificar al usuario
-        Swal.fire({
-            icon: icon,
-            title: '¡Operación Completada!',
-            text: message,
-            showCancelButton: showViewButton,
-            confirmButtonText: 'Aceptar',
-            cancelButtonText: showViewButton ? 'Ver Slice' : null,
-            customClass: {
-                confirmButton: 'btn btn-success',
-                cancelButton: showViewButton ? 'btn btn-warning' : ''
-            },
-            buttonsStyling: false
-        }).then((result) => {
-            if (result.dismiss === Swal.DismissReason.cancel && sliceId) {
-                // Navegar a la slice
-                window.location.href = `/User/slice/${sliceId}`;
-            } else {
-                // Actualizar la tabla de slices
-                refreshSlicesTable();
-            }
-        });
-    }
-
-    /**
-     * Maneja una operación que ha fallado
-     */
-    function handleFailedOperation(operationId, result, opData) {
-        console.log(`Operación ${operationId} ha fallado:`, result);
-
-        // Preparar mensaje de error apropiado
-        let message = 'La operación no pudo completarse.';
-        let details = result.content?.error || result.message || 'Error desconocido';
-
-        switch (opData.type) {
-            case 'DEPLOY_SLICE':
-                message = `Error al desplegar slice "${opData.sliceName}".`;
-                break;
-            case 'STOP_SLICE':
-                message = `Error al detener slice "${opData.sliceName}".`;
-                break;
-            case 'RESTART_SLICE':
-                message = `Error al reiniciar slice "${opData.sliceName}".`;
-                break;
-        }
-
-        // Notificar al usuario
-        Swal.fire({
-            icon: 'error',
-            title: 'Error en la Operación',
-            html: `
-                <p>${message}</p>
-                <div class="border-top border-light mt-3 pt-3">
-                    <p class="mb-2 text-start text-danger small">
-                        <i class="fas fa-exclamation-circle me-2"></i>
-                        <strong>Detalles del error:</strong>
-                    </p>
-                    <p class="text-start text-muted small">${details}</p>
-                </div>
-            `,
-            confirmButtonText: 'Entendido',
-            customClass: {
-                confirmButton: 'btn btn-danger'
-            },
-            buttonsStyling: false
-        }).then(() => {
-            // Actualizar la tabla de slices
-            refreshSlicesTable();
-        });
-    }
-
-    /**
-     * Actualiza la UI para mostrar el progreso de una operación
-     */
-    function updateOperationProgress(operationId, result, opData) {
-        const status = result.content?.operation_status;
-        const statusMessage = result.content?.status_message || 'En proceso...';
-
-        // Si tenemos un elemento donde mostrar el progreso
-        const progressContainer = $('#operationsProgressContainer');
-        if (progressContainer.length) {
-            // Actualizar o añadir el elemento de progreso
-            let progressItem = $(`#operation-${operationId}`);
-            if (!progressItem.length) {
-                // Crear nuevo elemento de progreso
-                progressItem = $(`
-                    <div id="operation-${operationId}" class="operation-progress-item mb-2">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="operation-name">${opData.type}: ${opData.sliceName || operationId}</span>
-                            <span class="operation-status badge bg-primary">${status}</span>
-                        </div>
-                        <div class="progress mt-1" style="height: 10px;">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning" 
-                                role="progressbar" style="width: 0%">
-                            </div>
-                        </div>
-                        <p class="status-message text-muted small mt-1">${statusMessage}</p>
-                    </div>
-                `);
-                progressContainer.append(progressItem);
-            } else {
-                // Actualizar elemento existente
-                progressItem.find('.operation-status').text(status);
-                progressItem.find('.status-message').text(statusMessage);
-
-                // Actualizar barra de progreso según tiempo transcurrido
-                const elapsedSeconds = (Date.now() - opData.startTime) / 1000;
-                const progressPercent = Math.min(
-                    Math.round(elapsedSeconds / 60 * 100), // Suponemos 1 minuto para completar
-                    95  // Nunca llegamos al 100% hasta que termine
-                );
-                progressItem.find('.progress-bar').css('width', `${progressPercent}%`);
-            }
-        }
-    }
-
-    /**
-     * Elimina una operación del registro de pendientes
-     */
-    function removePendingOperation(operationId) {
-        pendingOperations.delete(operationId);
-
-        // Si ya no hay operaciones pendientes, detener el polling
-        stopPollingIfDone();
-
-        // Eliminar elemento visual si existe
-        $(`#operation-${operationId}`).fadeOut('slow', function() {
-            $(this).remove();
-        });
-    }
-
-    /**
-     * Muestra el indicador de operaciones pendientes
-     */
-    function showPendingOperationsIndicator() {
-        // Verificar si ya existe el contenedor
-        if ($('#operationsProgressContainer').length === 0) {
-            // Crear el contenedor flotante
-            const operationsContainer = $(`
-                <div id="operationsProgressContainer" class="operations-progress-container">
-                    <div class="operations-header">
-                        <h6 class="mb-2">
-                            <i class="fas fa-tasks me-2"></i>
-                            Operaciones en Progreso
-                            <span class="badge bg-warning text-white ms-2 operations-count">0</span>
-                        </h6>
-                    </div>
-                    <div class="operations-list"></div>
-                </div>
-            `);
-
-            // Añadir estilos CSS necesarios
-            const styles = `
-                <style>
-                    .operations-progress-container {
-                        position: fixed;
-                        bottom: 20px;
-                        right: 20px;
-                        background-color: white;
-                        border-radius: 5px;
-                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
-                        width: 300px;
-                        max-height: 400px;
-                        overflow-y: auto;
-                        padding: 15px;
-                        z-index: 1000;
-                        transition: all 0.3s ease;
-                    }
-                    .operations-header {
-                        border-bottom: 1px solid #f0f0f0;
-                        margin-bottom: 10px;
-                        padding-bottom: 8px;
-                    }
-                    .operation-progress-item {
-                        padding: 8px;
-                        border-radius: 4px;
-                        background-color: #f8f9fa;
-                    }
-                </style>
-            `;
-
-            $('head').append(styles);
-            $('body').append(operationsContainer);
-        }
-
-        // Actualizar contador
-        updatePendingOperationsIndicator();
-    }
-
-    /**
-     * Actualiza el contador de operaciones pendientes
-     */
-    function updatePendingOperationsIndicator() {
-        const count = pendingOperations.size;
-        $('.operations-count').text(count);
-
-        // Si no hay operaciones, ocultar el contenedor
-        if (count === 0) {
-            $('#operationsProgressContainer').fadeOut('slow');
-        } else {
-            $('#operationsProgressContainer').fadeIn('fast');
-        }
-    }
-
-    /**
-     * Oculta el indicador de operaciones pendientes
-     */
-    function hidePendingOperationsIndicator() {
-        $('#operationsProgressContainer').fadeOut('slow');
-    }
-
-    /**
-     * Actualiza la tabla de slices
-     */
-    async function refreshSlicesTable() {
-        const newSlices = await loadSlices();
-        table.clear().rows.add(newSlices).draw();
-    }
-
-    // Verificar inicialmente si hay operaciones pendientes en sesión
-    async function checkForPendingOperationsOnLoad() {
-        try {
-            const response = await fetch('/User/api/slice/user/pending-operations');
-            if (response.ok) {
+            try {
+                const response = await fetch(`/User/api/slice/operations/${operationId}/status`);
                 const result = await response.json();
-                if (result.content && Array.isArray(result.content.operations)) {
-                    const pendingOps = result.content.operations;
 
-                    if (pendingOps.length > 0) {
-                        console.log(`Encontradas ${pendingOps.length} operaciones pendientes durante carga`);
+                if (result.status === 'success') {
+                    const status = result.content.operation_status;
 
-                        // Registrar cada operación pendiente
-                        pendingOps.forEach(op => {
-                            addPendingOperation(op.id, {
-                                type: op.operationType,
-                                sliceName: op.sliceName || 'Slice',
-                                userId: op.userId
-                            });
-                        });
+                    if (status === 'COMPLETED') {
+                        clearInterval(pollInterval);
+                        showNotification('¡Slice desplegada exitosamente!', 'success');
+
+                        // Actualizar tabla
+                        setTimeout(async () => {
+                            const newSlices = await loadSlices();
+                            table.clear().rows.add(newSlices).draw();
+                        }, 1000);
+
+                    } else if (status === 'FAILED') {
+                        clearInterval(pollInterval);
+                        showNotification('Error en el despliegue de la slice', 'error');
+
+                    } else if (pollCount >= maxPolls) {
+                        clearInterval(pollInterval);
+                        showNotification('Tiempo de espera agotado. La operación continúa en segundo plano.', 'warning');
                     }
                 }
+            } catch (error) {
+                console.error('Error en polling manual:', error);
+                if (pollCount >= maxPolls) {
+                    clearInterval(pollInterval);
+                }
             }
-        } catch (error) {
-            console.error('Error verificando operaciones pendientes:', error);
-        }
+        }, 5000); // Cada 5 segundos
     }
 
-    // Comprobar operaciones pendientes al cargar la página
-    checkForPendingOperationsOnLoad();
+    // === FUNCIONES DE DEBUG ===
+    window.debugWebSocket = function() {
+        console.log('=== DEBUG WEBSOCKET ===');
+        console.log('Socket existe:', !!socket);
+        console.log('Socket conectado:', socket ? socket.connected : false);
+        console.log('Socket ID:', socket ? socket.id : 'N/A');
+        console.log('Is Connected Flag:', isConnected);
+        console.log('Operaciones pendientes:', pendingOperations.size);
+        console.log('Token disponible:', !!getAuthToken());
+        console.log('========================');
+    };
+
 
 });

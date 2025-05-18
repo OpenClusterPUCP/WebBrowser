@@ -122,6 +122,7 @@ public class LoginController {
                 response.put("status", "ok");
                 response.put("content", "Admin"); // Mantener compatibilidad
                 response.put("message", "Login successful");
+                response.put("token", tokenData.get("jwt"));
 
                 // Añadir información útil para el frontend (opcional)
                 if (tokenData.containsKey("username")) {

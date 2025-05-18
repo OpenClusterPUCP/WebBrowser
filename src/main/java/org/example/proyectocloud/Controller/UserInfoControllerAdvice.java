@@ -34,6 +34,9 @@ public class UserInfoControllerAdvice {
                 model.addAttribute("userName", userInfo.getName() + " " + userInfo.getLastname());
                 model.addAttribute("userRole", userInfo.getRole());
 
+                // Para los web tokens
+                model.addAttribute("jwtToken", userInfo.getJwt());
+
                 // Crear iniciales para el avatar
                 String initials = "";
                 if (userInfo.getName() != null && !userInfo.getName().isEmpty()) {
@@ -58,6 +61,7 @@ public class UserInfoControllerAdvice {
             model.addAttribute("userName", "Usuario");
             model.addAttribute("userRole", "Invitado");
             model.addAttribute("userInitials", "UI");
+            model.addAttribute("jwtToken", "");
         }
     }
 }

@@ -85,12 +85,20 @@ public class SliceService {
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(sliceData, headers);
 
         log.info("Enviando request al gateway...");
+        log.info("URL: {}", url);
+        log.info("Headers: {}", headers);
+        log.info("Request body: {}", sliceData);
+
         ResponseEntity<String> response = restTemplate.exchange(
-            url,
-            HttpMethod.POST,
-            entity,
-            String.class
+                url,
+                HttpMethod.POST,
+                entity,
+                String.class
         );
+
+        log.info("Response status: {}", response.getStatusCode());
+        log.info("Response headers: {}", response.getHeaders());
+        log.info("Response body: {}", response.getBody());
 
         log.info("Respuesta raw recibida: {}", response.getBody());
 

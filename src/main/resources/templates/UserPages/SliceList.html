@@ -66,6 +66,9 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css">
 
+    <!-- Token JWT para WebSocket *** -->
+    <meta name="jwt-token" th:content="${jwtToken}">
+
     <!-- Estilos extra -->
     <style>
 
@@ -566,6 +569,229 @@
             letter-spacing: 0.5px;        /* Mejor espaciado entre letras */
         }
 
+        /* Progress Cards - Notificaciones en tiempo real */
+        .progress-cards-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 1050;
+            max-width: 350px;
+            pointer-events: none;
+        }
+
+        .progress-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            margin-bottom: 10px;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+            pointer-events: auto;
+            border-left: 4px solid #ffc107;
+        }
+
+        .progress-card.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .progress-card.hide {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+
+        .progress-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 15px 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .progress-card-header h6 {
+            margin: 0;
+            font-weight: 600;
+            color: #2c3e50;
+            flex: 1;
+        }
+
+        .btn-close-card {
+            background: none;
+            border: none;
+            color: #6c757d;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .btn-close-card:hover {
+            background-color: #f8f9fa;
+            color: #495057;
+        }
+
+        .progress-card-body {
+            padding: 15px;
+        }
+
+        .progress-message {
+            color: #6c757d;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .progress-bar-container {
+            background-color: #e9ecef;
+            border-radius: 4px;
+            height: 8px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background-color: #ffc107;
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+
+        .progress-bar-fill.success {
+            background-color: #28a745;
+        }
+
+        .progress-bar-fill.error {
+            background-color: #dc3545;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            gap: 4px;
+        }
+
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .status-processing {
+            background-color: #cce7ff;
+            color: #004085;
+        }
+
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Notificaciones Toast */
+        .notification-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1060;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 12px 16px;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+            max-width: 300px;
+        }
+
+        .notification-toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .notification-toast.hide {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+
+        .notification-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .notification-success {
+            border-left: 4px solid #28a745;
+        }
+
+        .notification-error {
+            border-left: 4px solid #dc3545;
+        }
+
+        .notification-warning {
+            border-left: 4px solid #ffc107;
+        }
+
+        .notification-info {
+            border-left: 4px solid #17a2b8;
+        }
+
+        .notification-success .fas {
+            color: #28a745;
+        }
+
+        .notification-error .fas {
+            color: #dc3545;
+        }
+
+        .notification-warning .fas {
+            color: #ffc107;
+        }
+
+        .notification-info .fas {
+            color: #17a2b8;
+        }
+
+        /* Indicador de conexión WebSocket (opcional) */
+        #ws-connection-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            z-index: 1000;
+        }
+
+        .ws-connected {
+            background-color: #28a745;
+            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.3);
+        }
+
+        .ws-disconnected {
+            background-color: #dc3545;
+            box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.3);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .progress-cards-container {
+                right: 10px;
+                max-width: calc(100vw - 20px);
+            }
+
+            .notification-toast {
+                right: 10px;
+                max-width: calc(100vw - 20px);
+            }
+        }
+
+
     </style>
 
 </head>
@@ -796,6 +1022,8 @@
     <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
     <!-- Material Icons -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <!-- Socket.IO Client -->
+    <script src="https://cdn.socket.io/4.7.3/socket.io.min.js"></script>
 
     <script th:src="@{/slice/slice/slice-list.js}"></script>
 
