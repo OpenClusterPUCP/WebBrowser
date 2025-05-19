@@ -2096,3 +2096,739 @@ textarea.form-control {
         font-size: 0.8rem;
     }
 }
+
+
+
+/*
+ * Estilos específicos para Queue Metrics
+ * Agregar al final de admin-styles.css
+ */
+
+/* Cards de métricas de dashboard */
+.resource-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    font-size: 1.5rem;
+}
+
+.bg-primary-light {
+    background-color: rgba(67, 97, 238, 0.1);
+}
+
+.bg-warning-light {
+    background-color: rgba(255, 193, 7, 0.1);
+}
+
+.bg-info-light {
+    background-color: rgba(13, 202, 240, 0.1);
+}
+
+.bg-success-light {
+    background-color: rgba(25, 135, 84, 0.1);
+}
+
+.bg-danger-light {
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+/* Información de actualización */
+.refresh-info {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-left: 12px;
+}
+
+/* Gráficos */
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+
+/* Barras de progreso personalizadas */
+.progress {
+    height: 8px;
+    background-color: var(--light-color);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    transition: width 0.6s ease;
+}
+
+/* Estados de cola en tabla */
+.queue-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.queue-status.normal {
+    background-color: rgba(25, 135, 84, 0.1);
+    color: var(--success-color);
+}
+
+.queue-status.warning {
+    background-color: rgba(255, 193, 7, 0.1);
+    color: var(--warning-color);
+}
+
+.queue-status.error {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: var(--danger-color);
+}
+
+/* Badges para estados de operación */
+.badge-pending {
+    background-color: rgba(255, 193, 7, 0.1);
+    color: var(--warning-color);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.badge-in-progress {
+    background-color: rgba(13, 202, 240, 0.1);
+    color: var(--info-color);
+    border: 1px solid rgba(13, 202, 240, 0.3);
+}
+
+.badge-completed {
+    background-color: rgba(25, 135, 84, 0.1);
+    color: var(--success-color);
+    border: 1px solid rgba(25, 135, 84, 0.3);
+}
+
+.badge-failed {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: var(--danger-color);
+    border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+.badge-cancelled {
+    background-color: rgba(108, 117, 125, 0.1);
+    color: var(--text-muted);
+    border: 1px solid rgba(108, 117, 125, 0.3);
+}
+
+/* Badges para prioridades */
+.badge-high {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: var(--danger-color);
+    border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+.badge-medium {
+    background-color: rgba(255, 193, 7, 0.1);
+    color: var(--warning-color);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.badge-low {
+    background-color: rgba(25, 135, 84, 0.1);
+    color: var(--success-color);
+    border: 1px solid rgba(25, 135, 84, 0.3);
+}
+
+/* Selector de tipo de gráfico */
+#chartTypeSelector .btn-check:checked + .btn-outline-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+/* Filtros de tabla */
+.table-filters {
+    margin-bottom: 1rem;
+}
+
+.table-filters .btn-group .btn {
+    border-radius: 0;
+}
+
+.table-filters .btn-group .btn:first-child {
+    border-top-left-radius: var(--border-radius);
+    border-bottom-left-radius: var(--border-radius);
+}
+
+.table-filters .btn-group .btn:last-child {
+    border-top-right-radius: var(--border-radius);
+    border-bottom-right-radius: var(--border-radius);
+}
+
+/* Modal de detalles de cola */
+.modal-chart-container {
+    position: relative;
+    height: 200px;
+    width: 100%;
+}
+
+.queue-detail-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.queue-detail-stat {
+    text-align: center;
+    padding: 1rem;
+    background-color: var(--light-color);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+}
+
+.queue-detail-stat .stat-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.queue-detail-stat .stat-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+/* Animaciones para contadores */
+.counter-animation {
+    transition: all 0.3s ease-in-out;
+}
+
+/* Loading states */
+.loading-skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+    border-radius: var(--border-radius);
+    height: 20px;
+    margin-bottom: 10px;
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Estados de conexión */
+.connection-status {
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    padding: 10px 20px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+    z-index: 1050;
+    transition: all 0.3s ease;
+}
+
+.connection-status.online {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.connection-status.offline {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .queue-detail-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .chart-container {
+        height: 250px;
+    }
+
+    .modal-chart-container {
+        height: 180px;
+    }
+
+    .resource-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1.25rem;
+    }
+
+    .table-responsive table {
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .dashboard-cards .col-lg-3 {
+        margin-bottom: 1rem;
+    }
+
+    .chart-type-selector {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .refresh-info {
+        display: none;
+    }
+
+    .content-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .header-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+
+/* Hover effects */
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s ease;
+}
+
+.btn-outline-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(67, 97, 238, 0.2);
+}
+
+/* Toast notifications */
+.toast-container {
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    z-index: 1055;
+}
+
+.custom-toast {
+    background-color: white;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+    min-width: 300px;
+}
+
+.custom-toast .toast-header {
+    background-color: var(--light-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* Scroll to top button */
+.scroll-to-top {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 50px;
+    height: 50px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    box-shadow: var(--shadow-md);
+    cursor: pointer;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.scroll-to-top.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.scroll-to-top:hover {
+    background-color: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Métricas específicas del dashboard */
+.metrics-overview {
+    margin-bottom: 2rem;
+}
+
+.metric-card {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.metric-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+}
+
+.metric-icon {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.metric-value {
+    font-size: 2.5rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text-color);
+}
+
+.metric-label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.metric-change {
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-top: 0.5rem;
+}
+
+.metric-change.positive {
+    color: var(--success-color);
+}
+
+.metric-change.negative {
+    color: var(--danger-color);
+}
+
+.metric-change.neutral {
+    color: var(--text-muted);
+}
+
+/* Indicadores de tendencia */
+.trend-indicator {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 12px;
+    margin-left: 8px;
+}
+
+.trend-up {
+    background-color: rgba(25, 135, 84, 0.1);
+    color: var(--success-color);
+}
+
+.trend-down {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: var(--danger-color);
+}
+
+.trend-stable {
+    background-color: rgba(108, 117, 125, 0.1);
+    color: var(--text-muted);
+}
+
+/* Alertas y notificaciones personalizadas */
+.alert-card {
+    border-left: 4px solid;
+    background-color: white;
+    border-radius: 0 var(--border-radius) var(--border-radius) 0;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 1rem;
+}
+
+.alert-card.alert-info {
+    border-left-color: var(--primary-color);
+}
+
+.alert-card.alert-warning {
+    border-left-color: var(--warning-color);
+}
+
+.alert-card.alert-danger {
+    border-left-color: var(--danger-color);
+}
+
+.alert-card.alert-success {
+    border-left-color: var(--success-color);
+}
+
+/* Mejoras para la tabla de colas */
+.queue-table-wrapper {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.queue-table-header {
+    background-color: var(--light-color);
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.queue-table-title {
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-color);
+}
+
+/* Estilos para el estado de las colas */
+.queue-health-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+}
+
+.queue-health-indicator.healthy {
+    background-color: var(--success-color);
+    animation: pulse-green 2s infinite;
+}
+
+.queue-health-indicator.warning {
+    background-color: var(--warning-color);
+    animation: pulse-yellow 2s infinite;
+}
+
+.queue-health-indicator.critical {
+    background-color: var(--danger-color);
+    animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-green {
+    0% {
+        box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(25, 135, 84, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(25, 135, 84, 0);
+    }
+}
+
+@keyframes pulse-yellow {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(255, 193, 7, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
+    }
+}
+
+@keyframes pulse-red {
+    0% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(220, 53, 69, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+    }
+}
+
+/* Estilos para elementos específicos de queue metrics */
+.queue-metrics-container {
+    padding: 0;
+}
+
+.queue-metrics-header {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    color: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.queue-metrics-title {
+    font-size: 2rem;
+    font-weight: 300;
+    margin-bottom: 0.5rem;
+}
+
+.queue-metrics-subtitle {
+    opacity: 0.9;
+    font-size: 1.1rem;
+}
+
+/* Mejoras en la visualización de datos */
+.data-visualization {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.data-visualization-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.data-visualization-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-color);
+    margin: 0;
+}
+
+.data-visualization-controls {
+    display: flex;
+    gap: 0.75rem;
+}
+
+/* Estilos para indicadores de performance */
+.performance-indicators {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.performance-indicator {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 1.25rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.performance-indicator:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-md);
+}
+
+.performance-indicator-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+}
+
+.performance-indicator-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-color);
+    margin-bottom: 0.5rem;
+}
+
+.performance-indicator-label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.performance-indicator-trend {
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+/* Estilos para alertas en tiempo real */
+.real-time-alerts {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    max-width: 350px;
+    z-index: 1060;
+}
+
+.real-time-alert {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.real-time-alert-header {
+    padding: 0.75rem 1rem;
+    background-color: var(--primary-color);
+    color: white;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.real-time-alert-body {
+    padding: 1rem;
+    font-size: 0.85rem;
+    color: var(--text-color);
+}
+
+.real-time-alert-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.real-time-alert-close:hover {
+    opacity: 1;
+}
+
+/* Últimos ajustes para compatibilidad */
+.queue-metrics-page .card {
+    border: 1px solid var(--border-color);
+}
+
+.queue-metrics-page .btn-group .btn {
+    font-size: 0.85rem;
+}
+
+.queue-metrics-page .table th {
+    background-color: var(--light-color);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.queue-metrics-page .modal-header {
+    background-color: var(--light-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* Variables adicionales específicas para queue metrics */
+:root {
+    --queue-success-color: #28a745;
+    --queue-warning-color: #ffc107;
+    --queue-danger-color: #dc3545;
+    --queue-info-color: #17a2b8;
+    --queue-light-color: #f8f9fa;
+    --queue-dark-color: #343a40;
+}

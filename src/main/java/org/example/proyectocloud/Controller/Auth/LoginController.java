@@ -40,7 +40,7 @@ public class LoginController {
             UserInfo userSession = (UserInfo) http.getAttribute("userInfo");
             String rol = userSession.getRole();
             if (rol.equals("Admin")) {
-                return "redirect:/Admin/slices";
+                return "redirect:/Admin/users";
             }
             if (rol.equals("User")) {
                 return "redirect:/User/slice";
