@@ -1051,7 +1051,7 @@ window.toggleVMState = async function (vmId) {
         title: isPaused ? '¿Encender VM?' : '¿Apagar VM?',
         text: isPaused ? 
             'La máquina virtual se encenderá y estará disponible nuevamente.' : 
-            'La máquina virtual se apagará. Sus datos en disco se mantendrán intactos, pero la configuración realizada no persistirá.',
+            'La máquina virtual se apagará. Sus datos en disco se mantendrán intactos, pero puede que la configuración realizada no persista.',
         icon: 'question',
         showCancelButton: true,
         confirmButtonText: isPaused ? 'Sí, encender' : 'Sí, apagar',

@@ -261,6 +261,8 @@ $(document).ready(async function() {
         });
     }
 
+    $('.status-filter[data-status="running"]').addClass('active');
+
     $('.status-filter').on('click', function() {
         $('.status-filter').removeClass('active');
         $(this).addClass('active');
@@ -300,6 +302,8 @@ $(document).ready(async function() {
 
     // Inicializar
     await initializeTable();
+    table.column(8).search('EJECUCIÓN', true, false).draw();
+
     initializeWebSocket();
 
     const resizeObserver = new ResizeObserver(entries => {
@@ -950,6 +954,18 @@ $(document).ready(async function() {
             preview.classList.add('d-none');
             preview.classList.remove('sketch-preview-enter');
         }, 300);
+    });
+
+    $('#sketchSelect').on('change', function() {
+        const selectedSketch = $(this).val();
+        if (selectedSketch) {
+            $('#sketchPreview').removeClass('d-none');
+
+            // Asegurar que el scroll externo funcione correctamente
+            $('body').css('overflow', 'auto');
+        } else {
+            $('#sketchPreview').addClass('d-none');
+        }
     });
 
     // Manejo de mensajes de error:
