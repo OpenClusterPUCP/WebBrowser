@@ -203,6 +203,30 @@ $(document).ready(async function() {
                     render: data => `<span class="text-muted">${formatDate(data)}</span>`
                 },
                 { 
+                    data: 'infrastructure',
+                    render: function(data, type) {
+                        if (type === 'display') {
+                            if (!data) return '<span class="text-muted">N/A</span>';
+                            
+                            let textColorClass = 'text-secondary';
+                            
+                            // Asignar colores diferentes según la infraestructura
+                            if (data.toLowerCase().includes('openstack')) {
+                                textColorClass = 'text-primary fw-bold';
+                            } else if (data.toLowerCase().includes('amazon')) {
+                                textColorClass = 'text-info fw-bold';
+                            } else {
+                                textColorClass = 'text-success fw-bold';
+                            }
+                            
+                            return `<div class="d-flex w-100">
+                                <span class="${textColorClass}">${data}</span>
+                            </div>`;
+                        }
+                        return data || '';
+                    }
+                },
+                { 
                     data: 'status',
                     render: data => getStatusBadge(data),
                     className: 'text-center'
@@ -272,7 +296,7 @@ $(document).ready(async function() {
         table.search('').columns().search('').draw();
 
         if (status !== 'all') {
-            table.column(8).search(status === 'running' ? 'EJECUCIÓN' : 'DETENIDO', true, false).draw();
+            table.column(9).search(status === 'running' ? 'EJECUCIÓN' : 'DETENIDO', true, false).draw();
         } else {
             table.draw();
         }
@@ -282,7 +306,7 @@ $(document).ready(async function() {
         const selectedStatus = $('.status-filter.active').data('status');
         if (selectedStatus === 'all') return true;
         
-        const statusCell = data[8];
+        const statusCell = data[9];
         
         switch(selectedStatus) {
             case 'running':
@@ -302,7 +326,7 @@ $(document).ready(async function() {
 
     // Inicializar
     await initializeTable();
-    table.column(8).search('EJECUCIÓN', true, false).draw();
+    table.column(9).search('EJECUCIÓN', true, false).draw();
 
     initializeWebSocket();
 
@@ -311,6 +335,117 @@ $(document).ready(async function() {
     });
 
     resizeObserver.observe(document.querySelector('.table-responsive'));
+
+    // ==================
+    // ZONAS:
+    // ==================
+
+    async function loadAvailabilityZones() {
+        try {
+            console.log('Cargando zonas de disponibilidad...');
+            
+            // Obtener el token JWT del meta tag
+            const authToken = getAuthToken();
+
+            const gatewayUrl = 'http://localhost:5001'
+            
+            const response = await fetch(gatewayUrl+'/User/api/availability-zones', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authToken
+                }
+            });
+            
+            const result = await response.json();
+            console.log('Respuesta de zonas de disponibilidad:', result);
+            
+            if (result.status === 'success' && result.content) {
+                const select = $('#availabilityZoneSelect');
+                
+                if (!select.data('select2')) {
+                    select.select2({
+                        theme: 'bootstrap-5',
+                        placeholder: 'Selecciona una zona de disponibilidad',
+                        allowClear: false,
+                        width: '100%',
+                        dropdownParent: $('#deploySliceModal'),
+                        minimumResultsForSearch: 0,
+                        templateResult: formatAvailabilityZoneOption,
+                        templateSelection: formatAvailabilityZoneSelection,
+                        escapeMarkup: function(markup) {
+                            return markup;
+                        }
+                    }).on('select2:open', function() {
+                        document.querySelector('.select2-search__field').focus();
+                    });
+                }
+
+                // Limpiar y agregar la opción placeholder
+                select.empty().append('<option></option>');
+                
+                // Agregar las opciones
+                result.content.forEach(zone => {
+                    const option = new Option(
+                        zone.name,
+                        zone.id,
+                        false,
+                        false
+                    );
+                    
+                    // Agregar datos adicionales al option
+                    $(option).data('description', zone.description);
+                    $(option).data('infrastructure', zone.infrastructure);
+                    $(option).data('worker-count', zone.worker_count);
+                    
+                    select.append(option);
+                });
+                
+                select.trigger('change');
+            } else {
+                console.error('Error en la respuesta al cargar zonas:', result);
+                throw new Error(result.message || 'No se pudieron cargar las zonas de disponibilidad');
+            }
+        } catch (error) {
+            console.error('Error cargando zonas de disponibilidad:', error);
+            throw error;
+        }
+    }
+
+    function formatAvailabilityZoneOption(zone) {
+        if (!zone.id) return zone.text;
+        
+        const $zone = $(zone.element);
+        const description = $zone.data('description');
+        const infrastructure = $zone.data('infrastructure');
+        const workerCount = $zone.data('worker-count');
+        
+        return $(`
+            <div class="d-flex align-items-start p-2">
+                <i class="fas fa-server text-warning mt-1 me-3"></i>
+                <div>
+                    <div class="fw-semibold">${zone.text}</div>
+                    ${description ? 
+                        `<small class="text-muted d-block">${truncateText(description, 100)}</small>` : 
+                        ''}
+                    <div class="mt-1">
+                        <span class="badge bg-dark me-2">${infrastructure}</span>
+                        <span class="badge bg-secondary">${workerCount} worker${workerCount !== 1 ? 's' : ''}</span>
+                    </div>
+                </div>
+            </div>
+        `);
+    }
+
+    function formatAvailabilityZoneSelection(zone) {
+        if (!zone.id) return zone.text;
+        return $(`
+            <div class="d-flex align-items-center">
+                <i class="fas fa-server text-warning me-2"></i>
+                <span class="fw-semibold">${zone.text}</span>
+            </div>
+        `);
+    }
 
     // ==================
     // WEBSOCKET Y NOTIFICACIONES EN TIEMPO REAL:
@@ -746,8 +881,11 @@ $(document).ready(async function() {
             $('#deploySliceForm').removeClass('was-validated');
             $('#sketchPreview').addClass('d-none').removeClass('show');
             
-            // Cargar los sketches
-            await loadSketches();
+            // Cargar los sketches y las zonas de disponibilidad
+            await Promise.all([
+                loadSketches(),
+                loadAvailabilityZones()
+            ]);
             
             // Mostrar el modal
             $('#deploySliceModal').modal('show');
@@ -756,15 +894,18 @@ $(document).ready(async function() {
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: 'No se pudieron cargar los sketches disponibles'
+                text: 'No se pudieron cargar los recursos necesarios'
             });
         }
     });
 
     async function loadFlavors() {
         try {
+            console.log('Cargando flavors disponibles...');
             const response = await fetch('/User/api/sketch/resources/flavors');
             const result = await response.json();
+            console.log('Respuesta de flavors:', result);
+
             if (result.status === 'success') {
                 AVAILABLE_FLAVORS = result.content;
                 console.log('Flavors loaded:', AVAILABLE_FLAVORS);
@@ -973,43 +1114,205 @@ $(document).ready(async function() {
     function showErrorAlert(error) {
         let errorMessage = '';
         let errorDetails = [];
-
+        console.log('Error recibido:', error);
+        
+        // LOGS ADICIONALES PARA DEBUG
+        console.log('Tipo de error:', typeof error);
+        console.log('error.message existe:', !!error.message);
+        console.log('error.message valor:', error.message);
+        console.log('error.message incluye {:', error.message ? error.message.includes('{') : 'N/A');
+        console.log('error.response existe:', !!error.response);
+        
         try {
             let errorData = null;
             
+            // Caso 1: Error con response object directo
             if (typeof error === 'object' && error.response) {
-                errorData = error.response;
-            } else if (error.message && error.message.includes('{')) {
-                const jsonStr = error.message.substring(
-                    error.message.indexOf('{'),
-                    error.message.lastIndexOf('}') + 1
-                );
-                errorData = JSON.parse(jsonStr);
-            } else {
+                console.log('🔍 CASO 1: Error con response object directo');
+                console.log('error.response:', error.response);
+                
+                // NUEVO: Verificar si response.message contiene JSON
+                if (error.response.message && error.response.message.includes('{')) {
+                    console.log('🔍 CASO 1B: Response.message contiene JSON');
+                    let jsonStr = error.response.message;
+                    console.log('JSON string desde response.message:', jsonStr);
+                    
+                    // Aplicar la misma lógica de parsing
+                    if (jsonStr.includes('POST request for') || jsonStr.includes('GET request for')) {
+                        const jsonMatch = jsonStr.match(/": "(\{.*?\})<EOL>"/);
+                        
+                        if (jsonMatch && jsonMatch[1]) {
+                            jsonStr = jsonMatch[1];
+                            console.log('JSON extraído desde response (antes de limpiar):', jsonStr);
+                            
+                            // Limpiar caracteres de escape y marcadores <EOL>
+                            jsonStr = jsonStr
+                                .replace(/<EOL>/g, '')
+                                .replace(/\\u00([0-9a-fA-F]{2})/g, (match, hex) => {
+                                    return String.fromCharCode(parseInt(hex, 16));
+                                })
+                                .replace(/\\\"/g, '"')
+                                .replace(/\\n/g, '\n')
+                                .trim();
+                            
+                            console.log('JSON después de limpieza desde response:', jsonStr);
+                            
+                            try {
+                                errorData = JSON.parse(jsonStr);
+                                console.log('JSON parseado exitosamente desde response:', errorData);
+                            } catch (parseErr) {
+                                console.error('Error parseando JSON desde response:', parseErr);
+                                errorData = error.response;
+                            }
+                        } else {
+                            console.log('No se encontró patrón JSON en response.message');
+                            errorData = error.response;
+                        }
+                    } else {
+                        errorData = error.response;
+                    }
+                } else {
+                    errorData = error.response;
+                }
+            } 
+            // Caso 2: Error con message que contiene JSON anidado
+            else if (error.message && error.message.includes('{')) {
+                console.log('🔍 CASO 2: Error con message que contiene JSON anidado');
+                let jsonStr = error.message;
+                console.log('Mensaje original caso 2:', jsonStr);
+                
+                // Si el mensaje contiene "POST request for" o "GET request for"
+                if (jsonStr.includes('POST request for') || jsonStr.includes('GET request for')) {
+                    console.log('🔍 CASO 2A: Contiene POST/GET request');
+                    // Buscar el JSON que está entre ": "{...}<EOL>"
+                    const jsonMatch = jsonStr.match(/": "(\{.*?\})<EOL>"/);
+                    
+                    if (jsonMatch && jsonMatch[1]) {
+                        jsonStr = jsonMatch[1];
+                        console.log('JSON extraído caso 2 (antes de limpiar):', jsonStr);
+                        
+                        // Limpiar caracteres de escape y marcadores <EOL>
+                        jsonStr = jsonStr
+                            .replace(/<EOL>/g, '')  // Remover marcadores <EOL>
+                            .replace(/\\u00([0-9a-fA-F]{2})/g, (match, hex) => {
+                                return String.fromCharCode(parseInt(hex, 16));
+                            })
+                            .replace(/\\\"/g, '"')    // Reemplazar \" con "
+                            .replace(/\\n/g, '\n')    // Reemplazar \n literales
+                            .trim();
+                        
+                        console.log('JSON después de limpieza caso 2:', jsonStr);
+                        
+                        // Intentar parsear el JSON limpio
+                        try {
+                            errorData = JSON.parse(jsonStr);
+                            console.log('JSON parseado exitosamente caso 2:', errorData);
+                        } catch (parseErr) {
+                            console.error('Error parseando JSON extraído caso 2:', parseErr);
+                            console.error('JSON que se intentó parsear caso 2:', jsonStr);
+                            
+                            // Extracción manual como fallback
+                            try {
+                                const messageMatch = jsonStr.match(/"message":\s*"([^"]+)"/);
+                                const detailsMatch = jsonStr.match(/"details":\s*\[\s*"([^"]+)"\s*\]/);
+                                
+                                if (messageMatch) {
+                                    errorMessage = messageMatch[1];
+                                    if (detailsMatch) {
+                                        errorDetails = [detailsMatch[1]];
+                                    }
+                                    console.log('Extracción manual exitosa caso 2:', { errorMessage, errorDetails });
+                                } else {
+                                    errorMessage = 'Error de comunicación con el servidor';
+                                }
+                            } catch (manualErr) {
+                                console.error('Error en extracción manual caso 2:', manualErr);
+                                errorMessage = 'Error de comunicación con el servidor';
+                            }
+                        }
+                    } else {
+                        console.error('No se encontró el patrón JSON en el mensaje caso 2');
+                        // Fallback: extraer manualmente del mensaje original
+                        try {
+                            // Buscar patrones directamente en el mensaje original
+                            const messagePattern = /No tienes suficientes recursos disponibles[^"]+/;
+                            const detailsPattern = /L[íi]mite de slices[^"]+/;
+                            
+                            const messageMatch = jsonStr.match(messagePattern);
+                            const detailsMatch = jsonStr.match(detailsPattern);
+                            
+                            if (messageMatch) {
+                                errorMessage = messageMatch[0];
+                            }
+                            if (detailsMatch) {
+                                errorDetails = [detailsMatch[0]];
+                            }
+                            
+                            if (!errorMessage) {
+                                errorMessage = 'Error de comunicación con el servidor';
+                            }
+                        } catch (fallbackErr) {
+                            console.error('Error en fallback caso 2:', fallbackErr);
+                            errorMessage = 'Error de comunicación con el servidor';
+                        }
+                    }
+                } else {
+                    console.log('🔍 CASO 2B: JSON directo en message');
+                    // Para casos donde el JSON está directamente en el mensaje
+                    const startIndex = jsonStr.indexOf('{');
+                    const endIndex = jsonStr.lastIndexOf('}') + 1;
+                    if (startIndex !== -1 && endIndex > startIndex) {
+                        jsonStr = jsonStr.substring(startIndex, endIndex);
+                        
+                        try {
+                            errorData = JSON.parse(jsonStr);
+                            console.log('JSON parseado directamente caso 2B:', errorData);
+                        } catch (parseErr) {
+                            console.error('Error parseando JSON directo caso 2B:', parseErr);
+                            errorMessage = 'Error de comunicación con el servidor';
+                        }
+                    }
+                }
+            } 
+            // Caso 3: Error simple con mensaje directo
+            else {
+                console.log('🔍 CASO 3: Error simple con mensaje directo');
                 errorMessage = error.message || 'Error desconocido';
             }
 
-            if (errorData) {
-                errorMessage = errorData.message || 'Error desconocido';
+            // Procesar los datos del error si se pudo parsear
+            if (errorData && errorData.message) {
+                console.log('✅ Procesando errorData.message:', errorData.message);
+                errorMessage = errorData.message;
                 
-                // Handle details that could be array or string
+                // Manejar detalles que pueden ser array o string
                 if (errorData.details) {
                     if (Array.isArray(errorData.details)) {
                         errorDetails = errorData.details;
                     } else {
                         errorDetails = [errorData.details];
                     }
+                    console.log('✅ Detalles procesados:', errorDetails);
                 }
             }
 
+            // Si no tenemos mensaje, usar uno por defecto
+            if (!errorMessage) {
+                errorMessage = 'Se produjo un error inesperado';
+            }
+
+            console.log('🎯 Mensaje final procesado:', errorMessage);
+            console.log('🎯 Detalles finales procesados:', errorDetails);
+
+            // Crear HTML para los detalles (diseño centrado con icono de círculo rojo)
             const detailsHtml = errorDetails.length > 0
                 ? `
-                    <div class="text-start text-danger small mt-3">
+                    <div class="mt-3">
                         <hr class="my-2">
                         ${errorDetails.map(detail => `
-                            <p class="mb-1 d-flex align-items-start">
-                                <i class="fas fa-exclamation-circle me-2 mt-1"></i>
-                                <span>${detail}</span>
+                            <p class="mb-2 d-flex align-items-center justify-content-center text-danger">
+                                <i class="fas fa-exclamation-circle me-2 text-danger"></i>
+                                <span class="small">${detail}</span>
                             </p>
                         `).join('')}
                     </div>
@@ -1018,33 +1321,38 @@ $(document).ready(async function() {
 
             return Swal.fire({
                 icon: 'error',
-                title: 'Error',
+                title: 'Error en la Operación',
                 html: `
-                    <p class="mb-2">${errorMessage}</p>
-                    ${detailsHtml}
+                    <div class="text-center">
+                        <p class="mb-2 text-dark">${errorMessage}</p>
+                        ${detailsHtml}
+                    </div>
                 `,
                 customClass: {
                     icon: 'border-0',
                     confirmButton: 'btn btn-danger',
-                    htmlContainer: 'text-left'
+                    htmlContainer: 'text-center'
                 },
-                buttonsStyling: false
+                buttonsStyling: false,
+                confirmButtonText: 'Entendido',
+                width: '500px'
             });
+            
         } catch (parseError) {
-            console.error('Error parsing error message:', parseError);
+            console.error('Error crítico parseando mensaje de error:', parseError);
             return Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: error.message || 'Error desconocido',
+                text: 'Se produjo un error al procesar la respuesta del servidor',
                 customClass: {
                     icon: 'border-0',
                     confirmButton: 'btn btn-danger'
                 },
-                buttonsStyling: false
+                buttonsStyling: false,
+                confirmButtonText: 'Entendido'
             });
         }
     }
-
 
     // Despliegue del Slice:
 
@@ -1078,7 +1386,13 @@ $(document).ready(async function() {
         const structure = JSON.parse(structureData);
         const sliceName = document.getElementById('sliceName').value;
         const sliceDescription = document.getElementById('sliceDescription').value || null;
-    
+        const availabilityZoneId = document.getElementById('availabilityZoneSelect').value;
+
+        if (!availabilityZoneId) {
+            loadingAlert.close();
+            form.classList.add('was-validated');
+            return;
+        }
 
         const convertDecimalValues = (obj) => {
             if (Array.isArray(obj)) {
@@ -1110,6 +1424,7 @@ $(document).ready(async function() {
                 name: sliceName,
                 description: sliceDescription,
                 sketch_id: parseInt(selectedSketch.value),
+                availability_zone_id: parseInt(availabilityZoneId)
             },
             topology_info: convertDecimalValues(structure.topology_info)
         };
@@ -1224,429 +1539,6 @@ $(document).ready(async function() {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
 
-    // // ==================
-    // // MONITOREO DE OPERACIONES:
-    // // ==================
-    //
-    // /**
-    //  * Añade una nueva operación al registro de operaciones pendientes
-    //  */
-    // function addPendingOperation(operationId, operationData) {
-    //     pendingOperations.set(operationId, {
-    //         ...operationData,
-    //         startTime: new Date(),
-    //         lastChecked: new Date(),
-    //         checkCount: 0
-    //     });
-    //
-    //     // Iniciar el poll si no está corriendo
-    //     startPollingIfNeeded();
-    //
-    //     // Mostrar indicador visual
-    //     showPendingOperationsIndicator();
-    // }
-    //
-    // /**
-    //  * Inicia el proceso de consulta periódica si hay operaciones pendientes
-    //  */
-    // function startPollingIfNeeded() {
-    //     if (pendingOperations.size > 0 && !pollTimer) {
-    //         console.log('Iniciando monitoreo de operaciones pendientes');
-    //         pollTimer = setInterval(checkPendingOperations, 5000); // Revisar cada 5 segundos
-    //     }
-    // }
-    //
-    // /**
-    //  * Detiene el proceso de consulta periódica si no hay operaciones pendientes
-    //  */
-    // function stopPollingIfDone() {
-    //     if (pendingOperations.size === 0 && pollTimer) {
-    //         console.log('Deteniendo monitoreo, no hay operaciones pendientes');
-    //         clearInterval(pollTimer);
-    //         pollTimer = null;
-    //         hidePendingOperationsIndicator();
-    //     }
-    // }
-    //
-    // /**
-    //  * Verifica el estado de todas las operaciones pendientes
-    //  */
-    // async function checkPendingOperations() {
-    //     console.log(`Verificando ${pendingOperations.size} operaciones pendientes...`);
-    //
-    //     // Si no hay operaciones, detener el polling
-    //     if (pendingOperations.size === 0) {
-    //         stopPollingIfDone();
-    //         return;
-    //     }
-    //
-    //     // Array para Promise.all
-    //     const checkPromises = [];
-    //
-    //     // Para cada operación, crear una promesa de verificación
-    //     pendingOperations.forEach((opData, opId) => {
-    //         const checkPromise = checkOperationStatus(opId, opData)
-    //             .catch(err => {
-    //                 console.error(`Error verificando operación ${opId}:`, err);
-    //                 // Incrementar contador de errores
-    //                 opData.errorCount = (opData.errorCount || 0) + 1;
-    //
-    //                 // Si hay demasiados errores, considerar la operación como fallida
-    //                 if (opData.errorCount > 5) {
-    //                     console.warn(`Demasiados errores, marcando operación ${opId} como fallida`);
-    //                     removePendingOperation(opId);
-    //
-    //                     // Mostrar alerta al usuario
-    //                     Swal.fire({
-    //                         icon: 'error',
-    //                         title: 'Error',
-    //                         text: `No se pudo verificar el estado de la operación ${opId} después de varios intentos.`,
-    //                         footer: 'La operación podría haberse completado pero no pudimos confirmar su estado.'
-    //                     });
-    //                 }
-    //
-    //                 return null; // Para que Promise.all no falle
-    //             });
-    //
-    //         checkPromises.push(checkPromise);
-    //     });
-    //
-    //     // Esperar a que todas las verificaciones terminen
-    //     await Promise.all(checkPromises);
-    //
-    //     // Actualizar indicador
-    //     updatePendingOperationsIndicator();
-    //
-    //     // Si no quedan operaciones, detener el polling
-    //     stopPollingIfDone();
-    // }
-    //
-    // /**
-    //  * Verifica el estado de una operación específica
-    //  */
-    // async function checkOperationStatus(operationId, opData) {
-    //     console.log(`Verificando estado de operación ${operationId}...`);
-    //
-    //     // Actualizar contador y última verificación
-    //     opData.checkCount += 1;
-    //     opData.lastChecked = new Date();
-    //
-    //     try {
-    //         const response = await fetch('/User/api/slice/operations/' + operationId + '/status');
-    //         if (!response.ok) {
-    //             throw new Error(`Error en respuesta del servidor: ${response.status}`);
-    //         }
-    //
-    //         const result = await response.json();
-    //         console.log(`Estado de operación ${operationId}:`, result);
-    //
-    //         // Guardar el último estado recibido
-    //         opData.lastStatus = result.content?.operation_status;
-    //
-    //         // Si la operación ya no está pendiente o en progreso
-    //         if (opData.lastStatus === 'COMPLETED' ||
-    //             opData.lastStatus === 'FAILED' ||
-    //             opData.lastStatus === 'CANCELLED' ||
-    //             opData.lastStatus === 'TIMEOUT') {
-    //
-    //             // Eliminar de las operaciones pendientes
-    //             removePendingOperation(operationId);
-    //
-    //             // Si se completó correctamente
-    //             if (opData.lastStatus === 'COMPLETED') {
-    //                 handleCompletedOperation(operationId, result, opData);
-    //             } else {
-    //                 // Si falló
-    //                 handleFailedOperation(operationId, result, opData);
-    //             }
-    //         } else {
-    //             // Actualizar la UI para mostrar progreso
-    //             updateOperationProgress(operationId, result, opData);
-    //         }
-    //
-    //     } catch (error) {
-    //         console.error(`Error consultando estado de operación ${operationId}:`, error);
-    //         throw error; // Re-lanzar para manejo en checkPendingOperations
-    //     }
-    // }
-    //
-    // /**
-    //  * Maneja una operación completada correctamente
-    //  */
-    // function handleCompletedOperation(operationId, result, opData) {
-    //     console.log(`Operación ${operationId} completada correctamente`);
-    //
-    //     // Si tiene slice_id, podemos navegar a ella
-    //     const sliceId = result.content?.slice_id;
-    //
-    //     // Mostrar notificación apropiada según el tipo de operación
-    //     let message = 'Operación completada exitosamente.';
-    //     let icon = 'success';
-    //     let showViewButton = false;
-    //
-    //     switch (opData.type) {
-    //         case 'DEPLOY_SLICE':
-    //             message = `¡Slice "${opData.sliceName}" desplegada exitosamente!`;
-    //             showViewButton = true;
-    //             break;
-    //         case 'STOP_SLICE':
-    //             message = `Slice "${opData.sliceName}" detenida correctamente.`;
-    //             break;
-    //         case 'RESTART_SLICE':
-    //             message = `Slice "${opData.sliceName}" reiniciada correctamente.`;
-    //             showViewButton = true;
-    //             break;
-    //     }
-    //
-    //     // Notificar al usuario
-    //     Swal.fire({
-    //         icon: icon,
-    //         title: '¡Operación Completada!',
-    //         text: message,
-    //         showCancelButton: showViewButton,
-    //         confirmButtonText: 'Aceptar',
-    //         cancelButtonText: showViewButton ? 'Ver Slice' : null,
-    //         customClass: {
-    //             confirmButton: 'btn btn-success',
-    //             cancelButton: showViewButton ? 'btn btn-warning' : ''
-    //         },
-    //         buttonsStyling: false
-    //     }).then((result) => {
-    //         if (result.dismiss === Swal.DismissReason.cancel && sliceId) {
-    //             // Navegar a la slice
-    //             window.location.href = `/User/slice/${sliceId}`;
-    //         } else {
-    //             // Actualizar la tabla de slices
-    //             refreshSlicesTable();
-    //         }
-    //     });
-    // }
-    //
-    // /**
-    //  * Maneja una operación que ha fallado
-    //  */
-    // function handleFailedOperation(operationId, result, opData) {
-    //     console.log(`Operación ${operationId} ha fallado:`, result);
-    //
-    //     // Preparar mensaje de error apropiado
-    //     let message = 'La operación no pudo completarse.';
-    //     let details = result.content?.error || result.message || 'Error desconocido';
-    //
-    //     switch (opData.type) {
-    //         case 'DEPLOY_SLICE':
-    //             message = `Error al desplegar slice "${opData.sliceName}".`;
-    //             break;
-    //         case 'STOP_SLICE':
-    //             message = `Error al detener slice "${opData.sliceName}".`;
-    //             break;
-    //         case 'RESTART_SLICE':
-    //             message = `Error al reiniciar slice "${opData.sliceName}".`;
-    //             break;
-    //     }
-    //
-    //     // Notificar al usuario
-    //     Swal.fire({
-    //         icon: 'error',
-    //         title: 'Error en la Operación',
-    //         html: `
-    //             <p>${message}</p>
-    //             <div class="border-top border-light mt-3 pt-3">
-    //                 <p class="mb-2 text-start text-danger small">
-    //                     <i class="fas fa-exclamation-circle me-2"></i>
-    //                     <strong>Detalles del error:</strong>
-    //                 </p>
-    //                 <p class="text-start text-muted small">${details}</p>
-    //             </div>
-    //         `,
-    //         confirmButtonText: 'Entendido',
-    //         customClass: {
-    //             confirmButton: 'btn btn-danger'
-    //         },
-    //         buttonsStyling: false
-    //     }).then(() => {
-    //         // Actualizar la tabla de slices
-    //         refreshSlicesTable();
-    //     });
-    // }
-    //
-    // /**
-    //  * Actualiza la UI para mostrar el progreso de una operación
-    //  */
-    // function updateOperationProgress(operationId, result, opData) {
-    //     const status = result.content?.operation_status;
-    //     const statusMessage = result.content?.status_message || 'En proceso...';
-    //
-    //     // Si tenemos un elemento donde mostrar el progreso
-    //     const progressContainer = $('#operationsProgressContainer');
-    //     if (progressContainer.length) {
-    //         // Actualizar o añadir el elemento de progreso
-    //         let progressItem = $(`#operation-${operationId}`);
-    //         if (!progressItem.length) {
-    //             // Crear nuevo elemento de progreso
-    //             progressItem = $(`
-    //                 <div id="operation-${operationId}" class="operation-progress-item mb-2">
-    //                     <div class="d-flex justify-content-between align-items-center">
-    //                         <span class="operation-name">${opData.type}: ${opData.sliceName || operationId}</span>
-    //                         <span class="operation-status badge bg-primary">${status}</span>
-    //                     </div>
-    //                     <div class="progress mt-1" style="height: 10px;">
-    //                         <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning"
-    //                             role="progressbar" style="width: 0%">
-    //                         </div>
-    //                     </div>
-    //                     <p class="status-message text-muted small mt-1">${statusMessage}</p>
-    //                 </div>
-    //             `);
-    //             progressContainer.append(progressItem);
-    //         } else {
-    //             // Actualizar elemento existente
-    //             progressItem.find('.operation-status').text(status);
-    //             progressItem.find('.status-message').text(statusMessage);
-    //
-    //             // Actualizar barra de progreso según tiempo transcurrido
-    //             const elapsedSeconds = (Date.now() - opData.startTime) / 1000;
-    //             const progressPercent = Math.min(
-    //                 Math.round(elapsedSeconds / 60 * 100), // Suponemos 1 minuto para completar
-    //                 95  // Nunca llegamos al 100% hasta que termine
-    //             );
-    //             progressItem.find('.progress-bar').css('width', `${progressPercent}%`);
-    //         }
-    //     }
-    // }
-    //
-    // /**
-    //  * Elimina una operación del registro de pendientes
-    //  */
-    // function removePendingOperation(operationId) {
-    //     pendingOperations.delete(operationId);
-    //
-    //     // Si ya no hay operaciones pendientes, detener el polling
-    //     stopPollingIfDone();
-    //
-    //     // Eliminar elemento visual si existe
-    //     $(`#operation-${operationId}`).fadeOut('slow', function() {
-    //         $(this).remove();
-    //     });
-    // }
-    //
-    // /**
-    //  * Muestra el indicador de operaciones pendientes
-    //  */
-    // function showPendingOperationsIndicator() {
-    //     // Verificar si ya existe el contenedor
-    //     if ($('#operationsProgressContainer').length === 0) {
-    //         // Crear el contenedor flotante
-    //         const operationsContainer = $(`
-    //             <div id="operationsProgressContainer" class="operations-progress-container">
-    //                 <div class="operations-header">
-    //                     <h6 class="mb-2">
-    //                         <i class="fas fa-tasks me-2"></i>
-    //                         Operaciones en Progreso
-    //                         <span class="badge bg-warning text-white ms-2 operations-count">0</span>
-    //                     </h6>
-    //                 </div>
-    //                 <div class="operations-list"></div>
-    //             </div>
-    //         `);
-    //
-    //         // Añadir estilos CSS necesarios
-    //         const styles = `
-    //             <style>
-    //                 .operations-progress-container {
-    //                     position: fixed;
-    //                     bottom: 20px;
-    //                     right: 20px;
-    //                     background-color: white;
-    //                     border-radius: 5px;
-    //                     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
-    //                     width: 300px;
-    //                     max-height: 400px;
-    //                     overflow-y: auto;
-    //                     padding: 15px;
-    //                     z-index: 1000;
-    //                     transition: all 0.3s ease;
-    //                 }
-    //                 .operations-header {
-    //                     border-bottom: 1px solid #f0f0f0;
-    //                     margin-bottom: 10px;
-    //                     padding-bottom: 8px;
-    //                 }
-    //                 .operation-progress-item {
-    //                     padding: 8px;
-    //                     border-radius: 4px;
-    //                     background-color: #f8f9fa;
-    //                 }
-    //             </style>
-    //         `;
-    //
-    //         $('head').append(styles);
-    //         $('body').append(operationsContainer);
-    //     }
-    //
-    //     // Actualizar contador
-    //     updatePendingOperationsIndicator();
-    // }
-    //
-    // /**
-    //  * Actualiza el contador de operaciones pendientes
-    //  */
-    // function updatePendingOperationsIndicator() {
-    //     const count = pendingOperations.size;
-    //     $('.operations-count').text(count);
-    //
-    //     // Si no hay operaciones, ocultar el contenedor
-    //     if (count === 0) {
-    //         $('#operationsProgressContainer').fadeOut('slow');
-    //     } else {
-    //         $('#operationsProgressContainer').fadeIn('fast');
-    //     }
-    // }
-    //
-    // /**
-    //  * Oculta el indicador de operaciones pendientes
-    //  */
-    // function hidePendingOperationsIndicator() {
-    //     $('#operationsProgressContainer').fadeOut('slow');
-    // }
-    //
-    // /**
-    //  * Actualiza la tabla de slices
-    //  */
-    // async function refreshSlicesTable() {
-    //     const newSlices = await loadSlices();
-    //     table.clear().rows.add(newSlices).draw();
-    // }
-    //
-    // // Verificar inicialmente si hay operaciones pendientes en sesión
-    // async function checkForPendingOperationsOnLoad() {
-    //     try {
-    //         const response = await fetch('/User/api/slice/user/pending-operations');
-    //         if (response.ok) {
-    //             const result = await response.json();
-    //             if (result.content && Array.isArray(result.content.operations)) {
-    //                 const pendingOps = result.content.operations;
-    //
-    //                 if (pendingOps.length > 0) {
-    //                     console.log(`Encontradas ${pendingOps.length} operaciones pendientes durante carga`);
-    //
-    //                     // Registrar cada operación pendiente
-    //                     pendingOps.forEach(op => {
-    //                         addPendingOperation(op.id, {
-    //                             type: op.operationType,
-    //                             sliceName: op.sliceName || 'Slice',
-    //                             userId: op.userId
-    //                         });
-    //                     });
-    //                 }
-    //             }
-    //         }
-    //     } catch (error) {
-    //         console.error('Error verificando operaciones pendientes:', error);
-    //     }
-    // }
-    //
-    // // Comprobar operaciones pendientes al cargar la página
-    // checkForPendingOperationsOnLoad();
 
 
     // ==================

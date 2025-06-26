@@ -559,8 +559,8 @@
 
         .status-filter.active {
             background-color: #f8f9fa;
-            border-color: #dee2e6;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,.05);
+            border-color: #adafb1;
+            box-shadow: inset 1px 2px 4px rgba(0, 0, 0, 0.223);
         }
 
         .status-filter:first-child {
@@ -707,7 +707,7 @@
         /* Notificaciones Toast */
         .notification-toast {
             position: fixed;
-            top: 20px;
+            bottom: 100px;
             right: 20px;
             z-index: 1060;
             background: white;
@@ -825,10 +825,10 @@
                 
                     <div class="header-actions">
                         <div class="btn-group animate__animated animate__backInDown animate__slow animate__delay-5s">
-                            <button type="button" class="btn btn-white px-3 py-2 status-filter active" data-status="all">
+                            <button type="button" class="btn btn-white px-3 py-2 status-filter" data-status="all">
                                 <i class="fas fa-layer-group me-2 text-dark"></i>Todas
                             </button>
-                            <button type="button" class="btn btn-white px-3 py-2 status-filter" data-status="running">
+                            <button type="button" class="btn btn-white px-3 py-2 status-filter active" data-status="running">
                                 <i class="fas fa-play me-2 text-warning"></i>En Ejecución
                             </button>
                             <button type="button" class="btn btn-white px-3 py-2 status-filter" data-status="stopped">
@@ -862,6 +862,7 @@
                                         <th class="text-start">DISCO</th>
                                         <th class="text-start">VMs</th>
                                         <th class="text-start">FECHA DE CREACIÓN</th>
+                                        <th class="text-start">INFRAESTRUCTURA</th>
                                         <th class="text-center" style="text-align: center !important;">ESTADO</th>
                                         <th class="text-center" style="text-align: center !important;">ACCIÓN</th>
                                     </tr>
@@ -914,6 +915,20 @@
                                      id="sliceDescription" 
                                      rows="3"
                                      placeholder="Introduce una descripción para tu slice"></textarea>
+                        </div>
+
+                        <!-- Zona de disponibilidad -->
+                        <div class="form-group mb-4">
+                            <label for="availabilityZoneSelect" class="form-label mb-2">Zona de Disponibilidad</label>
+                            <select class="form-select border px-3 select2-availability-zone" 
+                                    id="availabilityZoneSelect" 
+                                    required
+                                    data-placeholder="Selecciona una zona de disponibilidad">
+                                <option></option>
+                            </select>
+                            <div class="invalid-feedback">
+                                Por favor, selecciona una zona de disponibilidad
+                            </div>
                         </div>
     
                         <!-- Sketch Base -->

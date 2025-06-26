@@ -257,6 +257,23 @@
             width: 24px !important;
         }
 
+        /* Estilo personalizado para los tooltips */
+        .tooltip .tooltip-inner {
+            max-width: 350px;
+            padding: 8px 12px;
+            color: #fff;
+            text-align: left;
+            background-color: rgba(0, 0, 0, 0.94);
+            border-radius: 6px;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            white-space: pre-line; /* Permite saltos de línea */
+        }
+        
+        .cursor-help {
+            cursor: help;
+        }
+
     </style>
 </head>
 <body class="bg-gray-100">
@@ -364,13 +381,13 @@
                                         <div class="col-12 col-sm-6">
                                             <div class="timeline timeline-one-side">
                                                 <div class="timeline-block">
-                                  <span class="timeline-step">
-                                    <i class="material-symbols-rounded text-warning">hub</i>
-                                </span>
+                                            <span class="timeline-step">
+                                                <i class="material-symbols-rounded text-warning">hub</i>
+                                            </span>
                                                     <div class="timeline-content">
-                                                        <h6 class="text-dark text-sm font-weight-bold mb-0">Bridge Interno</h6>
+                                                        <h6 class="text-dark text-sm font-weight-bold mb-0">Infraestructura</h6>
                                                         <p class="text-secondary text-xs mt-1 mb-0">
-                                                            <span id="internalBridge">Cargando...</span>
+                                                            <span id="infrastructure">Cargando...</span>
                                                         </p>
                                                     </div>
                                                 </div>
@@ -379,21 +396,24 @@
                                     <span class="timeline-step">
                                         <i class="material-symbols-rounded text-warning">cloud</i>
                                     </span>
-                                                    <div class="timeline-content">
-                                                        <h6 class="text-dark text-sm font-weight-bold mb-0">Red Externa</h6>
+                                                    <div class="timeline-content" id="vlanContainer">
+                                                        <h6 class="text-dark text-sm font-weight-bold mb-0" id="externalNetworkLabel">Red Externa</h6>
+                                                        <p class="text-secondary text-xs mt-1 mb-0" id="projectoOSLabel" style="display: none;">
+                                                            <span id="projectoOSId">Cargando...</span>
+                                                        </p>
 
-                                                        <p class="text-secondary text-xs mt-1 mb-0">
+                                                        <p class="text-secondary text-xs mt-1 mb-0" id="svlanLabel">
                                                             <span class="text-bold">SVLAN: </span>
                                                             <span id="VlanId">Cargando...</span>
                                                         </p>
 
-                                                        <p class="text-secondary text-xs mt-1 mb-0">
+                                                        <p class="text-secondary text-xs mt-1 mb-0" id="redLabel">
                                                             <span class="text-bold">RED: </span>
                                                             <span id="externalNetwork">...</span>
                                                         </p>
 
                                                         <div class="d-flex align-items-center mt-2">
-                                                            <div class="row w-100">
+                                                            <div class="row w-100" id="networkRangeContainer">
                                                                 <div class="col-6">
                                                                     <p class="text-secondary text-xs mb-0 font-weight-bold">Inicio:</p>
                                                                     <p class="text-secondary text-xs mb-0 text-nowrap" id="networkRangeStart">...</p>
@@ -515,14 +535,20 @@
                                 <!-- Información básica -->
                                 <div class="mb-2">
                                     <p class="text-md mb-0 font-weight-bold">ID: <span class="font-weight-normal" id="vmModalId">-</span></p>
+                                    <div id="vmModalOsIdContainer" style="display: none;">
+                                        <p class="text-md mb-0 font-weight-bold">OS ID: <span class="font-weight-normal" id="vmModalOsId">-</span></p>
+                                    </div>
                                     <p class="text-md mb-0 font-weight-bold">Nombre: <span class="font-weight-normal text-primary" id="vmModalName">-</span></p>
+                                    <div id="vmModalInstanceContainer" style="display: none;">
+                                        <p class="text-md mb-0 font-weight-bold">Instancia: <span class="font-weight-normal" id="vmModalInstance">-</span></p>
+                                    </div>
                                     <p class="text-md mb-0 font-weight-bold">Imagen: <span class="font-weight-normal" id="vmModalImage">-</span></p>
                                     <p class="text-md mb-0 font-weight-bold">Flavor: <span class="font-weight-normal" id="vmModalFlavorName">-</span></p>
                                 </div>
                                 <!-- Nueva información -->
                                 <div class="mt-2 pt-2 border-top">
                                     <p class="text-md mb-0 font-weight-bold">Servidor Físico: <span class="font-weight-normal" id="vmModalPhysicalServer">-</span></p>
-                                    <p class="text-md mb-0 font-weight-bold">QEMU PID: <span class="font-weight-normal" id="vmModalQemuPid">-</span></p>
+                                    <p class="text-md mb-0 font-weight-bold" id="vmModalQemuPidContainer">QEMU PID: <span class="font-weight-normal" id="vmModalQemuPid">-</span></p>
                                     <p class="text-md mb-0 font-weight-bold">VNC Display: <span class="font-weight-normal" id="vmModalVncDisplay">-</span></p>
                                     <p class="text-md mb-0 font-weight-bold">SSH IP: <span class="font-weight-normal" id="vmModalSshIp">-</span></p>
                                 </div>
@@ -630,6 +656,9 @@
                         <div class="row align-items-center">
                             <div class="col-8">
                                 <p class="text-md mb-0 font-weight-bold">ID: <span class="font-weight-normal" id="linkModalId">-</span></p>
+                                <div id="linkModalOsIdContainer" style="display: none;">
+                                    <p class="text-md mb-0 font-weight-bold">OS ID: <span class="font-weight-normal" id="linkModalOsId">-</span></p>
+                                </div>
                                 <p class="text-md mb-0 font-weight-bold">Nombre: <span class="font-weight-normal text-primary" id="linkModalName">-</span></p>
                                 <p class="text-md mb-0 font-weight-bold">Conecta: <span class="font-weight-normal" id="linkModalConnects">-</span></p>
                             </div>
@@ -688,8 +717,12 @@
                         <div class="row align-items-center">
                             <div class="col-8">
                                 <p class="text-md mb-0 font-weight-bold">ID: <span class="font-weight-normal" id="sliceModalId">-</span></p>
+                                <div id="sliceModalOsIdContainer" style="display: none;">
+                                    <p class="text-md mb-0 font-weight-bold">OS ID: <span class="font-weight-normal" id="sliceModalOsId">-</span></p>
+                                </div>
                                 <p class="text-md mb-0 font-weight-bold">Nombre: <span class="font-weight-normal text-warning" id="sliceModalName">-</span></p>
                                 <p class="text-md mb-0 font-weight-bold">Descripción: <span class="font-weight-normal" id="sliceModalDescription">-</span></p>
+                                <p class="text-md mb-0 font-weight-bold">Infraestructura: <span class="font-weight-normal" id="sliceModalInfrastructure">-</span></p>
                             </div>
                             <div class="col-4 text-end">
                                 <span class="badge bg-gradient-success" id="sliceModalStatus">-</span>
@@ -761,7 +794,7 @@
                 </div>
 
                 <!-- Configuración de Red -->
-                <div class="card border">
+                <div class="card border" id="networkConfigCard">
                     <div class="card-header p-3 border-bottom">
                         <h6 class="text-secondary text-md mb-0 font-weight-bold">CONFIGURACIÓN DE RED</h6>
                     </div>

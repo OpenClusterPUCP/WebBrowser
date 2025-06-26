@@ -161,6 +161,12 @@ document.addEventListener('DOMContentLoaded', function() {
     contextMenu = document.getElementById('contextMenu');
     document.getElementById('sliceDescriptionBtn').addEventListener('click', showSliceDetail);
     getSliceData(true);
+    const vmModal = document.getElementById('vmInfoModal');
+    if (vmModal) {
+        vmModal.addEventListener('hidden.bs.modal', function () {
+            cleanupTooltips('vmInfoModal');
+        });
+    }
 });
 
 async function getSliceData(flag){
@@ -448,7 +454,30 @@ function updateNetworkInfo(networkConfig, sliceInfo) {
     document.getElementById('VlanId').textContent = networkConfig.svlan_id;
     document.getElementById('networkRangeStart').textContent = networkConfig.dhcp_range[0];
     document.getElementById('networkRangeEnd').textContent = networkConfig.dhcp_range[1];
-    document.getElementById('internalBridge').textContent = networkConfig.slice_bridge_name;
+    document.getElementById('infrastructure').textContent = sliceInfo.infrastructure;
+
+    if (sliceInfo.infrastructure === 'OpenStack') {
+        // Mostrar OS ID en lugar de información de red
+        document.getElementById('externalNetworkLabel').textContent = 'ID del Proyecto OS:';
+        document.getElementById('projectoOSLabel').style.display = 'block';
+        document.getElementById('projectoOSId').textContent = sliceInfo.os_id || 'N/A';
+
+        // Ocultar campos de VLAN y rango de red
+        document.getElementById('networkRangeContainer').style.display = 'none';
+        document.getElementById('svlanLabel').style.display = 'none';
+        document.getElementById('redLabel').style.display = 'none';
+    } else {
+        // Para otras infraestructuras, mostrar la información de red normal
+        document.getElementById('externalNetworkLabel').textContent = 'Red Externa:';
+        document.getElementById('externalNetwork').textContent = networkConfig.network;
+        document.getElementById('VlanId').textContent = networkConfig.svlan_id;
+        document.getElementById('networkRangeStart').textContent = networkConfig.dhcp_range[0];
+        document.getElementById('networkRangeEnd').textContent = networkConfig.dhcp_range[1];
+        
+        // Mostrar campos de VLAN y rango de red
+        document.getElementById('vlanContainer').style.display = 'block';
+        document.getElementById('networkRangeContainer').style.display = 'block';
+    }
 
     const stopSliceBtn = document.querySelector('[onclick="stopSlice()"]');
     if (stopSliceBtn) {
@@ -659,11 +688,30 @@ function showVMInfo(vmId) {
             disk: "-"
         };
 
+        const isOpenStack = SLICE_DATA.content.slice_info.infrastructure === 'OpenStack';
+
         // Información básica
         document.getElementById('vmModalId').textContent = vm.id;
         document.getElementById('vmModalName').textContent = vm.name;
         document.getElementById('vmModalImage').textContent = image.name;
         document.getElementById('vmModalFlavorName').textContent = flavor.name;
+        
+        // Mostrar u ocultar OS ID según la infraestructura
+        const osIdContainer = document.getElementById('vmModalOsIdContainer');
+        if (isOpenStack) {
+            document.getElementById('vmModalOsId').textContent = vm.os_id || 'N/A';
+            osIdContainer.style.display = 'block';
+        } else {
+            osIdContainer.style.display = 'none';
+        }
+
+        const instanceContainer = document.getElementById('vmModalInstanceContainer');
+        if (isOpenStack) {
+            document.getElementById('vmModalInstance').textContent = vm.os_instance_name || 'N/A';
+            instanceContainer.style.display = 'block';
+        } else {
+            instanceContainer.style.display = 'none';
+        }
         
         // Status badge
         document.getElementById('vmModalStatus').innerHTML = 
@@ -678,20 +726,26 @@ function showVMInfo(vmId) {
                 ${hasExtAccess ? 'Con acceso externo' : 'Sin acceso externo'}
              </span>`;
 
-        // Physical server y QEMU info
+        // Physical server y información adicional
         document.getElementById('vmModalPhysicalServer').textContent = 
             `${vm.physical_server.name} (ID: ${vm.physical_server.id})`;
-        document.getElementById('vmModalQemuPid').textContent = vm.qemu_pid || 'N/A';
-        document.getElementById('vmModalVncDisplay').textContent = vm.vnc_display || 'N/A';
+        
+        // Mostrar u ocultar QEMU PID según la infraestructura
+        const qemuPidContainer = document.getElementById('vmModalQemuPidContainer');
+        if (isOpenStack) {
+            qemuPidContainer.style.display = 'none';
+        } else {
+            document.getElementById('vmModalQemuPid').textContent = vm.qemu_pid || 'N/A';
+            qemuPidContainer.style.display = 'block';
+        }
+        
+        document.getElementById('vmModalVncDisplay').textContent = vm.vnc_display ?? 'N/A';
         
         // SSH Info
         let sshIp = 'N/A';
-        console.log('Interfaces:', SLICE_DATA.content.topology_info.interfaces);
         const vmInterfaces = SLICE_DATA.content.topology_info.interfaces.filter(i => i.vm_id === vmId);
-        console.log('Interfaces VM:',SLICE_DATA.content.topology_info.interfaces);
         if (vmInterfaces && vmInterfaces.length > 0) {
             const externalInterface = vmInterfaces.find(iface => iface.external_access);
-            console.log('Interfaz externa:', externalInterface);
             if (externalInterface && externalInterface.ip) {
                 sshIp = externalInterface.ip;
             }
@@ -716,10 +770,23 @@ function showVMInfo(vmId) {
                     );
                 });
             
+            // Usar 'name' en lugar de 'tap_name' para OpenStack
+            const interfaceName = isOpenStack ? iface.name : iface.tap_name;
+            
+            // Generar tooltip SOLO para la columna de interfaz
+            let interfaceTooltip = `ID: ${iface.id}`;
+            if (isOpenStack && iface.os_id) {
+                interfaceTooltip += `\nOS ID: ${iface.os_id}`;
+            }
+            
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td class="text-xs ps-4">
-                    <p class="text-secondary mb-0 text-x">${iface.tap_name}</p>
+                    <p class="text-secondary mb-0 text-x cursor-help" 
+                    data-bs-toggle="tooltip" 
+                    data-bs-placement="top" 
+                    data-bs-html="true"
+                    title="${interfaceTooltip.replace(/\n/g, '<br>')}">${interfaceName}</p>
                 </td>
                 <td class="text-xs ps-4">
                     <p class="text-secondary mb-0 text-x">${iface.mac_address}</p>
@@ -804,6 +871,23 @@ function showVMInfo(vmId) {
             vncButton.onclick = () => openVNCConsole(vm.id);
         }
 
+        setTimeout(() => {
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('#vmInfoModal [data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                // Destruir tooltip existente si existe
+                const existingTooltip = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+                if (existingTooltip) {
+                    existingTooltip.dispose();
+                }
+                // Crear nuevo tooltip
+                return new bootstrap.Tooltip(tooltipTriggerEl, {
+                    trigger: 'hover',
+                    container: 'body',
+                    html: true
+                });
+            });
+        }, 100);
+
         vmInfoModal.show();
 
     } catch (error) {
@@ -838,6 +922,16 @@ function generateLinkTooltip(link, interfaces) {
     `;
 }
 
+function cleanupTooltips(modalId) {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll(`#${modalId} [data-bs-toggle="tooltip"]`));
+    tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+        const existingTooltip = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+        if (existingTooltip) {
+            existingTooltip.dispose();
+        }
+    });
+}
+
 function hasExternalAccess(vmId) {
     return Array.from(SLICE_DATA.content.topology_info.interfaces.values())
         .some(iface => iface.vm_id === vmId && iface.external_access);
@@ -857,10 +951,21 @@ function showLinkInfo(linkId) {
             linkInfoModal = new bootstrap.Modal(document.getElementById('linkInfoModal'));
         }
 
+        const isOpenStack = SLICE_DATA.content.slice_info.infrastructure === 'OpenStack';
+
         // Información básica
         document.getElementById('linkModalId').textContent = link.id;
         document.getElementById('linkModalName').textContent = link.name;
         document.getElementById('linkModalCVLAN').textContent = `CVLAN: ${link.cvlan_id}`;
+
+        // Mostrar u ocultar OS ID según la infraestructura
+        const linkOsIdContainer = document.getElementById('linkModalOsIdContainer');
+        if (isOpenStack) {
+            document.getElementById('linkModalOsId').textContent = link.os_id || 'N/A';
+            linkOsIdContainer.style.display = 'block';
+        } else {
+            linkOsIdContainer.style.display = 'none';
+        }
 
         // Obtener interfaces conectadas
         const connectedInterfaces = SLICE_DATA.content.topology_info.interfaces.filter(i => i.link_id === link.id);
@@ -879,6 +984,9 @@ function showLinkInfo(linkId) {
 
         connectedInterfaces.forEach(iface => {
             const vm = vms.find(v => v.id === iface.vm_id);
+            // Usar 'name' en lugar de 'tap_name' para OpenStack
+            const interfaceName = isOpenStack ? iface.name : iface.tap_name;
+            
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td class="text-md ps-4">
@@ -888,7 +996,7 @@ function showLinkInfo(linkId) {
                     <p class="text-secondary mb-0">${iface.mac_address}</p>
                 </td>
                 <td class="text-md ps-4">
-                    <span class="badge bg-gradient-secondary">${iface.tap_name}</span>
+                    <span class="badge bg-gradient-secondary">${interfaceName}</span>
                 </td>
             `;
             interfacesBody.appendChild(row);
@@ -917,11 +1025,22 @@ function showSliceDetail() {
         const sliceInfo = SLICE_DATA.content.slice_info;
         const networkConfig = SLICE_DATA.content.network_config;
         const topology = SLICE_DATA.content.topology_info;
+        const isOpenStack = sliceInfo.infrastructure === 'OpenStack';
 
         // Información básica
         document.getElementById('sliceModalId').textContent = sliceInfo.id;
         document.getElementById('sliceModalName').textContent = sliceInfo.name;
         document.getElementById('sliceModalDescription').textContent = sliceInfo.description == null ? "N/A" : sliceInfo.description;
+        document.getElementById('sliceModalInfrastructure').textContent = sliceInfo.infrastructure;
+        
+        // Mostrar u ocultar OS ID según la infraestructura
+        const sliceOsIdContainer = document.getElementById('sliceModalOsIdContainer');
+        if (isOpenStack) {
+            document.getElementById('sliceModalOsId').textContent = sliceInfo.os_id || 'N/A';
+            sliceOsIdContainer.style.display = 'block';
+        } else {
+            sliceOsIdContainer.style.display = 'none';
+        }
         
         // Status badge
         const statusBadge = document.getElementById('sliceModalStatus');
@@ -937,16 +1056,24 @@ function showSliceDetail() {
         );
         document.getElementById('sliceModalWorkerCount').textContent = uniqueWorkers.size;
 
-        // Network Config
-        document.getElementById('sliceModalBridgeName').textContent = networkConfig.slice_bridge_name;
-        document.getElementById('sliceModalSVLAN').textContent = networkConfig.svlan_id;
-        document.getElementById('sliceModalNetwork').textContent = networkConfig.network;
-        document.getElementById('sliceModalDHCPInterface').textContent = networkConfig.dhcp_interface;
-        document.getElementById('sliceModalGatewayInterface').textContent = networkConfig.gateway_interface;
-        document.getElementById('sliceModalPatchInt').textContent = networkConfig.patch_ports.int_side;
-        document.getElementById('sliceModalPatchSlice').textContent = networkConfig.patch_ports.slice_side;
-        document.getElementById('sliceModalDHCPStart').textContent = networkConfig.dhcp_range[0];
-        document.getElementById('sliceModalDHCPEnd').textContent = networkConfig.dhcp_range[1];
+        // Mostrar u ocultar configuración de red según la infraestructura
+        const networkConfigCard = document.getElementById('networkConfigCard');
+        if (isOpenStack) {
+            networkConfigCard.style.display = 'none';
+        } else {
+            networkConfigCard.style.display = 'block';
+            
+            // Network Config (solo para no-OpenStack)
+            document.getElementById('sliceModalBridgeName').textContent = networkConfig.slice_bridge_name;
+            document.getElementById('sliceModalSVLAN').textContent = networkConfig.svlan_id;
+            document.getElementById('sliceModalNetwork').textContent = networkConfig.network;
+            document.getElementById('sliceModalDHCPInterface').textContent = networkConfig.dhcp_interface;
+            document.getElementById('sliceModalGatewayInterface').textContent = networkConfig.gateway_interface;
+            document.getElementById('sliceModalPatchInt').textContent = networkConfig.patch_ports.int_side;
+            document.getElementById('sliceModalPatchSlice').textContent = networkConfig.patch_ports.slice_side;
+            document.getElementById('sliceModalDHCPStart').textContent = networkConfig.dhcp_range[0];
+            document.getElementById('sliceModalDHCPEnd').textContent = networkConfig.dhcp_range[1];
+        }
 
     } catch (error) {
         console.error('Error mostrando detalles del slice:', error);
@@ -1636,80 +1763,251 @@ function showContextMenu(vm, event) {
 
 // Manejo de mensajes de error:
 
+// Manejo de mensajes de error:
+
 function showErrorAlert(error) {
     let errorMessage = '';
     let errorDetails = [];
-
+    console.log('Error recibido:', error);
+    
+    // LOGS ADICIONALES PARA DEBUG
+    console.log('Tipo de error:', typeof error);
+    console.log('error.message existe:', !!error.message);
+    console.log('error.message valor:', error.message);
+    console.log('error.message incluye {:', error.message ? error.message.includes('{') : 'N/A');
+    console.log('error.response existe:', !!error.response);
+    
     try {
         let errorData = null;
-
+        
+        // Caso 1: Error con response object directo
         if (typeof error === 'object' && error.response) {
-            errorData = error.response;
-        } else if (error.message && error.message.includes('{')) {
-            const jsonStr = error.message.substring(
-                error.message.indexOf('{'),
-                error.message.lastIndexOf('}') + 1
-            );
-            errorData = JSON.parse(jsonStr);
-        } else {
+            console.log('🔍 CASO 1: Error con response object directo');
+            console.log('error.response:', error.response);
+            
+            // NUEVO: Verificar si response.message contiene JSON
+            if (error.response.message && error.response.message.includes('{')) {
+                console.log('🔍 CASO 1B: Response.message contiene JSON');
+                let jsonStr = error.response.message;
+                console.log('JSON string desde response.message:', jsonStr);
+                
+                // Aplicar la misma lógica de parsing
+                if (jsonStr.includes('POST request for') || jsonStr.includes('GET request for')) {
+                    const jsonMatch = jsonStr.match(/": "(\{.*?\})<EOL>"/);
+                    
+                    if (jsonMatch && jsonMatch[1]) {
+                        jsonStr = jsonMatch[1];
+                        console.log('JSON extraído desde response (antes de limpiar):', jsonStr);
+                        
+                        // Limpiar caracteres de escape y marcadores <EOL>
+                        jsonStr = jsonStr
+                            .replace(/<EOL>/g, '')
+                            .replace(/\\u00([0-9a-fA-F]{2})/g, (match, hex) => {
+                                return String.fromCharCode(parseInt(hex, 16));
+                            })
+                            .replace(/\\\"/g, '"')
+                            .replace(/\\n/g, '\n')
+                            .trim();
+                        
+                        console.log('JSON después de limpieza desde response:', jsonStr);
+                        
+                        try {
+                            errorData = JSON.parse(jsonStr);
+                            console.log('JSON parseado exitosamente desde response:', errorData);
+                        } catch (parseErr) {
+                            console.error('Error parseando JSON desde response:', parseErr);
+                            errorData = error.response;
+                        }
+                    } else {
+                        console.log('No se encontró patrón JSON en response.message');
+                        errorData = error.response;
+                    }
+                } else {
+                    errorData = error.response;
+                }
+            } else {
+                errorData = error.response;
+            }
+        } 
+        // Caso 2: Error con message que contiene JSON anidado
+        else if (error.message && error.message.includes('{')) {
+            console.log('🔍 CASO 2: Error con message que contiene JSON anidado');
+            let jsonStr = error.message;
+            console.log('Mensaje original caso 2:', jsonStr);
+            
+            // Si el mensaje contiene "POST request for" o "GET request for"
+            if (jsonStr.includes('POST request for') || jsonStr.includes('GET request for')) {
+                console.log('🔍 CASO 2A: Contiene POST/GET request');
+                // Buscar el JSON que está entre ": "{...}<EOL>"
+                const jsonMatch = jsonStr.match(/": "(\{.*?\})<EOL>"/);
+                
+                if (jsonMatch && jsonMatch[1]) {
+                    jsonStr = jsonMatch[1];
+                    console.log('JSON extraído caso 2 (antes de limpiar):', jsonStr);
+                    
+                    // Limpiar caracteres de escape y marcadores <EOL>
+                    jsonStr = jsonStr
+                        .replace(/<EOL>/g, '')  // Remover marcadores <EOL>
+                        .replace(/\\u00([0-9a-fA-F]{2})/g, (match, hex) => {
+                            return String.fromCharCode(parseInt(hex, 16));
+                        })
+                        .replace(/\\\"/g, '"')    // Reemplazar \" con "
+                        .replace(/\\n/g, '\n')    // Reemplazar \n literales
+                        .trim();
+                    
+                    console.log('JSON después de limpieza caso 2:', jsonStr);
+                    
+                    // Intentar parsear el JSON limpio
+                    try {
+                        errorData = JSON.parse(jsonStr);
+                        console.log('JSON parseado exitosamente caso 2:', errorData);
+                    } catch (parseErr) {
+                        console.error('Error parseando JSON extraído caso 2:', parseErr);
+                        console.error('JSON que se intentó parsear caso 2:', jsonStr);
+                        
+                        // Extracción manual como fallback
+                        try {
+                            const messageMatch = jsonStr.match(/"message":\s*"([^"]+)"/);
+                            const detailsMatch = jsonStr.match(/"details":\s*\[\s*"([^"]+)"\s*\]/);
+                            
+                            if (messageMatch) {
+                                errorMessage = messageMatch[1];
+                                if (detailsMatch) {
+                                    errorDetails = [detailsMatch[1]];
+                                }
+                                console.log('Extracción manual exitosa caso 2:', { errorMessage, errorDetails });
+                            } else {
+                                errorMessage = 'Error de comunicación con el servidor';
+                            }
+                        } catch (manualErr) {
+                            console.error('Error en extracción manual caso 2:', manualErr);
+                            errorMessage = 'Error de comunicación con el servidor';
+                        }
+                    }
+                } else {
+                    console.error('No se encontró el patrón JSON en el mensaje caso 2');
+                    // Fallback: extraer manualmente del mensaje original
+                    try {
+                        // Buscar patrones directamente en el mensaje original
+                        const messagePattern = /No tienes suficientes recursos disponibles[^"]+/;
+                        const detailsPattern = /L[íi]mite de slices[^"]+/;
+                        
+                        const messageMatch = jsonStr.match(messagePattern);
+                        const detailsMatch = jsonStr.match(detailsPattern);
+                        
+                        if (messageMatch) {
+                            errorMessage = messageMatch[0];
+                        }
+                        if (detailsMatch) {
+                            errorDetails = [detailsMatch[0]];
+                        }
+                        
+                        if (!errorMessage) {
+                            errorMessage = 'Error de comunicación con el servidor';
+                        }
+                    } catch (fallbackErr) {
+                        console.error('Error en fallback caso 2:', fallbackErr);
+                        errorMessage = 'Error de comunicación con el servidor';
+                    }
+                }
+            } else {
+                console.log('🔍 CASO 2B: JSON directo en message');
+                // Para casos donde el JSON está directamente en el mensaje
+                const startIndex = jsonStr.indexOf('{');
+                const endIndex = jsonStr.lastIndexOf('}') + 1;
+                if (startIndex !== -1 && endIndex > startIndex) {
+                    jsonStr = jsonStr.substring(startIndex, endIndex);
+                    
+                    try {
+                        errorData = JSON.parse(jsonStr);
+                        console.log('JSON parseado directamente caso 2B:', errorData);
+                    } catch (parseErr) {
+                        console.error('Error parseando JSON directo caso 2B:', parseErr);
+                        errorMessage = 'Error de comunicación con el servidor';
+                    }
+                }
+            }
+        } 
+        // Caso 3: Error simple con mensaje directo
+        else {
+            console.log('🔍 CASO 3: Error simple con mensaje directo');
             errorMessage = error.message || 'Error desconocido';
         }
 
-        if (errorData) {
-            errorMessage = errorData.message || 'Error desconocido';
-
+        // Procesar los datos del error si se pudo parsear
+        if (errorData && errorData.message) {
+            console.log('✅ Procesando errorData.message:', errorData.message);
+            errorMessage = errorData.message;
+            
+            // Manejar detalles que pueden ser array o string
             if (errorData.details) {
                 if (Array.isArray(errorData.details)) {
                     errorDetails = errorData.details;
                 } else {
                     errorDetails = [errorData.details];
                 }
+                console.log('✅ Detalles procesados:', errorDetails);
             }
         }
 
+        // Si no tenemos mensaje, usar uno por defecto
+        if (!errorMessage) {
+            errorMessage = 'Se produjo un error inesperado';
+        }
+
+        console.log('🎯 Mensaje final procesado:', errorMessage);
+        console.log('🎯 Detalles finales procesados:', errorDetails);
+
+        // Crear HTML para los detalles (diseño centrado con icono de círculo rojo)
         const detailsHtml = errorDetails.length > 0
             ? `
-                    <div class="text-start text-danger small mt-3">
-                        <hr class="my-2">
-                        ${errorDetails.map(detail => `
-                            <p class="mb-1 d-flex align-items-start">
-                                <i class="fas fa-exclamation-circle me-2 mt-1"></i>
-                                <span>${detail}</span>
-                            </p>
-                        `).join('')}
-                    </div>
-                `
+                <div class="mt-3">
+                    <hr class="my-2">
+                    ${errorDetails.map(detail => `
+                        <p class="mb-2 d-flex align-items-center justify-content-center text-danger">
+                            <i class="fas fa-exclamation-circle me-2 text-danger"></i>
+                            <span class="small">${detail}</span>
+                        </p>
+                    `).join('')}
+                </div>
+            `
             : '';
 
         return Swal.fire({
             icon: 'error',
-            title: 'Error',
+            title: 'Error en la Operación',
             html: `
-                    <p class="mb-2">${errorMessage}</p>
+                <div class="text-center">
+                    <p class="mb-2 text-dark">${errorMessage}</p>
                     ${detailsHtml}
-                `,
+                </div>
+            `,
             customClass: {
                 icon: 'border-0',
                 confirmButton: 'btn btn-danger',
-                htmlContainer: 'text-left'
+                htmlContainer: 'text-center'
             },
-            buttonsStyling: false
+            buttonsStyling: false,
+            confirmButtonText: 'Entendido',
+            width: '500px'
         });
+        
     } catch (parseError) {
-        console.error('Error parsing error message:', parseError);
-
+        console.error('Error crítico parseando mensaje de error:', parseError);
         return Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: error.message || 'Error desconocido',
+            text: 'Se produjo un error al procesar la respuesta del servidor',
             customClass: {
                 icon: 'border-0',
                 confirmButton: 'btn btn-danger'
             },
-            buttonsStyling: false
+            buttonsStyling: false,
+            confirmButtonText: 'Entendido'
         });
     }
 }
+
 
 // Función genérica para posicionar tooltips
 function positionTooltip(tooltip, event, offset = { x: 15, y: -10 }) {
