@@ -463,6 +463,14 @@
             text-transform: uppercase;     /* Mantiene el texto en mayúsculas */
             letter-spacing: 0.5px;        /* Mejor espaciado entre letras */
         }
+
+        @keyframes dt-fadein {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .dataTable tbody tr {
+            animation: dt-fadein 1.5s;
+        }
     </style>
 
 </head>

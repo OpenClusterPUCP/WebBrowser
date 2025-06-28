@@ -1,6 +1,6 @@
 <!--
 ==============================================================================
-| ARCHIVO: SliceList.html
+| ARCHIVO: SecurityGroupList.html
 ==============================================================================
 | DESCRIPCIÓN:
 | Interfaz gráfica para gestionar y visualizar slices. Permite listar, crear y
@@ -47,7 +47,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenCluster - Mis Slices</title>
+    <title>OpenCluster - Mis Security Groups</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" th:href="@{/css/user-styles.css}">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
@@ -57,7 +57,7 @@
     <!-- CSS Files -->
     <link id="pagestyle" th:href="@{/css/material-dashboard.css}" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
-    <!-- SELECT2 CSS -->
+    <!-- Después de los otros CSS -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
 
@@ -66,8 +66,64 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css">
 
-    <!-- Token JWT para WebSocket *** -->
+    <!-- Token JWT -->
     <meta name="jwt-token" th:content="${jwtToken}">
+
+    <!-- Estilos personalizados -->
+    <style>
+
+        #btnHelpRules {
+            width: 42px;
+            height: 42px;
+            border-radius: 50% !important;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .info-btn {
+            color: #303030;
+            background: none;
+            border: none;
+            padding: 0 0.25rem;
+            font-size: 1.1em;
+            cursor: pointer;
+        }
+        .info-btn:hover {
+            color: #0481f7;
+        }
+        .form-label {
+            font-weight: 600;
+        }
+        .select2-container--bootstrap-5 .select2-selection {
+            min-height: 40px;
+            padding: 0.375rem 0.75rem;
+            font-size: 0.95rem;
+            border-radius: 0.5rem;
+        }
+        .cursor-pointer {
+            cursor: help;
+        }
+        .action-btn:hover {
+            transform: scale(1.1);
+            transition: transform 0.2s;
+        }
+        .delete-rule-btn:hover {
+            color: #e91e63 !important;
+        }
+        .help-btn {
+            color: #3b82f6;
+            background: none;
+            border: none;
+            font-size: 1.2em;
+            margin-left: 0.5rem;
+            cursor: pointer;
+        }
+        .help-btn:hover {
+            color: #fb8c00;
+        }
+
+    </style>
 
     <!-- Estilos extra -->
     <style>
@@ -260,7 +316,8 @@
         }
 
         .select2-container--bootstrap-5 .select2-results__option--highlighted {
-            background-color: #fb8c00 !important;
+            background-color: #0481f7 !important;
+            color: #ffffff !important;
         }
 
         .select2-dropdown {
@@ -269,7 +326,7 @@
         }
 
         .select2-container--bootstrap-5 .select2-results__option--selected {
-            background-color: #435ebe !important;
+            background-color: #aed4f8 !important;
             color: #ffffff !important;
         }
 
@@ -481,7 +538,7 @@
         }
 
         .text-truncate {
-            max-width: 230px;
+            max-width: 280px;
             display: inline-block;
             white-space: nowrap;
             overflow: hidden;
@@ -642,151 +699,21 @@
             color: #495057;
         }
 
-        .progress-card-body {
-            padding: 15px;
+        .view-rules:hover {
+            color: #3b82f6 !important;
         }
 
-        .progress-message {
-            color: #6c757d;
-            font-size: 14px;
-            margin-bottom: 10px;
+        .edit-sg:hover {
+            color: #24cf7a !important;
         }
 
-        .progress-bar-container {
-            background-color: #e9ecef;
-            border-radius: 4px;
-            height: 8px;
-            overflow: hidden;
+        .delete-sg:hover {
+            color: #e91e63 !important;
         }
 
-        .progress-bar-fill {
-            height: 100%;
-            background-color: #ffc107;
-            transition: width 0.3s ease;
-            border-radius: 4px;
-        }
-
-        .progress-bar-fill.success {
-            background-color: #28a745;
-        }
-
-        .progress-bar-fill.error {
-            background-color: #dc3545;
-        }
-
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 500;
-            gap: 4px;
-        }
-
-        .status-pending {
-            background-color: #fff3cd;
-            color: #856404;
-        }
-
-        .status-processing {
-            background-color: #cce7ff;
-            color: #004085;
-        }
-
-        .status-success {
-            background-color: #d4edda;
-            color: #155724;
-        }
-
-        .status-error {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-
-        /* Notificaciones Toast */
-        .notification-toast {
-            position: fixed;
-            bottom: 100px;
-            right: 20px;
-            z-index: 1060;
-            background: white;
-            border-radius: 6px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            padding: 12px 16px;
-            opacity: 0;
-            transform: translateX(100%);
-            transition: all 0.3s ease;
-            max-width: 300px;
-        }
-
-        .notification-toast.show {
-            opacity: 1;
-            transform: translateX(0);
-        }
-
-        .notification-toast.hide {
-            opacity: 0;
-            transform: translateX(100%);
-        }
-
-        .notification-content {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .notification-success {
-            border-left: 4px solid #28a745;
-        }
-
-        .notification-error {
-            border-left: 4px solid #dc3545;
-        }
-
-        .notification-warning {
-            border-left: 4px solid #ffc107;
-        }
-
-        .notification-info {
-            border-left: 4px solid #17a2b8;
-        }
-
-        .notification-success .fas {
-            color: #28a745;
-        }
-
-        .notification-error .fas {
-            color: #dc3545;
-        }
-
-        .notification-warning .fas {
-            color: #ffc107;
-        }
-
-        .notification-info .fas {
-            color: #17a2b8;
-        }
-
-        /* Indicador de conexión WebSocket (opcional) */
-        #ws-connection-indicator {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            z-index: 1000;
-        }
-
-        .ws-connected {
-            background-color: #28a745;
-            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.3);
-        }
-
-        .ws-disconnected {
-            background-color: #dc3545;
-            box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.3);
+        .action-btn:hover {
+            transform: scale(1.1);
+            transition: transform 0.2s ease;
         }
 
         @keyframes dt-fadein {
@@ -794,7 +721,7 @@
             to { opacity: 1; }
         }
         .dataTable tbody tr {
-            animation: dt-fadein 1.5s;
+            animation: dt-fadein 1s;
         }
 
         /* Responsive */
@@ -818,61 +745,66 @@
 <body class="bg-gray-100">
     <div class="app-container">
         <!-- Sidebar -->
-        <div th:replace="~{Fragments/User/sidebar :: sidebar('slice')}"></div>
+        <div th:replace="~{Fragments/User/sidebar :: sidebar('securityGroup')}"></div>
 
         <!-- Contenido principal -->
         <main class="main-content">
             <!-- Header -->
-            <div th:replace="~{Fragments/User/header :: header(title='Slice')}"></div>
+            <div th:replace="~{Fragments/User/header :: header(title='Security Groups')}"></div>
 
             <section class="page-content">
-                <div class="content-header mb-0">
-                    <h2 class="content-title text-3xl text-start font-weight-bolder font-weight-bold mb-2 animate__animated animate__zoomInLeft animate__slow" style="font-weight: 900">
-                        MIS SLICEs
-                    </h2>
-                
-                    <div class="header-actions">
-                        <div class="btn-group animate__animated animate__backInDown animate__slow animate__delay-5s">
-                            <button type="button" class="btn btn-white px-3 py-2 status-filter" data-status="all">
-                                <i class="fas fa-layer-group me-2 text-dark"></i>Todas
-                            </button>
-                            <button type="button" class="btn btn-white px-3 py-2 status-filter active" data-status="running">
-                                <i class="fas fa-play me-2 text-warning"></i>En Ejecución
-                            </button>
-                            <button type="button" class="btn btn-white px-3 py-2 status-filter" data-status="stopped">
-                                <i class="fas fa-stop me-2 text-danger"></i>Detenidas
-                            </button>
+                <div class="content-header mb-0 d-flex align-items-center justify-content-between">
+                    <div>
+                        <h2 class="content-title text-3xl text-start font-weight-bolder mb-2 animate__animated animate__zoomInLeft animate__slow" style="font-weight: 900">
+                            MIS REGLAS
+                        </h2>
+
+                        <div class="row align-items-center mb-2">
+                            <div class="col-auto mb-2">
+                                <p class="my-1 text-sm text-start text-secondary mb-0 animate__animated animate__backInLeft animate__delay-3s" style="max-width: 550px !important;">
+                                    Administra las reglas de red asociadas a este Security Group. Permite, restringe implícitamente o personaliza el tráfico de red de tus VMs de forma visual y segura.
+                                </p>
+                            </div>
+                            <div class="col-auto d-flex align-items-center p-0 animate__animated animate__backInLeft animate__delay-4s">
+                                <div class="vr mx-3" style="height: 32px;"></div>
+                            </div>
+                            <div class="col-auto mb-2">
+                                <div id="sgInfoBox" class="mb-0 animate__animated animate__backInLeft animate__delay-5s"></div>
+                            </div>
                         </div>
-                        <div class="animate__animated animate__fadeInRight animate__slow animate__delay-5s">
-                        <button class="ms-2 btn btn-warning" id="btnDeploySlice">
-                            <i class="fas fa-plus me-2"></i>
-                            <span>Nueva Slice</span>
+
+                        
+                    </div>
+                    <div class="row me-0">
+                        <div class="col-3 animate__animated animate__fadeInRight animate__slow animate__delay-5s pe-0 me-0">
+                            <button class="btn btn-dark me-2" id="btnHelpRules" data-bs-toggle="tooltip" data-bs-placement="left" style="border-radius: 100% !important;" title="¿Cómo funcionan las reglas?">
+                            <i class="fas fa-circle-info"></i>
                         </button>
                         </div>
                         
+                        <div class="col-9 animate__animated animate__fadeInRight animate__slow animate__delay-5s d-flex justify-content-end align-items-center ms-0 me-0 pe-0">
+                            <button class="btn btn-info" id="btnAddRule">
+                                <i class="fas fa-plus me-2"></i>
+                                Nueva Regla
+                            </button>
+                        </div>
                     </div>
                 </div>
-
-                <p class="my-1 text-sm text-start text-secondary mb-4 animate__animated animate__backInLeft animate__delay-5s">Observa el listado de las slices asociadas a tu cuenta. Visualiza tanto el estado como los recursos base y explora las conexiones de tus slices, asegurando una visión unificada de tu entorno y un control sobre los componentes de tus topologías desplegadas.
-                </p>
         
-                <div class="card animate__animated animate__fadeInLeft">
+                <div class="card animate__animated animate__fadeInLeft mt-3">
                     <div class="card-body">
                         <div class="table-responsive">
-                            <table id="slicesTable" class="table table-hover align-middle mb-0">
+                            <table id="rulesTable" class="table table-hover align-middle mb-0">
                                 <thead>
                                     <tr>
                                         <th class="text-start">ID</th>
-                                        <th class="text-start">NOMBRE</th>
-                                        <th class="text-start">DESCRIPCIÓN</th>
-                                        <th class="text-start">VCPUs</th>
-                                        <th class="text-start">RAM</th>
-                                        <th class="text-start">DISCO</th>
-                                        <th class="text-start">VMs</th>
-                                        <th class="text-start">FECHA DE CREACIÓN</th>
-                                        <th class="text-start">INFRAESTRUCTURA</th>
-                                        <th class="text-center" style="text-align: center !important;">ESTADO</th>
-                                        <th class="text-center" style="text-align: center !important;">ACCIÓN</th>
+                                        <th class="text-start">Dirección</th>
+                                        <th class="text-start">Ether Type</th>
+                                        <th class="text-start">Protocolo</th>
+                                        <th class="text-start">Puerto(s)</th>
+                                        <th class="text-start">REMOTE CIDR</th>
+                                        <th class="text-start">Descripción</th>
+                                        <th class="text-center" style="text-align: center !important;">Acción</th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -880,6 +812,7 @@
                         </div>
                     </div>
                 </div>
+
             </section>
 
             <!-- Footer -->
@@ -887,157 +820,210 @@
         </main>
     </div>
     
-    <!-- MODAL -->
-    <div class="modal fade" id="deploySliceModal" tabindex="-1" aria-labelledby="deploySliceModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0">
-                <!-- Modal Header -->
-                <div class="modal-header bg-warning px-4">
-                    <h5 class="modal-title text-white d-flex align-items-center" id="deploySliceModalLabel">
-                        <i class="fas fa-cube me-2"></i>
-                        Desplegar Nueva Slice
-                    </h5>
-                    <button type="button" class="btn-close text-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-    
-                <!-- Modal Body -->
-                <div class="modal-body p-4">
-                    <form id="deploySliceForm" class="needs-validation" novalidate>
-                        <!-- Nombre -->
-                        <div class="form-group mb-4">
-                            <label for="sliceName" class="form-label mb-2">Nombre</label>
-                            <input type="text" 
-                                   class="form-control border px-3" 
-                                   id="sliceName" 
-                                   required
-                                   placeholder="Introduce un nombre para tu slice">
-                            <div class="invalid-feedback">
-                                Por favor, introduce un nombre para la slice
+    <!-- MODAL: Crear Regla -->
+    <div class="modal fade" id="ruleModal" tabindex="-1" aria-labelledby="ruleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0">
+            <div class="modal-header bg-info px-4">
+                <h5 class="modal-title text-white" id="ruleModalLabel">
+                    <i class="fas fa-pen-ruler me-2"></i>
+                    <span id="ruleModalTitle">Agregar Regla</span>
+                </h5>
+                <button type="button" class="btn-close text-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="ruleForm" class="needs-validation" novalidate>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-group mb-4">
+                                <label for="direction" class="form-label mb-2">Dirección <span class="text-danger">*</span>
+                                    <button type="button" class="info-btn" data-bs-toggle="tooltip" title="Indica si la regla aplica al tráfico entrante (ingress) o saliente (egress) respecto a la VM.">
+                                        <i class="fas fa-cicle-info"></i>
+                                    </button>
+                                </label>
+                                <select class="form-select border px-3" id="direction" required data-minimum-results-for-search="Infinity">
+                                    <option value="ingress">Entrante (ingress)</option>
+                                    <option value="egress">Saliente (egress)</option>
+                                </select>
                             </div>
-                        </div>
-                        
-                        <!-- Descripción -->
-                        <div class="form-group mb-4">
-                            <label for="sliceDescription" class="form-label mb-2">Descripción (Opcional)</label>
-                            <textarea class="form-control border px-3" 
-                                     id="sliceDescription" 
-                                     rows="3"
-                                     placeholder="Introduce una descripción para tu slice"></textarea>
-                        </div>
-
-                        <!-- Zona de disponibilidad -->
-                        <div class="form-group mb-4">
-                            <label for="availabilityZoneSelect" class="form-label mb-2">Zona de Disponibilidad</label>
-                            <select class="form-select border px-3 select2-availability-zone" 
-                                    id="availabilityZoneSelect" 
-                                    required
-                                    data-placeholder="Selecciona una zona de disponibilidad">
-                                <option></option>
-                            </select>
-                            <div class="invalid-feedback">
-                                Por favor, selecciona una zona de disponibilidad
+                            <div class="form-group mb-4">
+                                <label for="etherType" class="form-label mb-2">Ether Type <span class="text-danger">*</span>
+                                    <button type="button" class="info-btn" data-bs-toggle="tooltip" title="Tipo de tráfico IP permitido: IPv4 o IPv6.">
+                                        <i class="fas fa-circle-info"></i>
+                                    </button>
+                                </label>
+                                <select class="form-select border px-3" id="etherType" required data-minimum-results-for-search="Infinity">
+                                    <option value="ipv4">IPv4</option>
+                                    <option value="ipv6">IPv6</option>
+                                </select>
                             </div>
-                        </div>
-    
-                        <!-- Sketch Base -->
-                        <div class="form-group mb-4">
-                            <label for="sketchSelect" class="form-label mb-2">Sketch Base</label>
-                            <select class="form-select border px-3 select2-sketch" 
-                                    id="sketchSelect" 
-                                    required
-                                    data-placeholder="Busca y selecciona un sketch base">
-                                <option></option>
-                            </select>
-                            <div class="invalid-feedback">
-                                Por favor, selecciona un sketch base
+                            <div class="form-group mb-4">
+                                <label for="protocol" class="form-label mb-2">Protocolo <span class="text-danger">*</span>
+                                    <button type="button" class="info-btn" data-bs-toggle="tooltip" title="Protocolo de red: TCP, UDP, ICMP o ALL.">
+                                        <i class="fas fa-circle-info"></i>
+                                    </button>
+                                </label>
+                                <select class="form-select border px-3" id="protocol" required data-minimum-results-for-search="Infinity">
+                                    <option value="tcp">TCP</option>
+                                    <option value="udp">UDP</option>
+                                    <option value="icmp">ICMP</option>
+                                    <option value="all">ALL</option>
+                                </select>
                             </div>
-                        </div>
-    
-                        <!-- Preview del Sketch -->
-                        <div id="sketchPreview" class="mt-4 d-none">
-                            <h6 class="text-dark mb-3 d-flex align-items-center">
-                                <i class="fas fa-info-circle text-warning me-2"></i>
-                                Detalles del Sketch
-                            </h6>
-                            <div class="card border-0 shadow-sm" style="background: linear-gradient(145deg, #f8f9fa 0%, #ffffff 100%)">
-                                <div class="card-body p-3">
-                                    <!-- Resources Section -->
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <div class="d-flex align-items-center">
-                                            <i class="fas fa-microchip text-warning fa-lg me-3"></i>
-                                            <span class="text-dark">Recursos</span>
-                                        </div>
-                                        <div class="d-flex gap-3">
-                                            <span class="badge bg-warning text-white px-3 py-2 d-flex align-items-center" 
-                                                data-bs-toggle="tooltip" 
-                                                data-bs-placement="top" 
-                                                title="Unidades de Procesamiento Virtual (vCPUs)">
-                                                <i class="material-symbols-rounded me-1" style="font-size: 1rem;">developer_board</i>
-                                                <span id="sketchPreviewVCPUs">-</span>
-                                            </span>
-                                            <span class="badge bg-warning text-white px-3 py-2 d-flex align-items-center"
-                                                data-bs-toggle="tooltip" 
-                                                data-bs-placement="top" 
-                                                title="Memoria RAM">
-                                                <i class="material-symbols-rounded me-1" style="font-size: 1rem;">memory</i>
-                                                <span id="sketchPreviewRAM">- GB</span>
-                                            </span>
-                                            <span class="badge bg-warning text-white px-3 py-2 d-flex align-items-center"
-                                                data-bs-toggle="tooltip" 
-                                                data-bs-placement="top" 
-                                                title="Almacenamiento en Disco">
-                                                <i class="material-symbols-rounded me-1" style="font-size: 1rem;">storage</i>
-                                                <span id="sketchPreviewDisk">- GB</span>
-                                            </span>
-                                        </div>
+                            <div class="form-group mb-4" id="portFields">
+                                <label class="form-label mb-2">Puerto(s)
+                                    <button type="button" class="info-btn" data-bs-toggle="tooltip" title="Para TCP/UDP puedes especificar un puerto único o un rango. Para ICMP/ALL no se usan puertos.">
+                                        <i class="fas fa-circle-info"></i>
+                                    </button>
+                                </label>
+                                <div class="mb-2" id="portTypeContainer" style="display: none;">
+                                    <select class="form-select border px-3" id="portType" data-minimum-results-for-search="Infinity">
+                                        <option value="single">Puerto único</option>
+                                        <option value="range">Rango de puertos</option>
+                                    </select>
+                                </div>
+                                <!-- Puerto único -->
+                                <div class="mb-2" id="singlePortInput">
+                                    <input type="number" class="form-control border px-3" id="fromPort" min="0" max="65535" placeholder="Puerto">
+                                </div>
+                                <!-- Rango de puertos -->
+                                <div class="row g-2 mb-2" id="rangePortInputs" style="display:none;">
+                                    <div class="col">
+                                        <input type="number" class="form-control border px-3" id="rangeFromPort" min="0" max="65535" placeholder="Puerto inicial">
                                     </div>
-                                    <!-- VMs Counter -->
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <div class="d-flex align-items-center">
-                                            <i class="fas fa-server text-warning fa-lg me-3"></i>
-                                            <span class="text-dark">Máquinas Virtuales</span>
-                                        </div>
-                                        <span id="vmCount" class="badge bg-warning text-white px-3 py-2">-</span>
+                                    <div class="col-auto d-flex align-items-center px-0">
+                                        <span class="input-group-text bg-white border-0">-</span>
                                     </div>
-                                    
-                                    <!-- Links Counter -->
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <div class="d-flex align-items-center">
-                                            <i class="fas fa-link text-warning fa-lg me-3"></i>
-                                            <span class="text-dark">Enlaces de Red</span>
-                                        </div>
-                                        <span id="linkCount" class="badge bg-warning text-white px-3 py-2">-</span>
-                                    </div>
-                                    
-                                    <!-- Interfaces Counter -->
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div class="d-flex align-items-center">
-                                            <i class="fas fa-network-wired text-warning fa-lg me-3"></i>
-                                            <span class="text-dark">Interfaces de Red</span>
-                                        </div>
-                                        <span id="interfaceCount" class="badge bg-warning text-white px-3 py-2">-</span>
+                                    <div class="col">
+                                        <input type="number" class="form-control border px-3" id="rangeToPort" min="0" max="65535" placeholder="Puerto final">
                                     </div>
                                 </div>
                             </div>
+                            <div class="form-group mb-4">
+                                <label for="remoteCidr" class="form-label mb-2">IP CIDR <span class="text-danger">*</span>
+                                    <button type="button" class="info-btn" data-bs-toggle="tooltip" title="Rango de IPs remotas permitidas. Ejemplo: 0.0.0.0/0 para cualquier IP.">
+                                        <i class="fas fa-circle-info"></i>
+                                    </button>
+                                </label>
+                                <input type="text" class="form-control border px-3" id="remoteCidr" placeholder="0.0.0.0/0" value="0.0.0.0/0" required>
+                            </div>
                         </div>
-                    </form>
+                        <div class="col-md-6">
+                            <div class="form-group mb-4">
+                                <label for="ruleDescription" class="form-label mb-2">Descripción
+                                    <button type="button" class="info-btn" data-bs-toggle="tooltip" title="Descripción opcional para identificar la regla.">
+                                        <i class="fas fa-circle-info"></i>
+                                    </button>
+                                </label>
+                                <textarea class="form-control border px-3" id="ruleDescription" maxlength="255" rows="3" placeholder="Describe el propósito de la regla (opcional)"></textarea>
+                            </div>
+                            <div class="alert mt-3" id="ruleHelpBox">
+                                <div class="d-flex align-items-center justify-content-center text-center mb-4">
+                                    <span class="badge bg-info" style="font-size:1.1em;">CONSIDERACIONES</span>
+                                </div>
+                                <ul class="mb-0 ps-3">
+                                    <li><b>TCP/UDP:</b> Usa los campos de puerto. Puedes definir un único puerto o un rango.</li>
+                                    <li><b>ICMP/ALL:</b> Los campos de puerto no se usan.</li>
+                                    <li><b>Remote CIDR:</b> Especifica el rango de IPs remotas permitidas.</li>
+                                    <li><b>Dirección:</b> Elige si la regla es para tráfico entrante o saliente.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer px-4">
+                <button type="button" class="btn text-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn bg-info text-white" id="btnSaveRule">
+                    <i class="fas fa-save me-2"></i>Guardar Regla
+                </button>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- MODAL: Ayuda/Información -->
+    <div class="modal fade" id="helpRulesModal" tabindex="-1" aria-labelledby="helpRulesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-dark px-4">
+                    <h5 class="modal-title text-white" id="helpRulesModalLabel">
+                        <i class="fas fa-circle-info me-2"></i>
+                        <span class="fw-bold">¿Cómo funcionan las reglas de un Security Group?</span>
+                    </h5>
+                    <button type="button" class="btn-close text-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-    
-                <!-- Modal Footer -->
-                <div class="modal-footer px-4">
-                    <button type="button" 
-                            class="btn text-secondary" 
-                            data-bs-dismiss="modal">
-                        <i class="fas fa-times me-2"></i>
-                        Cancelar
-                    </button>
-                    <button type="button" 
-                            class="btn bg-warning text-white" 
-                            id="btnDeploySliceSubmit"
-                            onclick="deploySlice()">
-                        <i class="fas fa-rocket me-2"></i>
-                        Desplegar
-                    </button>
+                <div class="modal-body p-4">
+                    <div class="mb-3 text-center">
+                        <i class="fas fa-shield-alt fa-3x text-info mb-2"></i>
+                        <h4 class="fw-bold mb-2 text-info">Las reglas definen la seguridad de tus VMs</h4>
+                    </div>
+                    <p>
+                        Una <b>regla</b> define qué tráfico está permitido para las interfaces/ports asociadas a este Security Group.<br>
+                        <span class="text-secondary">Por defecto, todo el tráfico está bloqueado, excepto ARP y conexiones tanto establecidas como relacionadas (se utiliza "connection tracking").</span>
+                    </p>
+                    <ul>
+                        <li><b>Dirección:</b> <span class="text-secondary">"ingress" (entrante) o "egress" (saliente)</span></li>
+                        <li><b>Ether Type:</b> <span class="text-secondary">"ipv4" o "ipv6"</span></li>
+                        <li><b>Protocolo:</b> <span class="text-secondary">"tcp", "udp", "icmp", "all"</span></li>
+                        <li><b>Puertos:</b> <span class="text-secondary">Solo para TCP/UDP. Puedes definir un puerto único o un rango. Para ICMP/ALL no se usan puertos.</span></li>
+                        <li><b>Remote CIDR:</b> <span class="text-secondary">Rango de IPs permitidas en formato "A.B.C.D/E". <b class="text-warning">0.0.0.0/0</b> para cualquier IP.</span></li>
+                        <li><b>Descripción:</b> <span class="text-secondary">Campo opcional para identificar la regla.</span></li>
+                    </ul>
+                    <hr>
+                    <b class="mb-2 text-xl">Ejemplos:</b>
+                    <br>
+                    <div class="row mt-2">
+    <div class="col-md-4 mb-2">
+        <div class="card border-primary shadow-sm h-100">
+            <div class="card-body py-2">
+                <div class="d-flex align-items-center mb-2">
+                    <i class="fas fa-terminal fa-lg text-primary me-2"></i>
+                    <span class="fw-bold">Permitir SSH entrante</span>
+                </div>
+                <ul class="small text-secondary mb-0 ps-3">
+                    <li><b>Protocolo:</b> TCP</li>
+                    <li><b>Puerto:</b> 22</li>
+                    <li><b>Dirección:</b> Entrante (ingress)</li>
+                    <li><b>IP CIDR:</b> 10.0.20.8/32 (IP única)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-2">
+        <div class="card border-success shadow-sm h-100">
+            <div class="card-body py-2">
+                <div class="d-flex align-items-center mb-2">
+                    <i class="fas fa-random fa-lg text-success me-2"></i>
+                    <span class="fw-bold">Permitir rango UDP saliente</span>
+                </div>
+                <ul class="small text-secondary mb-0 ps-3">
+                    <li><b>Protocolo:</b> UDP</li>
+                    <li><b>Puertos:</b> 1000-2000</li>
+                    <li><b>Dirección:</b> Saliente (egress)</li>
+                    <li><b>IP CIDR:</b> 10.0.0.0/8 (red interna)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-2">
+        <div class="card border-warning shadow-sm h-100">
+            <div class="card-body py-2">
+                <div class="d-flex align-items-center mb-2">
+                    <i class="fas fa-broadcast-tower fa-lg text-warning me-2"></i>
+                    <span class="fw-bold">Permitir todo ICMP entrante</span>
+                </div>
+                <ul class="small text-secondary mb-0 ps-3">
+                    <li><b>Protocolo:</b> ICMP</li>
+                    <li><b>Dirección:</b> Entrante (ingress)</li>
+                    <li><b>IP CIDR:</b> 0.0.0.0/0 (cualquier IP)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
                 </div>
             </div>
         </div>
@@ -1059,6 +1045,20 @@
     <!-- Socket.IO Client -->
     <script src="https://cdn.socket.io/4.7.3/socket.io.min.js"></script>
 
-    <script th:src="@{/slice/slice/slice-list.js}"></script>
+    <script>
+        // Mostrar modal de ayuda
+        $('#btnHelpRules').on('click', function() {
+            $('#helpRulesModal').modal('show');
+        });
+        // Inicializar tooltips
+        $(function () {
+            $('[data-bs-toggle="tooltip"]').tooltip();
+        });
+    </script>
+
+    <!-- Data del Security Group (Su ID para DataTables) -->
+    <div id="securityGroup-data" th:data-slice-id="${securityGroupId}" style="display: none;"></div>
+
+    <script th:src="@{/slice/securityGroup/rule-list.js}"></script>
 
 </body>

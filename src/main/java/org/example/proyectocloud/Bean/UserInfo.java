@@ -84,4 +84,17 @@ public class UserInfo implements Serializable {
             return "Desconocido";
         }
     }
+
+    @Override
+    public String toString() {
+        return "UserInfo{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", lastname='" + lastname + '\'' +
+                ", username='" + username + '\'' +
+                ", code='" + code + '\'' +
+                ", jwt='" + jwt + '\'' +
+                ", role='" + role + '\'' +
+                '}';
+    }
 }

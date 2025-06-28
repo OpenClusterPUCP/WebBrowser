@@ -1,7 +1,6 @@
 package org.example.proyectocloud.Controller.User;
 
 import jakarta.servlet.http.HttpSession;
-import org.apache.catalina.User;
 import org.example.proyectocloud.Bean.UserInfo;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -10,34 +9,34 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
-@RequestMapping("/User/slice")
-public class UserSliceController {
+@RequestMapping("/User/securityGroup")
+public class UserSecurityGroupController {
 
     private final HttpSession session;
 
-    public UserSliceController(HttpSession session) {
+    public UserSecurityGroupController(HttpSession session) {
         this.session = session;
     }
 
     @GetMapping({"/", ""})
     public String inicial(){
-        return "redirect:/User/slice/list";
+        return "redirect:/User/securityGroup/list";
     }
 
     @GetMapping("/list")
-    public String verSlices(){
+    public String verSecurityGroups(){
         System.out.println("UserInfo: "+ ((UserInfo) session.getAttribute("userInfo")).toString());
-        return "UserPages/SliceList";
+        return "UserPages/SecurityGroupList";
     }
 
-    @GetMapping({"/{sliceId}"})
-    public String verSlice(@PathVariable("sliceId") String sliceId, Model model) {
+    @GetMapping({"/{securityGroupId}"})
+    public String verSlice(@PathVariable("securityGroupId") String securityGroupId, Model model) {
         try {
-            model.addAttribute("sliceId", sliceId);
-            return "UserPages/SliceView";
+            model.addAttribute("securityGroupId", securityGroupId);
+            return "UserPages/RuleList";
         } catch (Exception e) {
-            model.addAttribute("error", "Error al cargar el Slice: " + e.getMessage());
-            return "redirect:/User/slice/list";
+            model.addAttribute("error", "Error al cargar el Security Group: " + e.getMessage());
+            return "redirect:/User/securityGroup/list";
         }
     }
 }

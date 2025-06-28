@@ -56,6 +56,7 @@ let BACKEND_IP = 'localhost';
 let BACKEND_PORT = 5001;
 let AVAILABLE_IMAGES = [];
 let AVAILABLE_FLAVORS = [];
+let GATEWAY_URL = 'http://localhost:9000';
 
 // ===================== CONFIGURACIÓN DE VIS.JS =====================
 const options = {
@@ -457,6 +458,9 @@ function updateNetworkInfo(networkConfig, sliceInfo) {
     document.getElementById('infrastructure').textContent = sliceInfo.infrastructure;
 
     if (sliceInfo.infrastructure === 'OpenStack') {
+        // Colorcito
+        document.getElementById('infrastructure').classList.add('text-primary');
+
         // Mostrar OS ID en lugar de información de red
         document.getElementById('externalNetworkLabel').textContent = 'ID del Proyecto OS:';
         document.getElementById('projectoOSLabel').style.display = 'block';
@@ -467,6 +471,9 @@ function updateNetworkInfo(networkConfig, sliceInfo) {
         document.getElementById('svlanLabel').style.display = 'none';
         document.getElementById('redLabel').style.display = 'none';
     } else {
+        // Colorcito
+        document.getElementById('infrastructure').classList.add('text-success');
+
         // Para otras infraestructuras, mostrar la información de red normal
         document.getElementById('externalNetworkLabel').textContent = 'Red Externa:';
         document.getElementById('externalNetwork').textContent = networkConfig.network;
@@ -772,6 +779,21 @@ function showVMInfo(vmId) {
             
             // Usar 'name' en lugar de 'tap_name' para OpenStack
             const interfaceName = isOpenStack ? iface.name : iface.tap_name;
+
+            // Security Group info (puedes guardar el id en iface.security_group_id si lo tienes)
+            let sgBtn = `
+                <button class="mb-0 btn btn-link text-dark action-btn manage-sg" 
+                    title="Gestionar"
+                    onclick="openInterfaceSGModal(
+                        ${iface.id},
+                        '${iface.os_id ? iface.os_id : ''}',
+                        '${isOpenStack ? (iface.name || '') : ''}',
+                        '${!isOpenStack ? (iface.tap_name || '') : ''}',
+                        '${iface.mac_address || ''}'
+                    )">
+                    <i class="fas fa-gear me-4"></i>
+                </button>
+            `;
             
             // Generar tooltip SOLO para la columna de interfaz
             let interfaceTooltip = `ID: ${iface.id}`;
@@ -799,6 +821,9 @@ function showVMInfo(vmId) {
                 </td>
                 <td class="text-x ps-4">
                     ${connectedVM ? connectedVM.name : (iface.external_access ? 'Red Externa' : '-')}
+                </td>
+                <td class="text-x ps-4 text-center">
+                    ${sgBtn}
                 </td>
             `;
             interfacesBody.appendChild(row);
@@ -1056,11 +1081,13 @@ function showSliceDetail() {
         );
         document.getElementById('sliceModalWorkerCount').textContent = uniqueWorkers.size;
 
-        // Mostrar u ocultar configuración de red según la infraestructura
+        // Mostrar u ocultar configuración de red según la infraestructura y tipo de infraestructura
         const networkConfigCard = document.getElementById('networkConfigCard');
         if (isOpenStack) {
+            document.getElementById('sliceModalInfrastructure').classList.add('text-primary');
             networkConfigCard.style.display = 'none';
         } else {
+            document.getElementById('sliceModalInfrastructure').classList.add('text-success');
             networkConfigCard.style.display = 'block';
             
             // Network Config (solo para no-OpenStack)
@@ -1219,6 +1246,7 @@ window.toggleVMState = async function (vmId) {
                 title: 'Éxito',
                 text: data.message,
                 timer: 1500,
+                timerProgressBar: true,
                 showConfirmButton: false
             });
 
@@ -1472,6 +1500,7 @@ window.restartSlice = function() {
                         text: successMessage,
                         icon: 'success',
                         timer: 2000,
+                        timerProgressBar: true,
                         showConfirmButton: false
                     });
                     
@@ -1537,7 +1566,8 @@ window.stopSlice = function() {
                             text: successMessage,
                             icon: 'success',
                             timer: 2000,
-                            showConfirmButton: false
+                            showConfirmButton: false,
+                            timerProgressBar: true
                         });
 
                         // Actualizar información después de un breve delay
@@ -1605,7 +1635,8 @@ window.restartVM = async function(vmId) {
                 text: successMessage,
                 icon: 'success',
                 timer: 2000,
-                showConfirmButton: false
+                showConfirmButton: false,
+                timerProgressBar: true
             });
 
             // Actualizar información después de un breve delay
@@ -1766,248 +1797,284 @@ function showContextMenu(vm, event) {
 // Manejo de mensajes de error:
 
 function showErrorAlert(error) {
-    let errorMessage = '';
-    let errorDetails = [];
-    console.log('Error recibido:', error);
-    
-    // LOGS ADICIONALES PARA DEBUG
-    console.log('Tipo de error:', typeof error);
-    console.log('error.message existe:', !!error.message);
-    console.log('error.message valor:', error.message);
-    console.log('error.message incluye {:', error.message ? error.message.includes('{') : 'N/A');
-    console.log('error.response existe:', !!error.response);
-    
-    try {
-        let errorData = null;
+        let errorMessage = '';
+        let errorDetails = [];
+        console.log('Error recibido:', error);
         
-        // Caso 1: Error con response object directo
-        if (typeof error === 'object' && error.response) {
-            console.log('🔍 CASO 1: Error con response object directo');
-            console.log('error.response:', error.response);
+        // LOGS ADICIONALES PARA DEBUG
+        console.log('Tipo de error:', typeof error);
+        console.log('error.message existe:', !!error.message);
+        console.log('error.message valor:', error.message);
+        console.log('error.message incluye {:', error.message ? error.message.includes('{') : 'N/A');
+        console.log('error.response existe:', !!error.response);
+        
+        try {
+            let errorData = null;
             
-            // NUEVO: Verificar si response.message contiene JSON
-            if (error.response.message && error.response.message.includes('{')) {
-                console.log('🔍 CASO 1B: Response.message contiene JSON');
-                let jsonStr = error.response.message;
-                console.log('JSON string desde response.message:', jsonStr);
+            // Caso 1: Error con response object directo
+            if (typeof error === 'object' && error.response) {
+                console.log('🔍 CASO 1: Error con response object directo');
+                console.log('error.response:', error.response);
                 
-                // Aplicar la misma lógica de parsing
-                if (jsonStr.includes('POST request for') || jsonStr.includes('GET request for')) {
-                    const jsonMatch = jsonStr.match(/": "(\{.*?\})<EOL>"/);
+                // NUEVO: Verificar si response.message contiene JSON
+                if (error.response.message && error.response.message.includes('{')) {
+                    console.log('🔍 CASO 1B: Response.message contiene JSON');
+                    let jsonStr = error.response.message;
+                    console.log('JSON string desde response.message:', jsonStr);
                     
-                    if (jsonMatch && jsonMatch[1]) {
-                        jsonStr = jsonMatch[1];
-                        console.log('JSON extraído desde response (antes de limpiar):', jsonStr);
+                    // Aplicar la misma lógica de parsing
+                    if (jsonStr.includes('POST request for') || jsonStr.includes('GET request for')) {
+                        const jsonMatch = jsonStr.match(/": "(\{.*?\})<EOL>"/);
                         
-                        // Limpiar caracteres de escape y marcadores <EOL>
-                        jsonStr = jsonStr
-                            .replace(/<EOL>/g, '')
-                            .replace(/\\u00([0-9a-fA-F]{2})/g, (match, hex) => {
-                                return String.fromCharCode(parseInt(hex, 16));
-                            })
-                            .replace(/\\\"/g, '"')
-                            .replace(/\\n/g, '\n')
-                            .trim();
-                        
-                        console.log('JSON después de limpieza desde response:', jsonStr);
-                        
-                        try {
-                            errorData = JSON.parse(jsonStr);
-                            console.log('JSON parseado exitosamente desde response:', errorData);
-                        } catch (parseErr) {
-                            console.error('Error parseando JSON desde response:', parseErr);
+                        if (jsonMatch && jsonMatch[1]) {
+                            jsonStr = jsonMatch[1];
+                            console.log('JSON extraído desde response (antes de limpiar):', jsonStr);
+                            
+                            // Limpiar caracteres de escape y marcadores <EOL>
+                            jsonStr = jsonStr
+                                .replace(/<EOL>/g, '')
+                                .replace(/\\u00([0-9a-fA-F]{2})/g, (match, hex) => {
+                                    return String.fromCharCode(parseInt(hex, 16));
+                                })
+                                .replace(/\\\"/g, '"')
+                                .replace(/\\n/g, '\n')
+                                .trim();
+                            
+                            console.log('JSON después de limpieza desde response:', jsonStr);
+                            
+                            try {
+                                errorData = JSON.parse(jsonStr);
+                                console.log('JSON parseado exitosamente desde response:', errorData);
+                            } catch (parseErr) {
+                                console.error('Error parseando JSON desde response:', parseErr);
+                                errorData = error.response;
+                            }
+                        } else {
+                            console.log('No se encontró patrón JSON en response.message');
                             errorData = error.response;
                         }
                     } else {
-                        console.log('No se encontró patrón JSON en response.message');
                         errorData = error.response;
                     }
                 } else {
                     errorData = error.response;
                 }
-            } else {
-                errorData = error.response;
-            }
-        } 
-        // Caso 2: Error con message que contiene JSON anidado
-        else if (error.message && error.message.includes('{')) {
-            console.log('🔍 CASO 2: Error con message que contiene JSON anidado');
-            let jsonStr = error.message;
-            console.log('Mensaje original caso 2:', jsonStr);
-            
-            // Si el mensaje contiene "POST request for" o "GET request for"
-            if (jsonStr.includes('POST request for') || jsonStr.includes('GET request for')) {
-                console.log('🔍 CASO 2A: Contiene POST/GET request');
-                // Buscar el JSON que está entre ": "{...}<EOL>"
-                const jsonMatch = jsonStr.match(/": "(\{.*?\})<EOL>"/);
+            } 
+            // Caso 2: Error con message que contiene JSON anidado
+            else if (error.message && error.message.includes('{')) {
+                console.log('🔍 CASO 2: Error con message que contiene JSON anidado');
+                let jsonStr = error.message;
+                console.log('Mensaje original caso 2:', jsonStr);
                 
-                if (jsonMatch && jsonMatch[1]) {
-                    jsonStr = jsonMatch[1];
-                    console.log('JSON extraído caso 2 (antes de limpiar):', jsonStr);
+                // Si el mensaje contiene "POST request for" o "GET request for"
+                if (jsonStr.includes('POST request for') || jsonStr.includes('GET request for')) {
+                    console.log('🔍 CASO 2A: Contiene POST/GET request');
+                    // Buscar el JSON que está entre ": "{...}<EOL>"
+                    const jsonMatch = jsonStr.match(/": "(\{.*?\})<EOL>"/);
                     
-                    // Limpiar caracteres de escape y marcadores <EOL>
-                    jsonStr = jsonStr
-                        .replace(/<EOL>/g, '')  // Remover marcadores <EOL>
-                        .replace(/\\u00([0-9a-fA-F]{2})/g, (match, hex) => {
-                            return String.fromCharCode(parseInt(hex, 16));
-                        })
-                        .replace(/\\\"/g, '"')    // Reemplazar \" con "
-                        .replace(/\\n/g, '\n')    // Reemplazar \n literales
-                        .trim();
-                    
-                    console.log('JSON después de limpieza caso 2:', jsonStr);
-                    
-                    // Intentar parsear el JSON limpio
-                    try {
-                        errorData = JSON.parse(jsonStr);
-                        console.log('JSON parseado exitosamente caso 2:', errorData);
-                    } catch (parseErr) {
-                        console.error('Error parseando JSON extraído caso 2:', parseErr);
-                        console.error('JSON que se intentó parsear caso 2:', jsonStr);
+                    if (jsonMatch && jsonMatch[1]) {
+                        jsonStr = jsonMatch[1];
+                        console.log('JSON extraído caso 2 (antes de limpiar):', jsonStr);
                         
-                        // Extracción manual como fallback
+                        // Limpiar caracteres de escape y marcadores <EOL>
+                        jsonStr = jsonStr
+                            .replace(/<EOL>/g, '')  // Remover marcadores <EOL>
+                            .replace(/\\u00([0-9a-fA-F]{2})/g, (match, hex) => {
+                                return String.fromCharCode(parseInt(hex, 16));
+                            })
+                            .replace(/\\\"/g, '"')    // Reemplazar \" con "
+                            .replace(/\\n/g, '\n')    // Reemplazar \n literales
+                            .trim();
+                        
+                        console.log('JSON después de limpieza caso 2:', jsonStr);
+                        
+                        // Intentar parsear el JSON limpio
                         try {
-                            const messageMatch = jsonStr.match(/"message":\s*"([^"]+)"/);
-                            const detailsMatch = jsonStr.match(/"details":\s*\[\s*"([^"]+)"\s*\]/);
+                            errorData = JSON.parse(jsonStr);
+                            console.log('JSON parseado exitosamente caso 2:', errorData);
+                        } catch (parseErr) {
+                            console.error('Error parseando JSON extraído caso 2:', parseErr);
+                            console.error('JSON que se intentó parsear caso 2:', jsonStr);
                             
-                            if (messageMatch) {
-                                errorMessage = messageMatch[1];
-                                if (detailsMatch) {
-                                    errorDetails = [detailsMatch[1]];
+                            // Extracción manual como fallback
+                            try {
+                                const messageMatch = jsonStr.match(/"message":\s*"([^"]+)"/);
+                                const detailsMatch = jsonStr.match(/"details":\s*\[\s*"([^"]+)"\s*\]/);
+                                
+                                if (messageMatch) {
+                                    errorMessage = messageMatch[1];
+                                    if (detailsMatch) {
+                                        errorDetails = [detailsMatch[1]];
+                                    }
+                                    console.log('Extracción manual exitosa caso 2:', { errorMessage, errorDetails });
+                                } else {
+                                    errorMessage = 'Error de comunicación con el servidor';
                                 }
-                                console.log('Extracción manual exitosa caso 2:', { errorMessage, errorDetails });
-                            } else {
+                            } catch (manualErr) {
+                                console.error('Error en extracción manual caso 2:', manualErr);
                                 errorMessage = 'Error de comunicación con el servidor';
                             }
-                        } catch (manualErr) {
-                            console.error('Error en extracción manual caso 2:', manualErr);
+                        }
+                    } else {
+                        console.error('No se encontró el patrón JSON en el mensaje caso 2');
+                        // Fallback: extraer manualmente del mensaje original
+                        try {
+                            // Buscar patrones directamente en el mensaje original
+                            const messagePattern = /No tienes suficientes recursos disponibles[^"]+/;
+                            const detailsPattern = /L[íi]mite de slices[^"]+/;
+                            
+                            const messageMatch = jsonStr.match(messagePattern);
+                            const detailsMatch = jsonStr.match(detailsPattern);
+                            
+                            if (messageMatch) {
+                                errorMessage = messageMatch[0];
+                            }
+                            if (detailsMatch) {
+                                errorDetails = [detailsMatch[0]];
+                            }
+                            
+                            if (!errorMessage) {
+                                errorMessage = 'Error de comunicación con el servidor';
+                            }
+                        } catch (fallbackErr) {
+                            console.error('Error en fallback caso 2:', fallbackErr);
                             errorMessage = 'Error de comunicación con el servidor';
                         }
                     }
                 } else {
-                    console.error('No se encontró el patrón JSON en el mensaje caso 2');
-                    // Fallback: extraer manualmente del mensaje original
-                    try {
-                        // Buscar patrones directamente en el mensaje original
-                        const messagePattern = /No tienes suficientes recursos disponibles[^"]+/;
-                        const detailsPattern = /L[íi]mite de slices[^"]+/;
+                    console.log('🔍 CASO 2B: JSON directo en message');
+                    // Para casos donde el JSON está directamente en el mensaje
+                    const startIndex = jsonStr.indexOf('{');
+                    const endIndex = jsonStr.lastIndexOf('}') + 1;
+                    if (startIndex !== -1 && endIndex > startIndex) {
+                        jsonStr = jsonStr.substring(startIndex, endIndex);
                         
-                        const messageMatch = jsonStr.match(messagePattern);
-                        const detailsMatch = jsonStr.match(detailsPattern);
-                        
-                        if (messageMatch) {
-                            errorMessage = messageMatch[0];
-                        }
-                        if (detailsMatch) {
-                            errorDetails = [detailsMatch[0]];
-                        }
-                        
-                        if (!errorMessage) {
+                        try {
+                            errorData = JSON.parse(jsonStr);
+                            console.log('JSON parseado directamente caso 2B:', errorData);
+                        } catch (parseErr) {
+                            console.error('Error parseando JSON directo caso 2B:', parseErr);
                             errorMessage = 'Error de comunicación con el servidor';
                         }
-                    } catch (fallbackErr) {
-                        console.error('Error en fallback caso 2:', fallbackErr);
-                        errorMessage = 'Error de comunicación con el servidor';
                     }
                 }
-            } else {
-                console.log('🔍 CASO 2B: JSON directo en message');
-                // Para casos donde el JSON está directamente en el mensaje
-                const startIndex = jsonStr.indexOf('{');
-                const endIndex = jsonStr.lastIndexOf('}') + 1;
-                if (startIndex !== -1 && endIndex > startIndex) {
-                    jsonStr = jsonStr.substring(startIndex, endIndex);
-                    
-                    try {
-                        errorData = JSON.parse(jsonStr);
-                        console.log('JSON parseado directamente caso 2B:', errorData);
-                    } catch (parseErr) {
-                        console.error('Error parseando JSON directo caso 2B:', parseErr);
-                        errorMessage = 'Error de comunicación con el servidor';
+            } 
+            // Caso 3: Error simple con mensaje directo
+            else {
+                console.log('🔍 CASO 3: Error simple con mensaje directo');
+                errorMessage = error.message || 'Error desconocido';
+            }
+
+            // Procesar los datos del error si se pudo parsear
+            if (errorData && errorData.message) {
+                console.log('✅ Procesando errorData.message:', errorData.message);
+                errorMessage = errorData.message;
+                
+                // Manejar detalles que pueden ser array o string
+                if (errorData.details) {
+                    if (Array.isArray(errorData.details)) {
+                        errorDetails = errorData.details;
+                    } else {
+                        errorDetails = [errorData.details];
                     }
+                    console.log('✅ Detalles procesados:', errorDetails);
                 }
             }
-        } 
-        // Caso 3: Error simple con mensaje directo
-        else {
-            console.log('🔍 CASO 3: Error simple con mensaje directo');
-            errorMessage = error.message || 'Error desconocido';
-        }
 
-        // Procesar los datos del error si se pudo parsear
-        if (errorData && errorData.message) {
-            console.log('✅ Procesando errorData.message:', errorData.message);
-            errorMessage = errorData.message;
+            // Si no tenemos mensaje, usar uno por defecto
+            if (!errorMessage) {
+                errorMessage = 'Se produjo un error inesperado';
+            }
+
+            console.log('🎯 Mensaje final procesado:', errorMessage);
+            console.log('🎯 Detalles finales procesados:', errorDetails);
+
+            // Crear HTML para los detalles (diseño centrado con icono de círculo rojo)
+            const detailsHtml = errorDetails.length > 0
+                ? `
+                    <div class="mt-3">
+                        <hr class="my-2">
+                        ${errorDetails.map(detail => `
+                            <p class="mb-2 d-flex align-items-center justify-content-center text-danger">
+                                <i class="fas fa-exclamation-circle me-2 text-danger"></i>
+                                <span class="small">${detail}</span>
+                            </p>
+                        `).join('')}
+                    </div>
+                `
+                : '';
+
+            return Swal.fire({
+                icon: 'error',
+                title: 'Error en la Operación',
+                html: `
+                    <div class="text-center">
+                        <p class="mb-2 text-dark">${errorMessage}</p>
+                        ${detailsHtml}
+                    </div>
+                `,
+                customClass: {
+                    icon: 'border-0',
+                    confirmButton: 'btn btn-danger',
+                    htmlContainer: 'text-center'
+                },
+                buttonsStyling: false,
+                confirmButtonText: 'Entendido',
+                width: '500px'
+            });
             
-            // Manejar detalles que pueden ser array o string
-            if (errorData.details) {
-                if (Array.isArray(errorData.details)) {
-                    errorDetails = errorData.details;
-                } else {
-                    errorDetails = [errorData.details];
-                }
-                console.log('✅ Detalles procesados:', errorDetails);
-            }
+        } catch (parseError) {
+            console.error('Error crítico parseando mensaje de error:', parseError);
+            return Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Se produjo un error al procesar la respuesta del servidor',
+                customClass: {
+                    icon: 'border-0',
+                    confirmButton: 'btn btn-danger'
+                },
+                buttonsStyling: false,
+                confirmButtonText: 'Entendido'
+            });
+        }
+    }
+// ==========
+// JWT Token
+// ==========
+
+function getAuthToken() {
+    try {
+        // Obtener desde meta tag
+        const tokenMeta = document.querySelector('meta[name="jwt-token"]');
+        if (tokenMeta && tokenMeta.content && tokenMeta.content.trim() !== '') {
+            console.log('Token obtenido desde meta tag');
+            return tokenMeta.content.trim();
         }
 
-        // Si no tenemos mensaje, usar uno por defecto
-        if (!errorMessage) {
-            errorMessage = 'Se produjo un error inesperado';
+        // Obtener desde variable global si está disponible
+        if (typeof window.jwtToken !== 'undefined' && window.jwtToken) {
+            console.log('Token obtenido desde variable global');
+            return window.jwtToken;
         }
 
-        console.log('🎯 Mensaje final procesado:', errorMessage);
-        console.log('🎯 Detalles finales procesados:', errorDetails);
+        // Intentar desde localStorage como fallback
+        const localToken = localStorage.getItem('jwtToken');
+        if (localToken) {
+            console.log('Token obtenido desde localStorage');
+            return localToken;
+        }
 
-        // Crear HTML para los detalles (diseño centrado con icono de círculo rojo)
-        const detailsHtml = errorDetails.length > 0
-            ? `
-                <div class="mt-3">
-                    <hr class="my-2">
-                    ${errorDetails.map(detail => `
-                        <p class="mb-2 d-flex align-items-center justify-content-center text-danger">
-                            <i class="fas fa-exclamation-circle me-2 text-danger"></i>
-                            <span class="small">${detail}</span>
-                        </p>
-                    `).join('')}
-                </div>
-            `
-            : '';
-
-        return Swal.fire({
-            icon: 'error',
-            title: 'Error en la Operación',
-            html: `
-                <div class="text-center">
-                    <p class="mb-2 text-dark">${errorMessage}</p>
-                    ${detailsHtml}
-                </div>
-            `,
-            customClass: {
-                icon: 'border-0',
-                confirmButton: 'btn btn-danger',
-                htmlContainer: 'text-center'
-            },
-            buttonsStyling: false,
-            confirmButtonText: 'Entendido',
-            width: '500px'
-        });
-        
-    } catch (parseError) {
-        console.error('Error crítico parseando mensaje de error:', parseError);
-        return Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Se produjo un error al procesar la respuesta del servidor',
-            customClass: {
-                icon: 'border-0',
-                confirmButton: 'btn btn-danger'
-            },
-            buttonsStyling: false,
-            confirmButtonText: 'Entendido'
-        });
+        console.warn('No se encontró token JWT en ninguna fuente');
+        return null;
+    } catch (error) {
+        console.error('Error obteniendo token de autenticación:', error);
+        return null;
     }
 }
 
+// ===========
+// UTILIDADES
+// ===========
 
 // Función genérica para posicionar tooltips
 function positionTooltip(tooltip, event, offset = { x: 15, y: -10 }) {
@@ -2066,3 +2133,265 @@ function hideContextMenu() {
         }, 1000);
     }
 }
+
+
+// ===================
+// SECURITY GROUPS
+// ===================
+
+if (!document.getElementById('interfaceSGModal')) {
+    $('body').append(`
+        <div class="modal fade" id="interfaceSGModal" tabindex="-1" aria-labelledby="interfaceSGModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content border-0">
+                    <div class="modal-header bg-gradient-success px-4">
+                        <h5 class="modal-title text-white" id="interfaceSGModalLabel">
+                            <i class="fas fa-shield me-2"></i>
+                            Gestionar Security Group de la Interfaz
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4" id="interfaceSGModalBody">
+                        <div class="text-center text-muted">Cargando información...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `);
+}
+
+// Función para abrir el modal y cargar la info de la interfaz y su SG
+window.openInterfaceSGModal = async function(interfaceId, osId = '', name = '', tapName = '', mac = '') {
+    const $body = $('#interfaceSGModalBody');
+    $body.html('<div class="text-center text-muted">Cargando información...</div>');
+
+    try {
+        // 1. Obtener SG asignado a la interfaz
+        const sgResp = await fetch(`${GATEWAY_URL}/get-security-group-by-interface/${interfaceId}`);
+        const sgData = await sgResp.json();
+        if (!sgData || sgData.status !== 'success') throw new Error(sgData.message || 'Error al obtener SG');
+
+        const assignedSG = sgData.content && sgData.content.id ? sgData.content : null;
+
+        // 2. Obtener lista de SGs disponibles
+        const listResp = await fetch(`${GATEWAY_URL}/list-security-groups`);
+        const listData = await listResp.json();
+        console.log('Lista de SGs:', listData);
+        if (!listData || listData.status !== 'success'){
+            showErrorAlert(listData);
+            throw new Error(listData.message || 'Error al listar SGs');
+        } 
+
+        const availableSGs = listData.content || [];
+
+        let html = `
+        <div class="mb-3">
+            <div class="card border-0 mb-0">
+                <div class="card-body py-3 px-4">
+                    <div class="d-flex flex-wrap justify-content-center align-items-center gap-2">
+                        <span class="badge bg-gradient-success text-white fs-6 px-3 py-2">
+                            <i class="fas fa-network-wired me-2"></i> ID <span class="fw-bold">#${interfaceId}</span>
+                        </span>
+                        ${osId ? `
+                        <span class="badge bg-gradient-secondary text-success fs-6 px-3 py-2">
+                            <i class="fas fa-hashtag me-1"></i> OS ID: <span class="fw-bold">${osId}</span>
+                        </span>
+                        ` : ''}
+                        ${name ? `
+                        <span class="badge bg-gradient-success text-white fs-6 px-3 py-2">
+                            <i class="fas fa-tag me-1"></i> Interfaz: <span class="fw-bold">${name}</span>
+                        </span>
+                        ` : ''}
+                        ${tapName ? `
+                        <span class="badge bg-gradient-success text-white fs-6 px-3 py-2">
+                            <i class="fas fa-terminal me-1"></i> Interfaz: <span class="fw-bold">${tapName}</span>
+                        </span>
+                        ` : ''}
+                        <span class="badge bg-gradient-success text-white fs-6 px-3 py-2">
+                            <i class="fas fa-ethernet me-1"></i> MAC: <span class="fw-bold">${mac || '-'}</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+        if (assignedSG) {
+            html += `
+                <div class="card border mb-3">
+                    <div class="card-body py-3">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <span class="fw-bold text-success"><i class="fas fa-shield-alt me-1"></i>#${assignedSG.id} ${assignedSG.name}</span>
+                                <div class="text-secondary small mt-1">${assignedSG.description || '<span class="text-muted">Sin descripción</span>'}</div>
+                                <div class="text-secondary small mt-1 text-bold">N° de Reglas: ${assignedSG.rule_count ?? 0}</div>
+                            </div>
+                            <div>
+                                <button class="mb-0 btn btn-link text-dark action-btn view-rules me-2" title="Ver reglas" onclick="window.open('/User/securityGroup/${assignedSG.id}', '_blank')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="mb-0 btn btn-link text-dark action-btn unassign-sg" title="Desasociar Security Group" onclick="removeSGFromInterface(${interfaceId}, ${assignedSG.id})">
+                                    <i class="fas fa-unlink"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            html += `
+                <div class="mb-2">
+                    <label for="selectSG" class="form-label fw-bold">Asignar Security Group</label>
+                    <select id="selectSG" class="form-select" style="width:100%;">
+                        <option value="">Selecciona un Security Group...</option>
+                        ${availableSGs.map(sg => `
+                            <option value="${sg.id}" data-desc="${sg.description || ''}">
+                                ${sg.name}
+                            </option>
+                        `).join('')}
+                    </select>
+                </div>
+                <div class="modal-footer px-4 mt-3">
+                
+                    <button class="btn btn-success" id="btnAssignSG" ${availableSGs.length === 0 ? 'disabled' : ''}>
+                        <i class="fas fa-plus me-1"></i>Asignar
+                    </button>
+                </div>
+            `;
+        }
+
+        $body.html(html);
+
+        // Inicializar select2 si hay SGs disponibles
+        if (!assignedSG && availableSGs.length > 0) {
+            // Inicializar Select2 bonito
+            $('#selectSG').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Busca y selecciona un grupo',
+                allowClear: false,
+                width: '100%',
+                dropdownParent: $('#interfaceSGModal'),
+                minimumResultsForSearch: 0,
+                templateResult: formatSGOption,
+                templateSelection: formatSGSelection,
+                escapeMarkup: function(markup) { return markup; }
+            }).on('select2:open', function() {
+                document.querySelector('.select2-search__field').focus();
+            });
+        }
+
+        // Templates para opciones y selección
+        function formatSGOption(sg) {
+            if (!sg.id) return sg.text;
+            const $sg = $(sg.element);
+            const desc = $sg.data('desc');
+            return $(`
+                <div class="d-flex align-items-start p-2">
+                    <i class="fas fa-shield-alt text-success mt-1 me-3"></i>
+                    <div>
+                        <div class="fw-semibold"><span class="text-bold">#${sg.id}</span> ${sg.text.replace(/^\[\d+\]\s*/, '')}</div>
+                        ${desc ? `<small class="text-muted d-block">${desc}</small>` : ''}
+                    </div>
+                </div>
+            `);
+        }
+        function formatSGSelection(sg) {
+            if (!sg.id) return sg.text;
+            return $(`
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-shield-alt text-success me-2"></i>
+                    <span class="fw-semibold">${sg.text}</span>
+                </div>
+            `);
+        }
+
+        // Asignar SG
+        $('#btnAssignSG').off('click').on('click', async function() {
+            const sgId = $('#selectSG').val();
+            if (!sgId) return;
+            $(this).prop('disabled', true).text('Asignando...');
+            // Mostrar SweetAlert de carga
+            Swal.fire({
+                title: 'Asignando Security Group...',
+                text: 'Por favor espera...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            try {
+                const resp = await fetch(`${GATEWAY_URL}/assign-security-group`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ interface_id: interfaceId, security_group_id: sgId })
+                });
+                const result = await resp.json();
+                Swal.close();
+                if (result.status === 'success') {
+                    Swal.fire({ icon: 'success', title: 'Asignado', text: 'Security Group asignado correctamente', timer: 1200, showConfirmButton: false, timerProgressBar: true });
+                    $('#interfaceSGModal').modal('hide');
+                } else {
+                    showErrorAlert(result)
+                    throw new Error(result.message || 'Error al asignar');
+                }
+            } catch (err) {
+                console.log('Error al asignar SG:', err);
+            }
+            $(this).prop('disabled', false).html('<i class="fas fa-plus me-1"></i>Asignar');
+        });
+
+    } catch (err) {
+        $body.html(`<div class="alert alert-danger">Error: ${err.message}</div>`);
+    }
+
+    $('#interfaceSGModal').modal('show');
+};
+
+// Quitar SG de la interfaz (usando endpoint real)
+window.removeSGFromInterface = async function(interfaceId, sgId) {
+    Swal.fire({
+        icon: 'warning',
+        title: '¿Quitar Security Group?',
+        text: '¿Estás seguro de desasociar el Security Group de esta interfaz?',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, quitar',
+        cancelButtonText: 'Cancelar',
+        customClass: {
+            confirmButton: 'btn btn-danger',
+            cancelButton: 'btn btn-secondary ms-2'
+        },
+        buttonsStyling: false
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            // Mostrar SweetAlert de carga
+            Swal.fire({
+                title: 'Desasociando Security Group...',
+                text: 'Por favor espera...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            try {
+                const resp = await fetch(`${GATEWAY_URL}/unassign-security-group`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ interface_id: interfaceId, security_group_id: sgId })
+                });
+                const data = await resp.json();
+                Swal.close();
+                if (data.status === 'success') {
+                    Swal.fire({ icon: 'success', title: 'Removido', text: 'Security Group desasociado', timer: 1200, showConfirmButton: false, timerProgressBar: true });
+                    $('#interfaceSGModal').modal('hide');
+                } else {
+                    showErrorAlert(result)
+                    throw new Error(data.message || 'Error al remover');
+                }
+            } catch (err) {
+                console.log('Error al quitar SG:', err);
+            }
+        }
+    });
+};
+
+

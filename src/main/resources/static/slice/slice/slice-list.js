@@ -246,11 +246,11 @@ $(document).ready(async function() {
                 }
             ],
             language: {
-                lengthMenu: "Mostrar _MENU_ registros por página",
+                lengthMenu: "Mostrar _MENU_ slices por página",
                 zeroRecords: "No se encontraron resultados",
-                info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-                infoEmpty: "Mostrando 0 a 0 de 0 registros",
-                infoFiltered: "(filtrado de _MAX_ registros totales)",
+                info: "Mostrando _START_ a _END_ de _TOTAL_ slices",
+                infoEmpty: "Mostrando 0 a 0 de 0 slices",
+                infoFiltered: "(filtrado de _MAX_ slices totales)",
                 paginate: {
                     first: "Primero",
                     last: "Último",

@@ -58,6 +58,13 @@
     <link id="stylesheet" th:href="@{/slice/vis/dist/vis-network.css}" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 
+    <!-- SELECT2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+
+    <!-- Token JWT -->
+    <meta name="jwt-token" th:content="${jwtToken}">
+
     <!-- Estilos extra -->
     <style>
         #network-container {
@@ -274,6 +281,74 @@
             cursor: help;
         }
 
+        .manage-sg:hover {
+            color: #4CAF50 !important;
+        }
+
+        .view-rules:hover {
+            color: #1c6ef3 !important;
+        }
+
+        .unassign-sg:hover {
+            color: #e91e63 !important;
+        }
+
+        .action-btn:hover {
+            transform: scale(1.1);
+            transition: transform 0.2s ease;
+        }
+
+        .select2-container--bootstrap-5 {
+            width: 100% !important;
+        }
+
+        .select2-container--bootstrap-5 .select2-selection {
+            min-height: 40px;
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+            border: 1px solid #e9ecef;
+            border-radius: 0.5rem;
+        }
+
+        .select2-container--bootstrap-5 .select2-search__field {
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.5rem;
+        }
+
+        .select2-container--bootstrap-5 .select2-results__option {
+            padding: 0.5rem 0.75rem;
+        }
+
+        .select2-container--bootstrap-5 .select2-results__option--highlighted {
+            background-color: #4CAF50 !important;
+            color: #ffffff !important;
+        }
+
+        .select2-dropdown {
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .select2-container--bootstrap-5 .select2-results__option--selected {
+            background-color: #cae0ca !important;
+            color: #ffffff !important;
+        }
+
+        .select2-container--bootstrap-5 .select2-results__option--selected small,
+        .select2-container--bootstrap-5 .select2-results__option--selected .text-muted,
+        .select2-container--bootstrap-5 .select2-results__option--selected * {
+            color: #ffffff !important;
+        }
+
+        .select2-container--bootstrap-5 .select2-results__option--highlighted small,
+        .select2-container--bootstrap-5 .select2-results__option--highlighted .text-muted {
+            color: #ffffff !important;
+        }
+
+        .select2-container--bootstrap-5 .select2-results__option--highlighted * {
+            color: #ffffff !important;
+        }
+
     </style>
 </head>
 <body class="bg-gray-100">
@@ -309,7 +384,7 @@
             <!-- Área de trabajo principal -->
             <div class="row g-4">
 
-                <div class="col-8 animate__animated animate__fadeInLeft" style="min-height: 590px !important;">
+                <div class="col-8 animate__animated animate__fadeInLeft" style="max-height: 820px !important;">
                     <div class="card h-100">
                         <div class="card-header p-3 bg-gradient-dark">
                             <div class="row">
@@ -319,7 +394,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="card-body p-3" style="height: calc(100vh - 80vh); ">
+                        <div class="card-body p-3" style="height: calc(100vh - 85vh); ">
                             <div id="network-container" class="border border-radius-xl" style="width: 100%; height: 100%; outline: none !important; ">
 
                             </div>
@@ -332,7 +407,7 @@
 
                     <div class="row mb-3">
                         <div class="col-12">
-                            <div class="card mb-4 panel-card panel-card-1 w-100">
+                            <div class="card mb-2 panel-card panel-card-1 w-100">
                                 <div class="card-header p-3 bg-gradient-warning">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
@@ -355,7 +430,7 @@
                                         <div class="col-12 col-sm-6">
                                             <div class="timeline timeline-one-side">
 
-                                                <div class="timeline-block mb-3">
+                                                <div class="timeline-block mb-1">
                                     <span class="timeline-step">
                                         <i class="material-symbols-rounded text-warning">label</i>
                                     </span>
@@ -365,7 +440,7 @@
                                                     </div>
                                                 </div>
 
-                                                <div class="timeline-block mb-3">
+                                                <div class="timeline-block mb-1">
                                     <span class="timeline-step">
                                         <i class="material-symbols-rounded text-warning">dns</i>
                                     </span>
@@ -380,19 +455,19 @@
 
                                         <div class="col-12 col-sm-6">
                                             <div class="timeline timeline-one-side">
-                                                <div class="timeline-block">
+                                                <div class="timeline-block mb-1">
                                             <span class="timeline-step">
                                                 <i class="material-symbols-rounded text-warning">hub</i>
                                             </span>
                                                     <div class="timeline-content">
                                                         <h6 class="text-dark text-sm font-weight-bold mb-0">Infraestructura</h6>
                                                         <p class="text-secondary text-xs mt-1 mb-0">
-                                                            <span id="infrastructure">Cargando...</span>
+                                                            <span id="infrastructure" class="font-weight-bold">Cargando...</span>
                                                         </p>
                                                     </div>
                                                 </div>
 
-                                                <div class="timeline-block mb-3">
+                                                <div class="timeline-block mb-0">
                                     <span class="timeline-step">
                                         <i class="material-symbols-rounded text-warning">cloud</i>
                                     </span>
@@ -438,7 +513,7 @@
 
                     <div class="row mb-3">
                         <div class="col-12">
-                            <div class="card mb-4 panel-card panel-card-2 w-100">
+                            <div class="card mb-2 panel-card panel-card-2 w-100">
                                 <div class="card-header p-3 bg-gradient-info">
                                     <h6 class="mb-0 text-white">Acciones Rápidas</h6>
                                     <p class="text-white text-sm mb-0">Herramientas para la gestión gráfica y funcional de la Slice</p>
@@ -601,6 +676,7 @@
                                     <th class="text-uppercase text-secondary text-xs font-weight-bolder">MAC</th>
                                     <th class="text-uppercase text-secondary text-xs  font-weight-bolder">Enlace</th>
                                     <th class="text-uppercase text-secondary text-xs font-weight-bolder">Conectado a</th>
+                                    <th class="text-uppercase text-secondary text-xs font-weight-bolder">Security Group</th>
                                 </tr>
                                 </thead>
                                 <tbody id="vmModalInterfaces">
@@ -917,6 +993,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script type="text/javascript" src="../static/js/core/popper.min.js"></script>
 <script type="text/javascript" src="../static/js/core/bootstrap.min.js"></script>
 
