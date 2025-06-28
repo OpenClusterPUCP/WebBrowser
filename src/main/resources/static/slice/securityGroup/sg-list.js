@@ -52,10 +52,12 @@ $(document).ready(async function() {
     // =======================
     async function loadSecurityGroups() {
         try {
+            const token = getAuthToken();
             const response = await fetch(`${gatewayUrl}/list-security-groups`, {
                 method: 'GET',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                 }
             });
             const result = await response.json();
@@ -141,7 +143,7 @@ $(document).ready(async function() {
                         }
                         // Para display
                         if (Array.isArray(data) && data.length > 0) {
-                            return `<span class="text-success">${data.length}</span>`;
+                            return `<span class="text-success text-bold">${data.length}</span>`;
                         }
                         return `<span class="text-muted">Ninguna</span>`;
                     },
@@ -332,10 +334,12 @@ $(document).ready(async function() {
         });
 
         try {
+            const token = getAuthToken();
             const response = await fetch(`${gatewayUrl}/create-security-group`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                 },
                 body: JSON.stringify({ name, description })
             });
@@ -357,7 +361,6 @@ $(document).ready(async function() {
                 throw new Error(result.message || 'No se pudo crear el Security Group');
             }
         } catch (error) {
-            Swal.close();
             console.error('Error creando Security Group:', error);
         }
     });
@@ -385,10 +388,12 @@ $(document).ready(async function() {
         });
 
         try {
+            const token = getAuthToken();
             const response = await fetch(`${gatewayUrl}/edit-security-group`, {
                 method: 'PUT',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                 },
                 body: JSON.stringify({ security_group_id, name, description })
             });
@@ -462,10 +467,12 @@ $(document).ready(async function() {
             });
 
             try {
+                const token = getAuthToken();
                 const response = await fetch(`${gatewayUrl}/delete-security-group/${sgId}`, {
                     method: 'DELETE',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                     }
                 });
                 const result = await response.json();

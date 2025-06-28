@@ -429,8 +429,11 @@ $(document).ready(async function() {
                         `<small class="text-muted d-block">${truncateText(description, 100)}</small>` : 
                         ''}
                     <div class="mt-1">
-                        <span class="badge bg-dark me-2">${infrastructure}</span>
-                        <span class="badge bg-secondary">${workerCount} worker${workerCount !== 1 ? 's' : ''}</span>
+                        ${infrastructure == "OpenStack" ? 
+                            `<span class="badge bg-primary me-2">${infrastructure}</span>` :
+                            `<span class="badge bg-success me-2">${infrastructure}</span>`
+                        }
+                        <span class="badge bg-dark">${workerCount} worker${workerCount !== 1 ? 's' : ''}</span>
                     </div>
                 </div>
             </div>

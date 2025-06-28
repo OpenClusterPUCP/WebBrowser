@@ -54,9 +54,11 @@ $(document).ready(async function() {
     async function loadSecurityGroupInfo() {
         const sgId = $('#securityGroup-data').data('slice-id');
         try {
+            const token = getAuthToken();
             const response = await fetch(`${gatewayUrl}/get-security-group/${sgId}`, {
                 method: 'GET',
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
             });
             const result = await response.json();
             if (result.status === 'success' && result.content) {
@@ -66,7 +68,7 @@ $(document).ready(async function() {
                         <span class="fw-bold text-info">
                             <i class="fas fa-shield me-1"></i>${sg.name ? sg.name : '<span class="text-muted">Sin nombre</span>'}
                         </span>
-                        ${sg.os_id ? `<span class="text-muted ms-2">(OS ID: ${sg.os_id})</span>` : ''}
+                        ${sg.os_id ? `<span class="text-muted ms-2"></span>` : ''}
                     </div>
                     <div class="text-secondary small mb-1"><i class="fas fa-book"></i>
                         ${sg.description ? sg.description : '<span class="text-muted">Sin descripción</span>'}
@@ -96,10 +98,12 @@ $(document).ready(async function() {
     // =======================
     async function loadRules() {
         try {
+            const token = getAuthToken();
             const response = await fetch(`${gatewayUrl}/list-rules/${sgId}`, {
                 method: 'GET',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                 }
             });
             const result = await response.json();
@@ -146,22 +150,48 @@ $(document).ready(async function() {
                         return `<span class="fw-semibold">#${data}</span>`;
                     }
                 },
-                { data: 'direction', render: d => d === 'ingress' ? 'Entrante' : 'Saliente' },
-                { data: 'ether_type', render: d => d ? d.toUpperCase() : '-' },
-                { data: 'protocol', render: d => d ? d.toUpperCase() : '-' },
-                {
+                { // Dirección con color
+                    data: 'direction',
+                    render: d => {
+                        if (d === 'ingress') {
+                            return `<span class="text-info fw-semibold">Entrante</span>`;
+                        } else {
+                            return `<span class="text-primary fw-semibold">Saliente</span>`;
+                        }
+                    }
+                },
+                { // EtherType
+                    data: 'ether_type',
+                    render: d => d ? d.toUpperCase() : '-'
+                },
+                { // Protocolo con color
+                    data: 'protocol',
+                    render: d => {
+                        if (!d) return '-';
+                        const proto = d.toUpperCase();
+                        if (proto === 'TCP') {
+                            return `<span class="fw-semibold" style="color:rgb(36, 184, 152) !important"">${proto}</span>`;
+                        } else if (proto === 'UDP') {
+                            return `<span class="fw-semibold" style="color:rgb(150, 28, 99) !important">${proto}</span>`;
+                        } else if (proto === 'ICMP') {
+                            return `<span class="text-warning fw-semibold">${proto}</span>`;
+                        }
+                        return `<span class="text-dark fw-semibold">${proto}</span>`;
+                    }
+                },
+                { // Puertos con clase fw-semibold
                     data: null,
                     render: function (data) {
                         if (data.protocol === 'tcp' || data.protocol === 'udp') {
                             if (data.from_port && data.to_port && data.from_port !== data.to_port) {
-                                return `${data.from_port} - ${data.to_port}`;
+                                return `<span class="fw-semibold">${data.from_port} - ${data.to_port}</span>`;
                             } else if (data.from_port) {
-                                return `${data.from_port}`;
+                                return `<span class="fw-semibold">${data.from_port}</span>`;
                             } else {
-                                return 'Todos';
+                                return `<span class="fw-semibold">Todos</span>`;
                             }
                         }
-                        return '-';
+                        return `<span class="fw-semibold">-</span>`;
                     }
                 },
                 { data: 'remote_cidr', render: d => d || '-' },
@@ -178,7 +208,6 @@ $(document).ready(async function() {
                                             title="${data.replace(/"/g, '&quot;')}">${truncated}</span>`;
                             }
                             return `<span class="text-truncate">${data}</span>`;
-                            
                         }
                         return data;
                     }
@@ -276,10 +305,12 @@ $(document).ready(async function() {
             });
 
             try {
+                const token = getAuthToken();
                 const response = await fetch(`${gatewayUrl}/delete-rule/${ruleId}`, {
                     method: 'DELETE',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                     }
                 });
                 const result = await response.json();
@@ -476,9 +507,11 @@ $(document).ready(async function() {
         console.log('Cuerpo de la solicitud:', JSON.stringify(body));
 
         try {
+            const token = getAuthToken();
             const response = await fetch(`${gatewayUrl}/create-rule`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
                 body: JSON.stringify(body)
             });
             const result = await response.json();
@@ -534,7 +567,16 @@ $(document).ready(async function() {
     // Inicializar selects bonitos
     $('#direction, #etherType, #protocol, #portType').select2({
         theme: 'bootstrap-5',
-        dropdownParent: $('#ruleModal')
+        dropdownParent: $('#ruleModal'),
+        minimumResultsForSearch: Infinity
+    });
+
+    // Fix: Evitar selección automática al abrir el select2 (bug de doble click accidental)
+    $('#direction, #etherType, #protocol, #portType').on('select2:opening', function(e) {
+        // Si el select2 ya está abierto, previene el evento (evita doble apertura/cierre)
+        if ($(this).data('select2').isOpen()) {
+            e.preventDefault();
+        }
     });
 
     // Estado inicial de campos

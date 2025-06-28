@@ -2047,20 +2047,20 @@ function getAuthToken() {
         // Obtener desde meta tag
         const tokenMeta = document.querySelector('meta[name="jwt-token"]');
         if (tokenMeta && tokenMeta.content && tokenMeta.content.trim() !== '') {
-            console.log('Token obtenido desde meta tag');
+            console.log('Token obtenido desde meta tag', tokenMeta);
             return tokenMeta.content.trim();
         }
 
         // Obtener desde variable global si está disponible
         if (typeof window.jwtToken !== 'undefined' && window.jwtToken) {
-            console.log('Token obtenido desde variable global');
+            console.log('Token obtenido desde variable global', window.jwtToken);
             return window.jwtToken;
         }
 
         // Intentar desde localStorage como fallback
         const localToken = localStorage.getItem('jwtToken');
         if (localToken) {
-            console.log('Token obtenido desde localStorage');
+            console.log('Token obtenido desde localStorage', localToken);
             return localToken;
         }
 
@@ -2167,14 +2167,25 @@ window.openInterfaceSGModal = async function(interfaceId, osId = '', name = '', 
 
     try {
         // 1. Obtener SG asignado a la interfaz
-        const sgResp = await fetch(`${GATEWAY_URL}/get-security-group-by-interface/${interfaceId}`);
+        const token = getAuthToken();
+        const sgResp = await fetch(`${GATEWAY_URL}/get-security-group-by-interface/${interfaceId}`, {
+            method: 'GET',
+            headers: {
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            }
+        });
         const sgData = await sgResp.json();
         if (!sgData || sgData.status !== 'success') throw new Error(sgData.message || 'Error al obtener SG');
 
         const assignedSG = sgData.content && sgData.content.id ? sgData.content : null;
 
         // 2. Obtener lista de SGs disponibles
-        const listResp = await fetch(`${GATEWAY_URL}/list-security-groups`);
+        const listResp = await fetch(`${GATEWAY_URL}/list-security-groups`, {
+            method: 'GET',
+            headers: {
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            }
+        });
         const listData = await listResp.json();
         console.log('Lista de SGs:', listData);
         if (!listData || listData.status !== 'success'){
@@ -2190,11 +2201,11 @@ window.openInterfaceSGModal = async function(interfaceId, osId = '', name = '', 
                 <div class="card-body py-3 px-4">
                     <div class="d-flex flex-wrap justify-content-center align-items-center gap-2">
                         <span class="badge bg-gradient-success text-white fs-6 px-3 py-2">
-                            <i class="fas fa-network-wired me-2"></i> ID <span class="fw-bold">#${interfaceId}</span>
+                            <i class="fas fa-network-wired me-2"></i> ID: <span class="fw-bold">#${interfaceId}</span>
                         </span>
                         ${osId ? `
-                        <span class="badge bg-gradient-secondary text-success fs-6 px-3 py-2">
-                            <i class="fas fa-hashtag me-1"></i> OS ID: <span class="fw-bold">${osId}</span>
+                        <span class="badge bg-gradient-success text-white fs-6 px-3 py-2">
+                            <i class="fas fa-passport me-1"></i> OS ID: <span class="fw-bold">${osId}</span>
                         </span>
                         ` : ''}
                         ${name ? `
@@ -2320,9 +2331,11 @@ window.openInterfaceSGModal = async function(interfaceId, osId = '', name = '', 
                 }
             });
             try {
+                const token = getAuthToken();
                 const resp = await fetch(`${GATEWAY_URL}/assign-security-group`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json',
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
                     body: JSON.stringify({ interface_id: interfaceId, security_group_id: sgId })
                 });
                 const result = await resp.json();
@@ -2340,14 +2353,14 @@ window.openInterfaceSGModal = async function(interfaceId, osId = '', name = '', 
             $(this).prop('disabled', false).html('<i class="fas fa-plus me-1"></i>Asignar');
         });
 
-    } catch (err) {
-        $body.html(`<div class="alert alert-danger">Error: ${err.message}</div>`);
-    }
+        $('#interfaceSGModal').modal('show')
 
-    $('#interfaceSGModal').modal('show');
+    } catch (err) {
+        console.error('Error al abrir modal de SG:', err);
+    }
 };
 
-// Quitar SG de la interfaz (usando endpoint real)
+// Quitar SG de la interfaz
 window.removeSGFromInterface = async function(interfaceId, sgId) {
     Swal.fire({
         icon: 'warning',
@@ -2373,9 +2386,11 @@ window.removeSGFromInterface = async function(interfaceId, sgId) {
                 }
             });
             try {
+                const token = getAuthToken();
                 const resp = await fetch(`${GATEWAY_URL}/unassign-security-group`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json',
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
                     body: JSON.stringify({ interface_id: interfaceId, security_group_id: sgId })
                 });
                 const data = await resp.json();

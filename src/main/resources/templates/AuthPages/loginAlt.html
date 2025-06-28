@@ -7,15 +7,15 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary-color: #202020;
-            --primary-dark: #232323;
-            --primary-light: #494949;
-            --accent-color: #f39c12;
-            --accent-hover: #f39c12;
+            --primary-color: #000000;
+            --primary-dark: #000000;
+            --primary-light: #454545;
+            --accent-color: #4cd1a9;
+            --accent-hover: #35b593;
             --gradient-start: #000000;
-            --gradient-end: #3c3c3c;
+            --gradient-end: #0f2046;
             --error-color: #e74c3c;
-            --success-color: #f39c12;
+            --success-color: #2ecc71;
             --warning-color: #f39c12;
             --text-dark: #344054;
             --text-light: #64748b;
@@ -93,7 +93,7 @@
         }
 
         .logo {
-            width: 400px;
+            width: 200px;
             height: 60px;
             display: flex;
             align-items: center;
@@ -863,13 +863,13 @@
 
         <!-- Content -->
         <div class="brand-side-content">
-            <div class="brand-logo" style="display: flex; align-items: center; justify-content: center;">
-                <div class="logo" style="display: flex; align-items: center; gap: 20px;">
-                    <svg viewBox="0 0 400 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 400px; height: 100px;">
+            <div class="brand-logo">
+                <div class="logo">
+                    <svg viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <!-- Elemento base - círculo con gradiente -->
-                        <circle cx="32" cy="30" r="30" fill="black" />
+                        <circle cx="32" cy="30" r="20" fill="url(#baseGradient)" />
                         <!-- Elementos del cluster -->
-                        <circle cx="32" cy="30" r="8" fill="#f39c12" />
+                        <circle cx="32" cy="30" r="8" fill="#4cd1a9" />
                         <circle cx="20" cy="20" r="4.5" fill="white" />
                         <circle cx="42" cy="18" r="3.5" fill="white" />
                         <circle cx="44" cy="36" r="4" fill="white" />
@@ -882,21 +882,29 @@
                         <line x1="32" y1="30" x2="24" y2="42" stroke="white" stroke-width="1.5" />
 
                         <!-- Texto "OpenCluster" -->
-                        <text x="65" y="40" font-family="Arial, sans-serif" font-weight="700" font-size="46" fill="white">Open</text>
-                        <text x="184" y="40" font-family="Arial, sans-serif" font-weight="700" font-size="46" fill="#f39c12">Cluster</text>
+                        <text x="60" y="32" font-family="Arial, sans-serif" font-weight="700" font-size="18" fill="white">Open</text>
+                        <text x="110" y="32" font-family="Arial, sans-serif" font-weight="700" font-size="18" fill="#4cd1a9">Cluster</text>
+
+                        <!-- Gradiente para el círculo base -->
+                        <defs>
+                            <linearGradient id="baseGradient" x1="12" y1="10" x2="50" y2="50" gradientUnits="userSpaceOnUse">
+                                <stop offset="0%" stop-color="#3452a5" />
+                                <stop offset="100%" stop-color="#243773" />
+                            </linearGradient>
+                        </defs>
                     </svg>
                 </div>
             </div>
 
             <h1 class="brand-title">Impulsa tu infraestructura en la nube</h1>
-            <p class="brand-description">OpenCluster te ayuda a implementar, gestionar y administrar tu nube privada con seguridad y eficiencia.</p>
+            <p class="brand-description">OpenCluster te ayuda a implementar, gestionar y escalar tu nube privada con seguridad y eficiencia para tu negocio.</p>
 
             <ul class="feature-list">
                 <li class="feature-item">
             <span class="feature-icon">
               <i class="fas fa-shield-alt" style="font-size: 12px;"></i>
             </span>
-                    <span class="feature-text">Seguridad de red mediante reglas</span>
+                    <span class="feature-text">Seguridad de nivel empresarial con cifrado avanzado</span>
                 </li>
                 <li class="feature-item">
             <span class="feature-icon">
@@ -908,19 +916,19 @@
             <span class="feature-icon">
               <i class="fas fa-sync" style="font-size: 12px;"></i>
             </span>
-                    <span class="feature-text">Rollback ante errores en operaciones</span>
+                    <span class="feature-text">Respaldos automáticos y recuperación ante desastres</span>
                 </li>
                 <li class="feature-item">
             <span class="feature-icon">
               <i class="fas fa-code-branch" style="font-size: 12px;"></i>
             </span>
-                    <span class="feature-text">Orquestación de múltiples infraestructuras</span>
+                    <span class="feature-text">Orquestación de contenedores de última generación</span>
                 </li>
             </ul>
         </div>
 
         <div class="company-info">
-            2025 © OpenCluster - PUCP
+            OpenCluster Cloud Technologies © 2025
         </div>
     </div>
 
