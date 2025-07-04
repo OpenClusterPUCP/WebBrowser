@@ -56,7 +56,7 @@ let BACKEND_IP = 'localhost';
 let BACKEND_PORT = 5001;
 let AVAILABLE_IMAGES = [];
 let AVAILABLE_FLAVORS = [];
-let GATEWAY_URL = 'http://localhost:9000';
+let GATEWAY_URL = '/User/api/securityGroup';
 
 // ===================== CONFIGURACIÓN DE VIS.JS =====================
 const options = {
@@ -170,7 +170,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-async function getSliceData(flag){
+async function getSliceData(flag,aux=true){
     await loadResources();
     const sliceId = document.getElementById('slice-data').dataset.sliceId;
     if (!sliceId) {
@@ -194,15 +194,17 @@ async function getSliceData(flag){
     let data = null;
 
     try {
-        Swal.fire({
-            title: 'Cargando',
-            text: 'Obteniendo información de la Slice...',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
+        if(aux){
+            Swal.fire({
+                title: 'Cargando',
+                text: 'Obteniendo información de la Slice...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+        }
+        
         const response = await fetch(`/User/api/slice/${sliceId}`);
         data = await response.json();
         
@@ -401,7 +403,9 @@ async function getSliceData(flag){
                     }
                 });
                 
-                Swal.close();
+                if(aux){
+                    Swal.close();
+                }
 
             } catch (error) {
                 console.error('Error :c : ', error);
@@ -671,12 +675,16 @@ function loadTopologyVisualization(topology,sliceInfo,flag) {
 }
 
 // ===================== VISUALIZACIÓN DE INFORMACIÓN =====================
-function showVMInfo(vmId) {
+function showVMInfo(vmId,aux=true) {
     hideTooltip()
     const vm = SLICE_DATA.content.topology_info.vms.find(v => v.id === vmId);
     if (!vm) {
         console.error('VM no encontrada: ', vmId);
         return;
+    }
+
+    if (!aux) {
+        console.log('Mostrando información de VM con nueva data de Slice:', SLICE_DATA.content);
     }
 
     try {
@@ -782,9 +790,10 @@ function showVMInfo(vmId) {
 
             // Security Group info (puedes guardar el id en iface.security_group_id si lo tienes)
             let sgBtn = `
-                <button class="mb-0 btn btn-link text-dark action-btn manage-sg" 
+                <button class="mb-0 btn btn-link ${iface.security_group_id ? 'text-success' : 'text-dark'} action-btn manage-sg" 
                     title="Gestionar"
                     onclick="openInterfaceSGModal(
+                        ${vmId},
                         ${iface.id},
                         '${iface.os_id ? iface.os_id : ''}',
                         '${isOpenStack ? (iface.name || '') : ''}',
@@ -913,7 +922,9 @@ function showVMInfo(vmId) {
             });
         }, 100);
 
-        vmInfoModal.show();
+        if(aux){
+            vmInfoModal.show();
+        }  
 
     } catch (error) {
         console.error('Error: ', error);
@@ -1251,9 +1262,7 @@ window.toggleVMState = async function (vmId) {
             });
 
             // Actualizar datos del slice después de un breve delay
-            setTimeout(() => {
-                getSliceData(false);
-            }, 1000);
+            getSliceData(false, false);
 
         } else {
             throw {
@@ -1505,9 +1514,7 @@ window.restartSlice = function() {
                     });
                     
                     // Actualizar información después de un breve delay
-                    setTimeout(() => {
-                        getSliceData(false);
-                    }, 1500);
+                    getSliceData(false, false);
                 } else {
                     throw {
                         message: data.message || 'Error al reiniciar la Slice',
@@ -1570,10 +1577,8 @@ window.stopSlice = function() {
                             timerProgressBar: true
                         });
 
-                        // Actualizar información después de un breve delay
-                        setTimeout(() => {
-                            getSliceData(false);
-                        }, 1500);
+                        // Actualizar información
+                        getSliceData(false, false);
                     } else {
                         throw {
                             message: data.message || 'Error al detener la Slice',
@@ -1641,7 +1646,7 @@ window.restartVM = async function(vmId) {
 
             // Actualizar información después de un breve delay
             setTimeout(() => {
-                getSliceData(false);
+                getSliceData(false, false);
             }, 1500);
         } else {
             throw {
@@ -2161,7 +2166,7 @@ if (!document.getElementById('interfaceSGModal')) {
 }
 
 // Función para abrir el modal y cargar la info de la interfaz y su SG
-window.openInterfaceSGModal = async function(interfaceId, osId = '', name = '', tapName = '', mac = '') {
+window.openInterfaceSGModal = async function(vmId, interfaceId, osId = '', name = '', tapName = '', mac = '') {
     const $body = $('#interfaceSGModalBody');
     $body.html('<div class="text-center text-muted">Cargando información...</div>');
 
@@ -2241,7 +2246,7 @@ window.openInterfaceSGModal = async function(interfaceId, osId = '', name = '', 
                                 <button class="mb-0 btn btn-link text-dark action-btn view-rules me-2" title="Ver reglas" onclick="window.open('/User/securityGroup/${assignedSG.id}', '_blank')">
                                     <i class="fas fa-eye"></i>
                                 </button>
-                                <button class="mb-0 btn btn-link text-dark action-btn unassign-sg" title="Desasociar Security Group" onclick="removeSGFromInterface(${interfaceId}, ${assignedSG.id})">
+                                <button class="mb-0 btn btn-link text-dark action-btn unassign-sg" title="Desasociar Security Group" onclick="removeSGFromInterface(${vmId}, ${interfaceId}, ${assignedSG.id})">
                                     <i class="fas fa-unlink"></i>
                                 </button>
                             </div>
@@ -2264,7 +2269,7 @@ window.openInterfaceSGModal = async function(interfaceId, osId = '', name = '', 
                 </div>
                 <div class="modal-footer px-4 mt-3">
                 
-                    <button class="btn btn-success" id="btnAssignSG" ${availableSGs.length === 0 ? 'disabled' : ''}>
+                    <button class="btn btn-success" id="btnAssignSG" onclick="assignSGToInterface(${vmId}, ${interfaceId})" ${availableSGs.length === 0 ? 'disabled' : ''}>
                         <i class="fas fa-plus me-1"></i>Asignar
                     </button>
                 </div>
@@ -2316,12 +2321,34 @@ window.openInterfaceSGModal = async function(interfaceId, osId = '', name = '', 
             `);
         }
 
-        // Asignar SG
-        $('#btnAssignSG').off('click').on('click', async function() {
-            const sgId = $('#selectSG').val();
-            if (!sgId) return;
-            $(this).prop('disabled', true).text('Asignando...');
-            // Mostrar SweetAlert de carga
+        // Mostrar el modal
+        $('#interfaceSGModal').modal('show')
+
+    } catch (err) {
+        console.error('Error al abrir modal de SG:', err);
+    }
+};
+
+// Asignar SG a la interfaz (con confirmación)
+window.assignSGToInterface = async function(vmId, interfaceId) {
+    const sgId = $('#selectSG').val();
+    if (!sgId) return;
+
+    Swal.fire({
+        icon: 'question',
+        title: '¿Asignar Security Group?',
+        text: '¿Estás seguro de asignar este Security Group a la interfaz?',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, asignar',
+        cancelButtonText: 'Cancelar',
+        customClass: {
+            confirmButton: 'btn btn-success',
+            cancelButton: 'btn btn-secondary ms-2'
+        },
+        buttonsStyling: false
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            $('#btnAssignSG').prop('disabled', true).text('Asignando...');
             Swal.fire({
                 title: 'Asignando Security Group...',
                 text: 'Por favor espera...',
@@ -2339,29 +2366,27 @@ window.openInterfaceSGModal = async function(interfaceId, osId = '', name = '', 
                     body: JSON.stringify({ interface_id: interfaceId, security_group_id: sgId })
                 });
                 const result = await resp.json();
-                Swal.close();
                 if (result.status === 'success') {
+                    await getSliceData(false,false);
+                    showVMInfo(vmId, false);
+                    Swal.close();
                     Swal.fire({ icon: 'success', title: 'Asignado', text: 'Security Group asignado correctamente', timer: 1200, showConfirmButton: false, timerProgressBar: true });
                     $('#interfaceSGModal').modal('hide');
                 } else {
+                    Swal.close();
                     showErrorAlert(result)
                     throw new Error(result.message || 'Error al asignar');
                 }
             } catch (err) {
                 console.log('Error al asignar SG:', err);
             }
-            $(this).prop('disabled', false).html('<i class="fas fa-plus me-1"></i>Asignar');
-        });
-
-        $('#interfaceSGModal').modal('show')
-
-    } catch (err) {
-        console.error('Error al abrir modal de SG:', err);
-    }
+            $('#btnAssignSG').prop('disabled', false).html('<i class="fas fa-plus me-1"></i>Asignar');
+        }
+    });
 };
 
 // Quitar SG de la interfaz
-window.removeSGFromInterface = async function(interfaceId, sgId) {
+window.removeSGFromInterface = async function(vmId, interfaceId, sgId) {
     Swal.fire({
         icon: 'warning',
         title: '¿Quitar Security Group?',
@@ -2394,11 +2419,14 @@ window.removeSGFromInterface = async function(interfaceId, sgId) {
                     body: JSON.stringify({ interface_id: interfaceId, security_group_id: sgId })
                 });
                 const data = await resp.json();
-                Swal.close();
                 if (data.status === 'success') {
+                    await getSliceData(false,false);
+                    showVMInfo(vmId, false);
+                    Swal.close();
                     Swal.fire({ icon: 'success', title: 'Removido', text: 'Security Group desasociado', timer: 1200, showConfirmButton: false, timerProgressBar: true });
                     $('#interfaceSGModal').modal('hide');
                 } else {
+                    Swal.close();
                     showErrorAlert(result)
                     throw new Error(data.message || 'Error al remover');
                 }

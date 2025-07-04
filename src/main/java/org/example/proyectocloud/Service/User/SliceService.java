@@ -328,4 +328,39 @@ public class SliceService {
             throw ex;
         }
     }
+
+    public Object listAvailabilityZones(String token, Integer userId) {
+        log.info("Solicitando lista Zonas de Disponibilidad para usuario ID: {} con token: {}", userId, token);
+
+        String url = UriComponentsBuilder
+                .fromUriString(API_GATEWAY_URL + "/slice-manager/availability-zones")
+                .toUriString();
+
+        log.info("URL construida: {}", url);
+
+        HttpHeaders headers = createAuthHeaders(token);
+        HttpEntity<String> entity = new HttpEntity<>(null, headers);
+        log.info("Request entity creado: {}", entity);
+
+        try {
+            log.info("Enviando request al gateway...");
+            ResponseEntity<LinkedHashMap> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    LinkedHashMap.class
+            );
+            log.info("Respuesta recibida: {}", response);
+
+            return response.getBody();
+        } catch (HttpClientErrorException ex) {
+            log.error("Error HTTP al obtener zonas de disponibilidad: {} - {}", ex.getStatusCode(), ex.getResponseBodyAsString());
+            log.error("Headers de la respuesta: {}", ex.getResponseHeaders());
+            throw ex;
+        } catch (Exception ex) {
+            log.error("Error al obtener slices: {}", ex.getMessage(), ex);
+            throw ex;
+        }
+    }
+
 }

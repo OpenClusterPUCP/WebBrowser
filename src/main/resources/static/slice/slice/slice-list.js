@@ -239,7 +239,7 @@ $(document).ready(async function() {
                         <div class="btn-group">
                             <button class="mb-0 btn btn-link text-dark action-btn view-slice" 
                                     data-id="${data.id}" title="Visualizar y gestionar">
-                                <i class="fas fa-gear"></i>
+                                <i class="fas fa-gear me-3"></i>
                             </button>
                         </div>
                     `
@@ -347,9 +347,9 @@ $(document).ready(async function() {
             // Obtener el token JWT del meta tag
             const authToken = getAuthToken();
 
-            const gatewayUrl = 'http://localhost:5001'
+            const gatewayUrl = '/User/api/slice'
             
-            const response = await fetch(gatewayUrl+'/User/api/availability-zones', {
+            const response = await fetch(gatewayUrl+'/availability-zones', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -475,7 +475,7 @@ $(document).ready(async function() {
             }
 
             // CONECTAR AL API GATEWAY (puerto 8090), NO al web module (8095)
-            const gatewayUrl = 'http://localhost:8090';  // Tu API Gateway
+            const gatewayUrl = 'http://192.168.202.3:8090';
             console.log(`🔗 Conectando a API Gateway: ${gatewayUrl}`);
 
             socket = io(gatewayUrl, {

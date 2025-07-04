@@ -45,7 +45,7 @@ $(document).ready(async function() {
     // VARIABLES::
     // ==================
     let table;
-    let gatewayUrl = 'http://localhost:9000'
+    let gatewayUrl = '/User/api/securityGroup'
 
     // =======================
     // LISTAR SECURITY GROUPS
@@ -154,22 +154,28 @@ $(document).ready(async function() {
                     data: null,
                     orderable: false,
                     className: 'text-center',
-                    render: data => `
-                        <div class="btn-group">
-                            <button class="mb-0 btn btn-link text-dark action-btn view-assignments" data-id="${data.id}" title="Ver Asignaciones">
-                                <i class="fas fa-link"></i>
-                            </button>
-                            <button class="mb-0 btn btn-link text-dark action-btn view-rules" data-id="${data.id}" title="Gestionar Reglas">
-                                <i class="fas fa-list-ul"></i>
-                            </button>
-                            <button class="mb-0 btn btn-link text-dark action-btn edit-sg" data-id="${data.id}" title="Editar">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="mb-0 btn btn-link text-dark action-btn delete-sg" data-id="${data.id}" data-name="${data.name}" title="Eliminar">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    `
+                    render: data => {
+                        // Si el id es 1 (Security group Base), no mostrar editar ni borrar
+                        const isDefault = data.id === 1;
+                        return `
+                            <div class="btn-group">
+                                <button class="mb-0 btn btn-link text-dark action-btn view-assignments" data-id="${data.id}" title="Ver Asignaciones">
+                                    <i class="fas fa-link"></i>
+                                </button>
+                                <button class="mb-0 btn btn-link text-dark action-btn view-rules" data-id="${data.id}" title="Gestionar Reglas">
+                                    <i class="fas fa-list-ul"></i>
+                                </button>
+                                ${!isDefault ? `
+                                <button class="mb-0 btn btn-link text-dark action-btn edit-sg" data-id="${data.id}" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="mb-0 btn btn-link text-dark action-btn delete-sg" data-id="${data.id}" data-name="${data.name}" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                ` : ''}
+                            </div>
+                        `;
+                    }
                 }
             ],
             language: {

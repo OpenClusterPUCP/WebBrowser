@@ -310,6 +310,14 @@
                     </div>
                     <div class="info-value" id="sliceName">Cargando...</div>
                 </div>
+
+                <div class="info-section card mb-3">
+                    <div class="info-label">
+                        <i class="fas fa-cloud"></i>
+                        Infraestructura
+                    </div>
+                    <div class="info-value" id="infrastructure">Cargando...</div>
+                </div>
                 
                 <div class="info-section card mb-0">
                     <div class="info-label">
@@ -427,8 +435,10 @@
                 // Secciones básicas
                 document.getElementById('sliceName').textContent = vmData.content.slice?.name || '----';
 
+                document.getElementById('infrastructure').textContent = sliceData.content.slice_info.infrastructure || '----';
+
                 document.getElementById('flavorInfo').textContent = vmData.content.resources.flavor.name;
-                
+ 
                 document.getElementById('vcpusInfo').textContent = 
                     `${vmData.content.resources.flavor.vcpus}`;
                 

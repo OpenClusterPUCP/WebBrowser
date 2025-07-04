@@ -66,7 +66,7 @@ const UI = {
         // insecure context
         if (!window.isSecureContext) {
             // FIXME: This gets hidden when connecting
-            UI.showStatus(_("HTTPS is required for full functionality"), 'error');
+            // UI.showStatus(_("HTTPS is required for full functionality"), 'error');
         }
 
         // Try to fetch version number

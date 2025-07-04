@@ -47,7 +47,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenCluster - Mis Security Groups</title>
+    <title>OpenCluster - Mis Reglas</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" th:href="@{/css/user-styles.css}">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
@@ -832,6 +832,27 @@
                 <button type="button" class="btn-close text-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
+
+
+
+
+
+                <div class="mb-2">
+                    <label for="predefinedRuleSelect" class="form-label fw-bold mb-2">
+                        Plantillas de reglas conocidas
+                        <button type="button" class="info-btn" data-bs-toggle="tooltip" title="Selecciona una regla común para autocompletar los campos.">
+                            <i class="fas fa-circle-info"></i>
+                        </button>
+                    </label>
+                    <select id="predefinedRuleSelect" class="form-select border px-3 select2-predefined" style="width: 100%;">
+                    </select>
+                    <button class="btn btn-outline-info mt-3" type="button" id="btnApplyPredefinedRule" style="width: 20%;">
+                        <i class="fas fa-magic"></i> Aplicar
+                    </button>
+                </div>
+
+
+
                 <form id="ruleForm" class="needs-validation" novalidate>
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -947,7 +968,7 @@
 
     <!-- MODAL: Ayuda/Información -->
     <div class="modal fade" id="helpRulesModal" tabindex="-1" aria-labelledby="helpRulesModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
             <div class="modal-content border-0 shadow-lg">
                 <div class="modal-header bg-dark px-4">
                     <h5 class="modal-title text-white" id="helpRulesModalLabel">
@@ -957,7 +978,7 @@
                     <button type="button" class="btn-close text-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <div class="mb-3 text-center">
+                    <div class="mb-4 text-center">
                         <i class="fas fa-shield-alt fa-3x text-info mb-2"></i>
                         <h4 class="fw-bold mb-2 text-info">Las reglas definen la seguridad de tus VMs</h4>
                     </div>
@@ -974,10 +995,10 @@
                         <li><b>Descripción:</b> <span class="text-secondary">Campo opcional para identificar la regla.</span></li>
                     </ul>
                     <hr>
-                    <b class="mb-2 text-xl">Ejemplos:</b>
+                    <b class="mb-6 text-xl text-decoration-underline">Ejemplos:</b>
                     <br>
-                    <div class="row mt-2">
-    <div class="col-md-4 mb-2">
+                    <div class="row mt-3">
+    <div class="col-md-3 mb-2">
         <div class="card border-primary shadow-sm h-100">
             <div class="card-body py-2">
                 <div class="d-flex align-items-center mb-2">
@@ -993,7 +1014,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-4 mb-2">
+    <div class="col-md-3 mb-2">
         <div class="card border-success shadow-sm h-100">
             <div class="card-body py-2">
                 <div class="d-flex align-items-center mb-2">
@@ -1009,7 +1030,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-4 mb-2">
+    <div class="col-md-3 mb-2">
         <div class="card border-warning shadow-sm h-100">
             <div class="card-body py-2">
                 <div class="d-flex align-items-center mb-2">
@@ -1024,6 +1045,23 @@
             </div>
         </div>
     </div>
+    <div class="col-md-3 mb-2">
+    <div class="card border-info shadow-sm h-100">
+        <div class="card-body py-2">
+            <div class="d-flex align-items-center mb-2">
+                <i class="fas fa-magnifying-glass fa-lg text-info me-2"></i>
+                <span class="fw-bold">Permitir descubrimiento DHCP saliente</span>
+            </div>
+            <ul class="small text-secondary mb-0 ps-3">
+                <li><b>Protocolo:</b> UDP</li>
+                <li><b>Dirección:</b> Saliente (egress)</li>
+                <li><b>Puerto:</b> 67</li>
+                <li><b>IP CIDR:</b> 255.255.255.255/32 (broadcast)</li>
+            </ul>
+        </div>
+    </div>
+</div>
+    
 </div>
                 </div>
             </div>

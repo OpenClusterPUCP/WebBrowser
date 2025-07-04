@@ -260,6 +260,39 @@ public class UserSliceApiController {
         }
     }
 
+    @GetMapping("/availability-zones")
+    @ResponseBody
+    public ResponseEntity<?> listAvailabilityZones(HttpSession session) {
+        log.info("Recibida petición para listar zonas de disponibilidad");
+        try {
+            String token = getTokenFromSession(session);
+            Integer userId = getUserIdFromSession(session);
+
+            if (token == null || userId == null) {
+                log.warn("Token o userId no encontrado en sesión");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of(
+                                "status", "error",
+                                "message", "Sesión no válida"
+                        ));
+            }
+
+            Object result = sliceService.listAvailabilityZones(token, userId);
+            log.info("Respuesta del service: {}", result);
+
+            return ResponseEntity.ok(result);
+
+        } catch (Exception e) {
+            log.error("Error al obtener las zonas de disponibilidad: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                            "status", "error",
+                            "message", "Ocurrió un error al obtener las zonas de disponibilidad",
+                            "details", e.getMessage()
+                    ));
+        }
+    }
+
     /**
      * Consulta el estado de una operación específica
      */

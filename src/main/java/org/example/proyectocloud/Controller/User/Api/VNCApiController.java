@@ -53,7 +53,7 @@ public class VNCApiController {
     @PostMapping("/vm/{vmId}/token")
     @ResponseBody
     public ResponseEntity<?> getVMToken(@PathVariable Integer vmId, HttpSession session) {
-        log.info("Recibida petición para obtener un token de acceso a consola/pantall de VM: {}", vmId);
+        log.info("Recibida petición para obtener un token de acceso a consola/pantalla de VM: {}", vmId);
         try {
             String token = getTokenFromSession(session);
             Integer userId = getUserIdFromSession(session);

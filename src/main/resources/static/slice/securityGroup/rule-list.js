@@ -45,8 +45,12 @@ $(document).ready(async function() {
     // VARIABLES
     // ==================
     let table;
-    let gatewayUrl = 'http://localhost:9000'
+    let gatewayUrl = '/User/api/securityGroup'
     const sgId = $('#securityGroup-data').data('slice-id');
+
+    if (sgId === 1 || sgId === "1") {
+        $('#btnAddRule').hide();
+    }
 
     // =======================
     // MOSTRAR INFO DEL SECURITY GROUP
@@ -216,11 +220,17 @@ $(document).ready(async function() {
                     data: null,
                     orderable: false,
                     className: 'text-center',
-                    render: data => `
-                        <button class="btn btn-link text-dark action-btn delete-rule-btn" data-id="${data.id}" title="Eliminar">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    `
+                    render: data => {
+                        // Si el Security Group es base, no mostrar botón eliminar
+                        if (sgId === 1 || sgId === "1") {
+                            return '-';
+                        }
+                        return `
+                            <button class="btn btn-link text-dark action-btn delete-rule-btn" data-id="${data.id}" title="Eliminar">
+                                <i class="fas fa-trash me-2"></i>
+                            </button>
+                        `;
+                    }
                 }
             ],
             language: {
@@ -339,6 +349,223 @@ $(document).ready(async function() {
     // =======================
     // AÑADIR REGLA
     // =======================
+
+    const predefinedRules = {
+        "all-egress": {
+            direction: "egress",
+            etherType: "ipv4",
+            protocol: "all",
+            remoteCidr: "0.0.0.0/0",
+            description: "Permitir TODO el tráfico saliente (ALL)"
+        },
+        "icmp-egress": {
+            direction: "egress",
+            etherType: "ipv4",
+            protocol: "icmp",
+            remoteCidr: "0.0.0.0/0",
+            description: "Permitir ICMP saliente (Ping)"
+        },
+        "icmp-ingress": {
+            direction: "ingress",
+            etherType: "ipv4",
+            protocol: "icmp",
+            remoteCidr: "0.0.0.0/0",
+            description: "Permitir ICMP entrante (Ping)"
+        },
+        "dhcp-egress": {
+            direction: "egress",
+            etherType: "ipv4",
+            protocol: "udp",
+            portType: "single",
+            fromPort: 67,
+            remoteCidr: "255.255.255.255/32",
+            description: "Permitir DHCP saliente (Hacia servidor 67/UDP)"
+        },
+        "dhcp-ingress": {
+            direction: "ingress",
+            etherType: "ipv4",
+            protocol: "udp",
+            portType: "single",
+            fromPort: 68,
+            remoteCidr: "0.0.0.0/0",
+            description: "Permitir DHCP entrante (Hacia cliente 68/UDP)"
+        },
+        "http-ingress": {
+            direction: "ingress",
+            etherType: "ipv4",
+            protocol: "tcp",
+            portType: "single",
+            fromPort: 80,
+            remoteCidr: "0.0.0.0/0",
+            description: "Permitir HTTP entrante (80/TCP)"
+        },
+        "https-ingress": {
+            direction: "egress",
+            etherType: "ipv4",
+            protocol: "tcp",
+            portType: "single",
+            fromPort: 443,
+            remoteCidr: "0.0.0.0/0",
+            description: "Permitir HTTPS saliente (443/TCP)"
+        },
+        "ssh-ingress": {
+            direction: "ingress",
+            etherType: "ipv4",
+            protocol: "tcp",
+            portType: "single",
+            fromPort: 22,
+            remoteCidr: "0.0.0.0/0",
+            description: "Permitir SSH entrante (22/TCP)"
+        },
+        "rdp-ingress": {
+            direction: "ingress",
+            etherType: "ipv4",
+            protocol: "tcp",
+            portType: "single",
+            fromPort: 3389,
+            remoteCidr: "0.0.0.0/0",
+            description: "Permitir RDP entrante (3389/TCP)"
+        },
+        "mysql-ingress": {
+            direction: "ingress",
+            etherType: "ipv4",
+            protocol: "tcp",
+            portType: "single",
+            fromPort: 3306,
+            remoteCidr: "0.0.0.0/0",
+            description: "Permitir MySQL entrante (3306/TCP)"
+        },
+        "postgres-ingress": {
+            direction: "ingress",
+            etherType: "ipv4",
+            protocol: "tcp",
+            portType: "single",
+            fromPort: 5432,
+            remoteCidr: "0.0.0.0/0",
+            description: "Permitir PostgreSQL entrante (5432/TCP)"
+        },
+        "dns-ingress": {
+            direction: "ingress",
+            etherType: "ipv4",
+            protocol: "udp",
+            portType: "single",
+            fromPort: 53,
+            remoteCidr: "0.0.0.0/0",
+            description: "Permitir DNS entrante (53/UDP)"
+        },
+        "smtp-ingress": {
+            direction: "ingress",
+            etherType: "ipv4",
+            protocol: "tcp",
+            portType: "single",
+            fromPort: 25,
+            remoteCidr: "0.0.0.0/0",
+            description: "Permitir SMTP entrante (25/TCP)"
+        },
+        "ftp-ingress": {
+            direction: "ingress",
+            etherType: "ipv4",
+            protocol: "tcp",
+            portType: "single",
+            fromPort: 21,
+            remoteCidr: "0.0.0.0/0",
+            description: "Permitir FTP entrante (21/TCP)"
+        },
+        "ntp-egress": {
+            direction: "egress",
+            etherType: "ipv4",
+            protocol: "udp",
+            portType: "single",
+            fromPort: 123,
+            remoteCidr: "0.0.0.0/0",
+            description: "Permitir NTP saliente (123/UDP)"
+        },
+        "custom-tcp-range-ingress": {
+            direction: "ingress",
+            etherType: "ipv4",
+            protocol: "tcp",
+            portType: "range",
+            fromPort: 1000,
+            toPort: 2000,
+            remoteCidr: "0.0.0.0/0",
+            description: "Permitir rango TCP entrante (1000-2000/TCP)"
+        },
+        "custom-udp-range-egress": {
+            direction: "egress",
+            etherType: "ipv4",
+            protocol: "udp",
+            portType: "range",
+            fromPort: 4000,
+            toPort: 5000,
+            remoteCidr: "0.0.0.0/0",
+            description: "Permitir rango UDP saliente (4000-5000/UDP)"
+        }
+    };
+
+    // Llenar el select de plantillas dinámicamente
+    function fillPredefinedRuleSelect() {
+        const $select = $('#predefinedRuleSelect');
+        $select.empty();
+        $select.append('<option value="">Selecciona una plantilla de regla...</option>');
+        for (const [key, rule] of Object.entries(predefinedRules)) {
+            $select.append(`<option value="${key}">${rule.description}</option>`);
+        }
+    }
+
+    // Llama a la función al cargar el modal o el documento
+    fillPredefinedRuleSelect();
+
+    // Inicializar select2 para plantillas si no está inicializado
+    $('#predefinedRuleSelect').select2({
+        theme: 'bootstrap-5',
+        dropdownParent: $('#ruleModal'),
+        minimumResultsForSearch: 0,
+        width: '100%'
+    });
+
+    // Al hacer click en "Aplicar" plantilla
+    $('#btnApplyPredefinedRule').on('click', function () {
+        const selected = $('#predefinedRuleSelect').val();
+        if (!selected || !predefinedRules[selected]) return;
+
+        const rule = predefinedRules[selected];
+
+        // Llenar campos del formulario
+        $('#direction').val(rule.direction).trigger('change');
+        $('#etherType').val(rule.etherType).trigger('change');
+        $('#protocol').val(rule.protocol).trigger('change');
+
+        // Mostrar/ocultar campos de puerto según protocolo
+        if (rule.protocol === 'tcp' || rule.protocol === 'udp') {
+            $('#portFields').show();
+            $('#portTypeContainer').show();
+            $('#portType').val(rule.portType || 'single').trigger('change');
+            if (rule.portType === 'range') {
+                $('#singlePortInput').hide();
+                $('#rangePortInputs').show();
+                $('#rangeFromPort').val(rule.fromPort || '');
+                $('#rangeToPort').val(rule.toPort || '');
+                $('#fromPort').val('');
+            } else {
+                $('#singlePortInput').show();
+                $('#rangePortInputs').hide();
+                $('#fromPort').val(rule.fromPort || '');
+                $('#rangeFromPort, #rangeToPort').val('');
+            }
+        } else {
+            $('#portFields').hide();
+            $('#portTypeContainer').hide();
+            $('#singlePortInput, #rangePortInputs').hide();
+            $('#fromPort, #rangeFromPort, #rangeToPort').val('');
+        }
+
+        $('#remoteCidr').val(rule.remoteCidr || '0.0.0.0/0');
+        $('#ruleDescription').val(rule.description || '');
+
+        // Quitar validación previa
+        $('#ruleForm').removeClass('was-validated');
+    });
+
 
     // Mostrar/ocultar campos de puerto según protocolo y tipo de puerto
     function updatePortFields() {
