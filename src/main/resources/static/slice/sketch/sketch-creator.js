@@ -902,6 +902,19 @@ window.saveSketch = async function() {
                 mac_address: iface.mac_address,
                 external_access: iface.external_access
             }))
+        },
+        topology_graph: {
+            nodes: Array.from(topologyManager.visNodes.values()).map(node => ({
+                id: node.id,
+                label: node.label,
+                title: nodeTooltips.get(node.id) || node.title
+            })),
+            edges: Array.from(topologyManager.visEdges.values()).map(edge => ({
+                id: edge.id,
+                from: visDataset.edges.get(edge.id)?.from,
+                to: visDataset.edges.get(edge.id)?.to,
+                label: edge.label
+            }))
         }
     };
 
@@ -924,12 +937,12 @@ window.saveSketch = async function() {
         });
 
         const result = await response.json();
-        console.log("result", result)
-        console.log("status", result.status)
+        console.log("result", result);
+        console.log("status", result.status);
 
         if (response.ok && result.success === true) {
             saveSketchModal.hide();
-            
+
             Swal.fire({
                 icon: 'success',
                 title: '¡Sketch guardado!',
@@ -942,20 +955,20 @@ window.saveSketch = async function() {
                 buttonsStyling: false
             }).then((result) => {
                 if (result.isConfirmed) {
-                    window.location.href = '/User/sketch/list'; 
+                    window.location.href = '/User/sketch/list';
                 }
             });
         } else {
-            throw { 
-                    message: result.message || 'Error al crear el sketch',
-                    details: result.details || [],
-                    response: result
-                };
+            throw {
+                message: result.message || 'Error al crear el sketch',
+                details: result.details || [],
+                response: result
+            };
         }
 
     } catch (error) {
         console.error('Error al guardar el sketch:', error);
-        await showErrorAlert(error)
+        await showErrorAlert(error);
     }
 }
 
