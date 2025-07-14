@@ -10,6 +10,7 @@ public class UserInfo implements Serializable {
     private String code;
     private String jwt;
     private String role;
+    private String profile;
 
     public Integer getId() {
         return id;
@@ -73,6 +74,14 @@ public class UserInfo implements Serializable {
 
     public String getFullName(){
         return name + " " + lastname;
+    }
+
+    public String getProfile() {
+        return profile;
+    }
+
+    public void setProfile(String profile) {
+        this.profile = profile;
     }
 
     public String getRoleBonito(){
