@@ -52,6 +52,85 @@ $(document).ready(async function() {
     let pendingOperations = new Map(); // Mapa para controlar operaciones pendientes
     let isConnected = false;
 
+
+    // ==================
+// FUNCIONES PARA OBTENER DATOS DE SESIÓN:
+// ==================
+
+    function getUserProfileFromSession() {
+        try {
+            const profileMeta = document.querySelector('meta[name="user-profile"]');
+            if (profileMeta && profileMeta.content && profileMeta.content.trim() !== '') {
+                return profileMeta.content.trim().toLowerCase();
+            }
+            console.warn('No se encontró perfil de usuario en meta tag');
+            return null;
+        } catch (error) {
+            console.error('Error obteniendo perfil de usuario desde sesión:', error);
+            return null;
+        }
+    }
+
+    function getUserIdFromSession() {
+        try {
+            const userIdMeta = document.querySelector('meta[name="user-id"]');
+            if (userIdMeta && userIdMeta.content && userIdMeta.content.trim() !== '') {
+                return parseInt(userIdMeta.content.trim());
+            }
+            console.warn('No se encontró ID de usuario en meta tag');
+            return null;
+        } catch (error) {
+            console.error('Error obteniendo ID de usuario desde sesión:', error);
+            return null;
+        }
+    }
+
+    function getUserNameFromSession() {
+        try {
+            const userNameMeta = document.querySelector('meta[name="user-name"]');
+            if (userNameMeta && userNameMeta.content && userNameMeta.content.trim() !== '') {
+                return userNameMeta.content.trim();
+            }
+            return 'Usuario';
+        } catch (error) {
+            console.error('Error obteniendo nombre de usuario desde sesión:', error);
+            return 'Usuario';
+        }
+    }
+
+    function updateUserProfileDisplay() {
+        const profile = getUserProfileFromSession();
+        const userName = getUserNameFromSession();
+
+        const profileDisplay = document.getElementById('userProfileDisplay');
+        const profileBadge = document.getElementById('userProfileBadge');
+
+        if (profile && profileDisplay) {
+            const profileMap = {
+                'alumno': 'Alumno',
+                'jp': 'Jefe de Práctica',
+                'maestro': 'Maestro',
+                'investigador': 'Investigador'
+            };
+
+            const profileText = profileMap[profile] || profile.charAt(0).toUpperCase() + profile.slice(1);
+            profileDisplay.textContent = `${profileText} (${userName})`;
+
+            if (profileBadge) {
+                profileBadge.textContent = 'SESIÓN';
+                profileBadge.className = 'badge bg-success text-white ms-auto';
+            }
+        } else if (profileDisplay) {
+            profileDisplay.textContent = 'Error obteniendo perfil';
+            profileDisplay.className = 'text-danger';
+
+            if (profileBadge) {
+                profileBadge.textContent = 'ERROR';
+                profileBadge.className = 'badge bg-danger text-white ms-auto';
+            }
+        }
+    }
+
     // ==================
     // DATATABLES:
     // ==================
@@ -878,17 +957,20 @@ $(document).ready(async function() {
     $('#btnDeploySlice').click(async function() {
         try {
             console.log('Abriendo modal de despliegue...');
-            
+
             // Limpiar el formulario
             $('#deploySliceForm').trigger('reset');
             $('#deploySliceForm').removeClass('was-validated');
             $('#sketchPreview').addClass('d-none').removeClass('show');
-            
+
             // Cargar los sketches y las zonas de disponibilidad
             await Promise.all([
                 loadSketches(),
                 loadAvailabilityZones()
             ]);
+
+            // Actualizar display del perfil de usuario
+            updateUserProfileDisplay();
             
             // Mostrar el modal
             $('#deploySliceModal').modal('show');
@@ -1422,12 +1504,33 @@ $(document).ready(async function() {
             return obj;
         };
 
+        // Obtener perfil de usuario desde meta tag (sesión)
+        const userProfile = getUserProfileFromSession();
+        const workloadType = document.getElementById('workloadTypeSelect').value;
+
+        if (!userProfile || !workloadType) {
+            form.classList.add('was-validated');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de Datos',
+                text: 'No se pudo obtener tu perfil de usuario o no seleccionaste el tipo de carga de trabajo.',
+                confirmButtonText: 'Entendido',
+                customClass: {
+                    confirmButton: 'btn btn-danger'
+                }
+            });
+            return;
+        }
+
         const sliceData = {
             slice_info: {
                 name: sliceName,
                 description: sliceDescription,
+                user_id: getUserIdFromSession(),
                 sketch_id: parseInt(selectedSketch.value),
-                availability_zone_id: parseInt(availabilityZoneId)
+                availability_zone_id: parseInt(availabilityZoneId),
+                user_profile: userProfile,
+                workload_type: workloadType
             },
             topology_info: convertDecimalValues(structure.topology_info)
         };
@@ -1542,6 +1645,74 @@ $(document).ready(async function() {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
 
+
+    // ==================
+    // FUNCIÓN PARA OBTENER CONFIGURACIÓN RECOMENDADA:
+    // ==================
+
+    function getRecommendedConfig(userProfile, workloadType) {
+        const recommendations = {
+            'alumno': {
+                'general': 'Configuración básica para aprendizaje',
+                'cpu_intensive': 'Recursos limitados para computación',
+                'memory_intensive': 'Memoria moderada para análisis básico',
+                'io_intensive': 'I/O básico para bases de datos simples'
+            },
+            'maestro': {
+                'general': 'Configuración estándar para enseñanza',
+                'cpu_intensive': 'Recursos balanceados para demostraciones',
+                'memory_intensive': 'Memoria ampliada para ejemplos complejos',
+                'io_intensive': 'I/O mejorado para casos de estudio'
+            },
+            'investigador': {
+                'general': 'Configuración avanzada para investigación',
+                'cpu_intensive': 'Máximos recursos de CPU para computación científica',
+                'memory_intensive': 'Memoria extendida para big data',
+                'io_intensive': 'Alto rendimiento I/O para análisis masivo'
+            },
+            'jp': {
+                'general': 'Configuración intermedia para prácticas',
+                'cpu_intensive': 'Recursos moderados para demostraciones avanzadas',
+                'memory_intensive': 'Memoria suficiente para análisis educativo',
+                'io_intensive': 'I/O mejorado para casos prácticos'
+            }
+        };
+
+        return recommendations[userProfile]?.[workloadType] || 'Configuración personalizada';
+    }
+
+    // Mostrar recomendación cuando workload esté seleccionado
+    function updateRecommendation() {
+        const userProfile = getUserProfileFromSession();
+        const workloadType = document.getElementById('workloadTypeSelect').value;
+
+        if (userProfile && workloadType) {
+            const recommendation = getRecommendedConfig(userProfile, workloadType);
+
+            // Mostrar tooltip o mensaje con la recomendación
+            const helpText = document.querySelector('#workloadTypeSelect').parentElement.querySelector('.form-text');
+            if (helpText) {
+                helpText.innerHTML = `
+                    <small>
+                        <i class="fas fa-lightbulb text-warning me-1"></i>
+                        ${recommendation}
+                    </small>
+                `;
+            }
+        }
+    }
+
+    // Event listener para actualizar recomendaciones y validación
+    document.getElementById('workloadTypeSelect').addEventListener('change', function() {
+        if (this.value) {
+            this.classList.remove('is-invalid');
+            this.classList.add('is-valid');
+        } else {
+            this.classList.remove('is-valid');
+            this.classList.add('is-invalid');
+        }
+        updateRecommendation();
+    });
 
 
     // ==================

@@ -25,10 +25,35 @@
             <div class="user-dropdown">
                 <div class="user-dropdown-header">
                     <div class="user-dropdown-name text-bolder" th:text="${session.userInfo.getFullName()}">Juan Díaz</div>
-                    <div class="user-dropdown-name text-secondary" th:text="${session.userInfo.getCode() != null ? session.userInfo.getCode() : '-'}">Juan Díaz</div>
-                    <div class="badge bg-dark mt-2" th:text="${session.userInfo.getRoleBonito()}">Administrador</div>
+                    <div class="user-dropdown-name text-secondary" th:text="${session.userInfo.getCode() != null ? session.userInfo.getCode() : '-'}">20190001</div>
+
+                    <!-- Badges de Rol y Perfil -->
+                    <div class="mt-2 d-flex gap-2">
+                        <!-- Badge de Rol -->
+                        <div class="badge bg-dark" th:text="${session.userInfo.getRoleBonito()}">Administrador</div>
+
+                        <!-- Badge de Perfil -->
+                        <div class="badge bg-warning text-dark"
+                             th:if="${session.userInfo.profile != null and session.userInfo.profile != ''}"
+                             th:text="${#strings.capitalize(session.userInfo.profile)}">
+                            Alumno
+                        </div>
+                    </div>
                 </div>
                 <div class="user-dropdown-items">
+                    <!-- Información del perfil académico -->
+                    <div class="user-dropdown-item d-flex align-items-center"
+                         th:if="${session.userInfo.profile != null and session.userInfo.profile != ''}">
+                        <i class="fas fa-graduation-cap text-warning me-2"></i>
+                        <div>
+                            <small class="text-muted d-block">Perfil Académico</small>
+                            <span class="fw-semibold" th:text="${#strings.capitalize(session.userInfo.profile)}">Alumno</span>
+                        </div>
+                    </div>
+
+                    <!-- Separador -->
+                    <hr class="my-2" th:if="${session.userInfo.profile != null and session.userInfo.profile != ''}">
+
                     <a th:href="@{/User/profile}" class="user-dropdown-item">
                         <i class="fas fa-user"></i>
                         <span>Mi Perfil</span>
