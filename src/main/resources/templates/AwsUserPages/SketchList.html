@@ -1,0 +1,544 @@
+<!--
+==============================================================================
+| ARCHIVO: SketchList.html
+==============================================================================
+| DESCRIPCIÓN:
+| Interfaz gráfica para listar y gestionar los sketches del usuario. Muestra una
+| tabla interactiva con todos los sketches creados y sus operaciones disponibles.
+==============================================================================
+| CONTENIDO PRINCIPAL:
+| 1. ESTRUCTURA BASE
+|    - Meta tags y configuración
+|    - Importación de estilos CSS y librerías
+|    - Sistema de diseño Material Dashboard
+|    - Fuentes e íconos
+|
+| 2. ESTILOS PERSONALIZADOS
+|    - Animaciones y transiciones
+|    - Estilos de componentes
+|    - DataTables customización
+|    - Tooltips y modales
+|
+| 3. ÁREA DE CONTENIDO
+|    - Header con título y botón de nuevo sketch
+|    - Descripción informativa
+|    - Tabla de sketches (DataTables)
+|    - Acciones por sketch
+|
+| 4. COMPONENTES THYMELEAF
+|    - Sidebar responsivo
+|    - Header de página
+|    - Footer
+|
+| 5. DEPENDENCIAS
+|    - Bootstrap 5.3.2
+|    - jQuery 3.7.0
+|    - DataTables + plugins
+|    - SweetAlert 2
+|    - Font Awesome
+|    - Material Dashboard
+|    - Scripts personalizados (sketch-list.js)
+==============================================================================
+-->
+
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenCluster - Mis Sketchs</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" th:href="@{/css/user-styles.css}">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <!-- Fonts and icons -->
+    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700,900" />
+    <!-- CSS Files -->
+    <link id="pagestyle" th:href="@{/css/material-dashboard.css}" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css">
+
+    <!-- Estilos extra -->
+    <style>
+        #network-container {
+            outline: none !important;
+            position: relative !important;
+            overflow: visible !important;
+        }
+        #network-container:focus,
+        #network-container:hover {
+            outline: none !important;
+            border-color: inherit !important;
+        }
+        .vis-network:focus {
+            outline: none !important;
+        }
+        .vis-manipulation {
+            border: 1px solid #ccc !important;
+            border-radius: 8px !important;
+            padding-top: 8px !important;
+            padding-bottom: 5px !important;
+            background-color: white !important;
+            z-index: 1000 !important;
+            position: absolute !important;
+            top: 10px !important;
+            left: 10px !important;
+            right: 10px !important;
+        }
+        .vis-close {
+            position: absolute !important;
+            display: none;
+            z-index: 1001 !important;
+        }
+        .vis-manipulation, .vis-edit-mode {
+            overflow: visible !important;
+        }
+        .vis-manipulation-overlay {
+            z-index: 1002 !important;
+            overflow: visible !important;
+        }
+        .card-body {
+            overflow: visible !important;
+            position: relative !important;
+            z-index: 1 !important;
+        }
+        .vis-manipulation .vis-button.vis-edit,
+        .vis-manipulation .vis-button.vis-close {
+            position: absolute !important;
+            right: -40px !important;
+            top: 0 !important;
+            background-color: white !important;
+            border: 1px solid #ccc !important;
+            border-radius: 4px !important;
+            padding: 5px !important;
+            box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1) !important;
+        }
+        .modal-backdrop {
+            z-index: 1040 !important;
+        }
+        .modal {
+            z-index: 1045 !important;
+        }
+        aside.sidenav {
+            z-index: 1039 !important;
+        }
+        .hover-bounce:hover {
+            animation: bounce 0.5s !important;
+        }
+        .hover-pulse:hover {
+            animation: pulse 0.5s !important;
+        }
+        .btn:not(.mainBtnKOMO) {
+            transition: all 0.5s cubic-bezier(0.34, 1.61, 0.7, 1);
+        }
+        .btn:not(.mainBtnKOMO):hover {
+            transform: translateY(-5.5px);
+        }
+        .badge {
+            transition: all 0.3s ease;
+        }
+        .badge.updating {
+            animation: flash 1s;
+        }
+        .card {
+            position: relative;
+            background: #fff;
+            margin-bottom: 1rem;
+            box-shadow: rgba(0, 0, 0, 0.1) 0px 1px 3px, rgba(0, 0, 0, 0.05) 0px 1px 2px;
+            will-change: transform;
+        }
+        @keyframes slideFromRight {
+            0% {
+                opacity: 0;
+                right: -100%;
+            }
+            100% {
+                opacity: 1;
+                right: 0;
+            }
+        }
+        .panel-card {
+            opacity: 0;
+            position: relative;
+            right: -100px;
+        }
+        .panel-card {
+            animation: slideFromRight 0.8s cubic-bezier(0.34, 1.61, 0.7, 1) forwards;
+        }
+        .panel-card-1 { animation-delay: 0.8s; }
+        .panel-card-2 { animation-delay: 1.4s; }
+        .panel-card-3 { animation-delay: 2.0s; }
+        .card {
+            transition: transform 0.3s cubic-bezier(0.34, 1.61, 0.7, 1),
+            box-shadow 0.3s cubic-bezier(0.34, 1.61, 0.7, 1);
+        }
+        .card:hover{
+            transform: translateY(-5.5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .badge:hover{
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        #customTooltip {
+            position: fixed;
+            background-color: rgba(0, 0, 0, 0.85);
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 6px;
+            pointer-events: none;
+            font-size: 14px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            z-index: 10000;
+            display: none;
+            white-space: pre-line;
+        }
+
+        :root {
+            --animate-delay: 0.2s;
+        }
+    </style>
+
+    <!-- Estilos DATATABLES -->
+    <style>
+        /* Estilos para DataTables */
+        .dataTables_wrapper .dataTables_length select {
+            padding: 0.375rem 2.25rem 0.375rem 0.75rem;
+            font-size: 0.875rem;
+            border: 1px solid #e9ecef;
+            border-radius: 0.5rem;
+            background-color: #fff;
+            margin: 0 0.5rem;
+        }
+    
+        .dataTables_wrapper .dataTables_filter input {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+            border: 1px solid #e9ecef;
+            border-radius: 0.5rem;
+            width: 250px;
+            margin-left: 0.5rem;
+        }
+    
+        /* Estilos de paginación mejorados */
+        .pagination {
+            margin: 1rem 0 0 0;
+            padding: 0;
+        }
+    
+        .page-item {
+            margin: 0 2px;
+        }
+    
+        .page-link {
+            padding: 0.5rem 0.75rem;
+            border: none;
+            background: transparent;
+            color: #344767;
+            border-radius: 0.5rem;
+            min-width: 36px;
+            text-align: center;
+            line-height: 1.25;
+        }
+    
+        .page-item.active .page-link {
+            background-color: #000000;
+            color: #ffffff;
+            font-weight: 500;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+        }
+    
+        .page-item.disabled .page-link {
+            color: #9ba5b7;
+            background: transparent;
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+    
+        .page-item:not(.active) .page-link:hover {
+            background-color: #f8f9fa;
+            color: #344767;
+        }
+    
+            /* DataTables container */
+        .card .table-responsive {
+            margin: 0;
+            padding: 0;
+            border: none;
+            overflow-x: auto !important;
+        }
+
+        .dataTables_wrapper {
+            padding: 0;
+        }
+
+        /* Table styles */
+        .table {
+            width: 100% !important;
+            margin: 0 !important;
+        }
+
+        /* Footer section */
+        .table-footer {
+            border-top: 1px solid #e9ecef;
+            margin-top: 1rem;
+            padding-top: 1rem;
+        }
+    
+        .dataTables_info {
+            padding-top: 0.5rem !important;
+            margin-bottom: 0.5rem;
+        }
+
+
+        .dataTables_paginate,
+        .dataTables_wrapper .dataTables_paginate {
+            padding: 0 !important;
+            border-top: 0 !important;
+            margin-top: 0 !important;
+        }
+
+        .pagination {
+            margin: 0 !important;
+            padding: 0;
+            border: none !important;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            margin: 0 4px;
+            padding: 0.5rem 0.75rem;
+            border: none !important;
+            background: transparent !important;
+            border-radius: 0.5rem;
+            color: #131314 !important;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button.previous {
+            margin-right: 1rem !important;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button.next {
+            margin-left: 1rem !important;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: #f8f9fa !important;
+            color: #344767 !important;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+            background: #000000 !important;
+            color: #ffffff !important;
+            font-weight: 500;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+            color: #9ba5b7 !important;
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .table thead th,
+        .table thead th.sorting,
+        .table thead th.sorting_asc,
+        .table thead th.sorting_desc {
+            text-align: left !important;
+            padding-left: 1rem !important;
+        }
+
+        .table thead th:last-child,
+        .table thead th.sorting:last-child,
+        .table thead th.sorting_asc:last-child,
+        .table thead th.sorting_desc:last-child {
+            text-align: center !important;
+        }
+
+        /* Table cell alignment */
+        .table tbody td {
+            text-align: left !important;
+            padding-left: 1rem !important;
+        }
+
+        .table tbody td:last-child {
+            text-align: center !important;
+        }
+        
+        /* Asegurar visibilidad de columnas en responsive */
+        @media screen and (max-width: 767px) {
+            .table-responsive {
+                overflow-x: scroll !important;
+            }
+            
+            .table td, .table th {
+                min-width: 100px;
+            }
+            
+            .table td:last-child {
+                min-width: 120px;
+            }
+        }
+
+        .text-truncate {
+            max-width: 230px;
+            display: inline-block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .cursor-pointer {
+            cursor: help;
+        }
+
+        /* Estilo personalizado para los tooltips */
+        .tooltip .tooltip-inner {
+            max-width: 350px;
+            padding: 8px 12px;
+            color: #fff;
+            text-align: left;
+            background-color: rgba(0, 0, 0, 0.94);
+            border-radius: 6px;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        /* Estilos para el botón de paginación en la tabla */
+        .dataTables_wrapper .dataTables_paginate .paginate_button:focus,
+        .dataTables_wrapper .dataTables_paginate .paginate_button:active,
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current:focus,
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current:active,
+        .dataTables_wrapper .dataTables_paginate .paginate_button.next:focus,
+        .dataTables_wrapper .dataTables_paginate .paginate_button.previous:focus,
+        .dataTables_wrapper .dataTables_paginate .paginate_button.next:active,
+        .dataTables_wrapper .dataTables_paginate .paginate_button.previous:active {
+            outline: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            border: none !important;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+            background: #000000 !important;
+            color: #ffffff !important;
+            border: none !important;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .page-link:focus {
+            box-shadow: none !important;
+            outline: none !important;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover:not(.disabled):not(.current) {
+            background: #f8f9fa !important;
+            border: none !important;
+        }
+
+        .view-sketch:hover {
+            color: #3b82f6 !important;
+        }
+
+        .edit-sketch:hover {
+            color: #24cf7a !important;
+        }
+
+        .delete-sketch:hover {
+            color: #e91e63 !important;
+        }
+
+        .action-btn:hover {
+            transform: scale(1.1);
+            transition: transform 0.2s ease;
+        }
+
+        .table thead th {
+            font-weight: 700 !important;  /* Hace el texto más negrito */
+            color: #3f3f3f !important;    /* Color más oscuro para mejor contraste */
+            text-transform: uppercase;     /* Mantiene el texto en mayúsculas */
+            letter-spacing: 0.5px;        /* Mejor espaciado entre letras */
+        }
+    </style>
+
+</head>
+
+<body class="bg-gray-100">
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div th:replace="~{Fragments/Aws/sidebar :: sidebar('sketch')}"></div>
+
+        <!-- Contenido principal -->
+        <main class="main-content">
+            <!-- Header -->
+            <div th:replace="~{Fragments/Aws/header :: header(title='Sketch')}"></div>
+
+            <section class="page-content">
+                <div class="content-header mb-0">
+                    <h2 class="content-title text-3xl text-start font-weight-bolder font-weight-bold mb-2 animate__animated animate__zoomInLeft animate__slow" style="font-weight: 900">
+                        MIS SKETCHs
+                    </h2>
+                    <div class="header-actions">
+                        <div class="animate__animated animate__fadeInRight animate__slow animate__delay-5s">
+                            <button class="btn btn-primary animate__animated animate__fadeIn animate__delay-5s" id="btnCreateSketch">
+                                <i class="fas fa-plus me-2"></i>
+                                <span>Nuevo Sketch</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="my-1 text-sm text-start text-secondary mb-4 animate__animated animate__backInLeft animate__delay-5s">
+                    Revisa y gestiona tus sketches de topologías de red. Accede rápidamente a tus diseños guardados, crea nuevos sketches o modifica los existentes. Cada sketch representa una infraestructura personalizada lista para ser implementada en la nube.
+                </p>
+        
+                <div class="card animate__animated animate__fadeInLeft">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table id="sketchesTable" class="table table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th class="text-start fw-bold">ID</th>
+                                        <th class="text-start fw-bold">NOMBRE</th>
+                                        <th class="text-start fw-bold">DESCRIPCIÓN</th>
+                                        <th class="text-start fw-bold">VCPUs</th>
+                                        <th class="text-start fw-bold">RAM</th>
+                                        <th class="text-start fw-bold">DISCO</th>
+                                        <th class="text-start fw-bold">VMs</th>
+                                        <th class="text-start fw-bold">FECHA DE CREACIÓN</th>
+                                        <th class="text-start fw-bold">ÚLTIMA EDICIÓN</th>
+                                        <th class="text-center fw-bold">ACCIONES</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Footer -->
+            <div th:replace="~{Fragments/Aws/footer :: footer}"></div>
+        </main>
+    </div>
+    
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Font Awesome Icons -->
+    <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
+    <!-- Material Icons -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+
+    <script th:src="@{/slice/sketch/sketch-list.js}"></script>
+

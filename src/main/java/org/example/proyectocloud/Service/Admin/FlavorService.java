@@ -33,6 +33,7 @@ public class FlavorService {
     private HttpHeaders createAuthHeaders(String token) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
+
         return headers;
     }
     public Object  getAllFlavors(String token , Integer id) {
@@ -40,6 +41,8 @@ public class FlavorService {
         String url = API_GATEWAY_URL + "/Admin/flavors/list/" +   id;
 
         HttpHeaders headers = createAuthHeaders(token);
+        System.out.println(headers);
+        System.out.println(token);
         HttpEntity<String> entity = new HttpEntity<>(null, headers);
 
         try {

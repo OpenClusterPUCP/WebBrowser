@@ -60,6 +60,8 @@ public class SecurityConfig {
                         // Rutas protegidas por roles
                         .requestMatchers("/Admin/**" , "Admin/*").hasRole("Admin")
                         .requestMatchers("/User/**", "User/*").hasAnyRole("User")
+                        .requestMatchers("/Aws/**", "Aws/*").hasAnyRole("Aws")
+
                         .anyRequest().authenticated()
                 )
                 .logout(logout -> logout

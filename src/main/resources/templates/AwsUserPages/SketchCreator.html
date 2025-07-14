@@ -1,0 +1,648 @@
+<!--
+==============================================================================
+| ARCHIVO: SketchCreator.html / topology-creator.html
+==============================================================================
+| DESCRIPCIÓN:
+| Interfaz gráfica principal para el creador de topologías de red. Es la que
+| da una experiencia interactiva para diseñar y gestionar las topologías.
+==============================================================================
+| CONTENIDO PRINCIPAL:
+| 1. ESTRUCTURA BASE
+|    - Importación de estilos y librerías
+|    - Configuración de Material Dashboard
+|    - Navbar y Sidebar
+|
+| 2. ÁREA DE TRABAJO
+|    - Contenedor de red
+|    - Panel de control
+|    - Botones de acción rápida
+|
+| 3. PANEL DE CONTROL
+|    - Plantillas/subtopologas
+|    - Acciones rápidas
+|    - Importación/Exportación
+|    - Despliegue de Slice
+|
+| 4. MODALES/POP-UPS
+|    - Modal de creación/edición de VM
+|    - Modal de creación/edición de enlace
+|    - Modal de plantillas de topología
+|    - Modal de despliegue
+|
+| 5. PLANTILLAS, SCRIPTS Y DEPENDENCIAS
+|    - Material Dashboard Core 3
+|    - Sweet Alert
+|    - Vis.js Network
+|    - Scripts personalizados (creator.js)
+==============================================================================
+-->
+
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenCluster - Creador de Sketchs</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" th:href="@{/css/user-styles.css}">
+    <!-- Fonts and icons -->
+    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700,900" />
+    <!-- CSS Files -->
+    <link id="pagestyle" th:href="@{/css/material-dashboard.css}" rel="stylesheet" />
+    <link id="stylesheet" th:href="@{/slice/vis/dist/vis-network.css}" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
+    <!-- Estilos extra -->
+    <style>
+        #network-container {
+            outline: none !important;
+            position: relative !important;
+            overflow: visible !important;
+        }
+        #network-container:focus,
+        #network-container:hover {
+            outline: none !important;
+            border-color: inherit !important;
+        }
+        .vis-network:focus {
+            outline: none !important;
+        }
+        .vis-manipulation {
+            border: 1px solid #ccc !important;
+            border-radius: 8px !important;
+            padding-top: 8px !important;
+            padding-bottom: 5px !important;
+            background-color: white !important;
+            z-index: 1000 !important;
+            position: absolute !important;
+            top: 10px !important;
+            left: 10px !important;
+            right: 10px !important;
+        }
+        .vis-close {
+            position: absolute !important;
+            display: none;
+            z-index: 1001 !important;
+        }
+        .vis-manipulation, .vis-edit-mode {
+            overflow: visible !important;
+        }
+        .vis-manipulation-overlay {
+            z-index: 1002 !important;
+            overflow: visible !important;
+        }
+        .card-body {
+            overflow: visible !important;
+            position: relative !important;
+            z-index: 1 !important;
+        }
+        .vis-manipulation .vis-button.vis-edit,
+        .vis-manipulation .vis-button.vis-close {
+            position: absolute !important;
+            right: -40px !important;
+            top: 0 !important;
+            background-color: white !important;
+            border: 1px solid #ccc !important;
+            border-radius: 4px !important;
+            padding: 5px !important;
+            box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1) !important;
+        }
+        .modal-backdrop {
+            z-index: 1040 !important;
+        }
+        .modal {
+            z-index: 1045 !important;
+        }
+        aside.sidenav {
+            z-index: 1039 !important;
+        }
+        .hover-bounce:hover {
+            animation: bounce 0.5s !important;
+        }
+        .hover-pulse:hover {
+            animation: pulse 0.5s !important;
+        }
+        .btn:not(.mainBtnKOMO) {
+            transition: all 0.5s cubic-bezier(0.34, 1.61, 0.7, 1);
+        }
+        .btn:not(.mainBtnKOMO):hover {
+            transform: translateY(-5.5px);
+        }
+        .badge {
+            transition: all 0.3s ease;
+        }
+        .badge.updating {
+            animation: flash 1s;
+        }
+        .card {
+            position: relative;
+            background: #fff;
+            margin-bottom: 1rem;
+            box-shadow: rgba(0, 0, 0, 0.1) 0px 1px 3px, rgba(0, 0, 0, 0.05) 0px 1px 2px;
+        }
+        @keyframes slideFromRight {
+            0% {
+                opacity: 0;
+                right: -100%;
+            }
+            100% {
+                opacity: 1;
+                right: 0;
+            }
+        }
+        .panel-card {
+            opacity: 0;
+            position: relative;
+            right: -100px;
+        }
+        .panel-card {
+            animation: slideFromRight 0.8s cubic-bezier(0.34, 1.61, 0.7, 1) forwards;
+        }
+        .panel-card-1 { animation-delay: 0.8s; }
+        .panel-card-2 { animation-delay: 1.4s; }
+        .panel-card-3 { animation-delay: 2.0s; }
+        .card {
+            transition: transform 0.3s cubic-bezier(0.34, 1.61, 0.7, 1),
+            box-shadow 0.3s cubic-bezier(0.34, 1.61, 0.7, 1);
+        }
+        .card:hover{
+            transform: translateY(-5.5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .badge:hover{
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        #customTooltip {
+            position: fixed;
+            background-color: rgba(0, 0, 0, 0.85);
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 6px;
+            pointer-events: none;
+            font-size: 14px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            z-index: 10000;
+            display: none;
+            white-space: pre-line;
+        }
+
+        :root {
+            --animate-delay: 0.2s;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="app-container">
+    <!-- Sidebar -->
+    <div th:replace="~{Fragments/Aws/sidebar :: sidebar('sketch')}"></div>
+
+    <!-- Contenido principal -->
+    <main class="main-content">
+        <!-- Header -->
+        <div th:replace="~{Fragments/Aws/header :: header(title='Sketch')}"></div>
+
+        <section class="page-content">
+            <div class="row mb-4">
+                <div class="col-12 text-center">
+                    <h2 class="content-title text-3xl text-start font-weight-bolder font-weight-bold mb-2 animate__animated animate__zoomInLeft animate__slow" style="font-weight: 900">
+                        CREADOR DE SKETCHs
+                    </h2>
+                    <p class="text-sm text-start text-secondary mb-2 animate__animated animate__backInLeft animate__delay-5s">
+                        Diseña y gestiona tu infraestructura de red con nuestro editor interactivo de topologías. Crea sketchs con diseños de red personalizados, agrega dispositivos y añade conexiones con una interfaz amigable. Una vez terminado, guarda tu sketch para poder desplegarlo más tarde como una Slice.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Mensajes de alerta -->
+            <div id="alertContainer" class="alert-container" style="display: none;">
+                <div id="alertMessage" class="alert"></div>
+            </div>
+
+            <!-- Tooltip -->
+            <div id="customTooltip" class="animate__animated"></div>
+
+            <!-- Área de trabajo principal -->
+            <div class="row">
+                <!-- Main workspace card -->
+                <div class="col-lg-8 animate__animated animate__fadeInLeft mb-3" style="min-height: 590px !important;">
+                    <div class="card h-100">
+                        <div class="card-header p-3 bg-gradient-dark">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <h6 class="mb-0 text-white">Workspace</h6>
+                                    <p class="text-white text-sm mb-0">Área interactiva para diseñar tu red</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex justify-content-end align-items-center">
+                                        <div class="text-white text-end">
+                                            <div class="d-flex align-items-center gap-3">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="material-symbols-rounded me-1" style="font-size: 1rem;">developer_board</i>
+                                                    <span class="text-xs">vCPUs: <span id="sketchVCPUs" class="fw-bold">0</span></span>
+                                                </div>
+                                                <div class="d-flex align-items-center">
+                                                    <i class="material-symbols-rounded me-1" style="font-size: 1rem;">memory</i>
+                                                    <span class="text-xs">RAM: <span id="sketchRAM" class="fw-bold">0 GB</span></span>
+                                                </div>
+                                                <div class="d-flex align-items-center">
+                                                    <i class="material-symbols-rounded me-1" style="font-size: 1rem;">storage</i>
+                                                    <span class="text-xs">Disco: <span id="sketchDisk" class="fw-bold">0 GB</span></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body p-3" style="height: calc(100vh - 80vh); ">
+                            <div id="network-container" class="border border-radius-xl" style="width: 100%; height: 100%; outline: none !important; ">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel de control -->
+                <div class="col-lg-4">
+
+                    <!-- Palntillas -->
+                    <div class="card mb-4 panel-card panel-card-1">
+                        <div class="card-header p-3 bg-gradient-primary">
+                            <h6 class="mb-0 text-white">Agregar Plantillas</h6>
+                            <p class="text-white text-sm mb-0">Patrones de red pre-configurados</p>
+                        </div>
+                        <div class="card-body p-2">
+                            <div class="row g-2 mb-0">
+
+                                <div class="col-3">
+                                    <button class="btn btn-outline-primary w-100 h-100 p-2 d-flex flex-column align-items-center justify-content-center mb-0"
+                                            style="min-height: 60px;"
+                                            onclick="addLinearTopology()">
+                                        <i class="material-symbols-rounded fs-3">linear_scale</i>
+                                        <span class="text-sm mt-1">Lineal</span>
+                                    </button>
+                                </div>
+
+                                <div class="col-3">
+                                    <button class="btn btn-outline-primary w-100 h-100 p-2 d-flex flex-column align-items-center justify-content-center mb-0" style="min-height: 60px;" onclick="addRingTopology()">
+                                        <i class="material-symbols-rounded fs-3">radio_button_unchecked</i>
+                                        <span class="text-sm mt-1">Anillo</span>
+                                    </button>
+                                </div>
+
+                                <div class="col-3">
+                                    <button class="btn btn-outline-primary w-100 h-100 p-2 d-flex flex-column align-items-center justify-content-center mb-0" style="min-height: 60px;" onclick="addMeshTopology()">
+                                        <i class="material-symbols-rounded fs-3">grid_4x4</i>
+                                        <span class="text-sm mt-1">Malla</span>
+                                    </button>
+                                </div>
+
+                                <div class="col-3">
+                                    <button class="btn btn-outline-primary w-100 h-100 p-2 d-flex flex-column align-items-center justify-content-center mb-0" style="min-height: 60px;" onclick="addStarTopology()">
+                                        <i class="material-symbols-rounded fs-3">star</i>
+                                        <span class="text-sm mt-1">Estrella</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Aciones Rápidas -->
+                    <div class="card mb-4 panel-card panel-card-2">
+                        <div class="card-header p-3 bg-gradient-info">
+                            <h6 class="mb-0 text-white">Acciones Rápidas</h6>
+                            <p class="text-white text-sm mb-0">Operaciones comunes de topología</p>
+                        </div>
+
+                        <div class="card-body p-2">
+                            <div class="row g-2 mb-0">
+
+                                <div class="col-6 mb-0">
+                                    <button class="btn btn-info btn-lg w-100 h-100 mb-0  mainBtn"
+                                            style="min-height: 85px;"
+                                            onclick="autoArrangeTopology()">
+                                        <i class="material-symbols-rounded me-2">auto_fix</i>
+                                        Organizar
+                                        <p class="text-xxs opacity-8 mb-0">Optimiza el diseño actual</p>
+                                    </button>
+                                </div>
+
+                                <div class="col-6 mb-0">
+                                    <button class="btn btn-danger btn-lg w-100 h-100 mb-0  mainBtn" style="min-height: 85px;" onclick="clearTopology()">
+                                        <i class="material-symbols-rounded me-2">delete</i>
+                                        Limpiar Topología
+                                        <p class="text-xxs opacity-8 mb-0">Elimina todos los elementos</p>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Importar/Exportar -->
+                    <div class="card panel-card panel-card-3">
+                        <div class="card-header p-3 bg-gradient-success">
+                            <h6 class="mb-0 text-white">Guardar y Cargar</h6>
+                            <p class="text-white text-sm mb-0">Gestionar configuraciones de la topología</p>
+                        </div>
+                        <div class="card-body p-2">
+
+                            <div class="row g-2 mb-2">
+
+                                <div class="col-6">
+                                    <button class="btn btn-success btn-lg w-100 h-100 mb-0  mainBtn" style="min-height: 85px;" onclick="exportTopology()">
+                                        <i class="material-symbols-rounded me-2">file_download</i>
+                                        Exportar Topología
+                                        <p class="text-xxs mb-0">Guarda como archivo JSON</p>
+                                    </button>
+                                </div>
+
+                                <div class="col-6">
+                                    <button class="btn btn-warning btn-lg w-100 h-100 mb-0  mainBtn" style="min-height: 85px;" onclick="importTopology()">
+                                        <i class="material-symbols-rounded me-2">file_upload</i>
+                                        Importar Topología
+                                        <p class="text-xxs mb-0">Carga configuración existente</p>
+                                        <input type="file" hidden onchange="importFileTopology()">
+                                    </button>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-dark btn-lg w-100 h-100 mb-0 mainBtn" onclick="showSaveSketchModal()">
+                                <i class="material-symbols-rounded me-2">save</i>
+                                Guardar Sketch
+                                <p class="text-xxs mb-0">Guarda el diseño actual como un nuevo sketch</p>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Fin de los elementos de la Topología uwu -->
+
+        <!-- Footer -->
+        <div th:replace="~{Fragments/User/footer :: footer}"></div>
+    </main>
+</div>
+
+<!-- Modal - Añadir VM -->
+<div class="modal fade" id="addVMModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header bg-gradient-dark">
+                <h5 class="modal-title text-white d-flex align-items-center">
+                    <i class="material-symbols-rounded me-2" id="modalNodeTitle">computer</i>
+                    Agregar Máquina Virtual
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body px-4 pt-4">
+                <form id="addVMForm">
+                    <div class="input-group input-group-static mb-4">
+                        <label>Nombre (opcional)</label>
+                        <input type="text" class="form-control" id="vmName" placeholder="Ejemplo: Host-A">
+                    </div>
+
+                    <div class="input-group input-group-static mb-4">
+                        <label class="ms-0 mb-2">Imagen</label>
+                        <select class="form-control" id="vmImage" required
+                                title="Por favor, elige una imagen de OS"
+                                oninvalid="this.setCustomValidity('Por favor, elige una imagen de OS')"
+                                oninput="this.setCustomValidity('')">
+                            <option value="" selected disabled>---</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group input-group-static mb-4">
+                        <label class="ms-0 mb-2">Flavor</label>
+                        <select class="form-control" id="vmFlavor" required
+                                title="Por favor, elige una configuración"
+                                oninvalid="this.setCustomValidity('Por favor, elige una configuración')"
+                                oninput="this.setCustomValidity('')">
+                            <option value="" selected disabled>---</option>
+                        </select>
+                    </div>
+
+                    <div class="card border mb-4">
+                        <div class="card-body p-0">
+                            <div class="row g-0">
+                                <div class="col-4 text-center border-end">
+                                    <div class="p-3">
+                                        <i class="material-symbols-rounded text-gradient text-dark mb-1" style="font-size: 2.5rem;">developer_board</i>
+                                        <p class="text-xs text-secondary mb-0">vCPUs</p>
+                                        <h5 class="font-weight-bolder mb-0" id="flavorCPUs">-</h5>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-4 text-center border-end">
+                                    <div class="p-3">
+                                        <i class="material-symbols-rounded text-gradient text-dark mb-1" style="font-size: 2.5rem;">memory</i>
+                                        <p class="text-xs text-secondary mb-0">RAM</p>
+                                        <h5 class="font-weight-bolder mb-0" id="flavorRAM">-</h5>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-4 text-center">
+                                    <div class="p-3">
+                                        <i class="material-symbols-rounded text-gradient text-dark mb-1" style="font-size: 2.5rem;">storage</i>
+                                        <p class="text-xs text-secondary mb-0">Disco</p>
+                                        <h5 class="font-weight-bolder mb-0" id="flavorDisk">-</h5>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-check form-switch ps-0">
+                        <div class="d-flex align-items-center">
+                            <label class="form-check-label me-2 mb-0 d-flex align-items-center">
+                                <i class="material-symbols-rounded me-2">public</i>
+                                <span class="d-flex align-items-center">Habilitar "Acceso Externo"</span>
+                            </label>
+                            <div class="form-check-input-wrapper d-flex align-items-center">
+                                <input class="form-check-input mt-0 ms-3" type="checkbox" id="vmExternalAccess">
+                            </div>
+
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer border-top py-3">
+                <button type="button" class="btn btn-link m-0" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn bg-gradient-dark m-0" id="vmSubmitButton">Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal - Añadir Enlace -->
+<div class="modal fade" id="addLinkModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header bg-gradient-dark">
+                <h5 class="modal-title text-white d-flex align-items-center">
+                    <i class="material-symbols-rounded me-2">link</i>
+                    Add Network Link
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body px-4 pt-4">
+                <form id="addLinkForm">
+                    <div class="input-group input-group-static mb-4">
+                        <label>Nombre (opcional)</label>
+                        <input type="text" class="form-control" id="linkName" placeholder="Ejemplo: Red-A">
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-link" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn bg-gradient-dark" id="linkSubmitButton">Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal - Plantilla/Subtopología -->
+<div class="modal fade" id="templateModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-primary">
+                <h5 class="modal-title text-white d-flex align-items-center"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4 pt-4">
+                <form id="templateForm" onsubmit="return false;">
+
+                    <div class="input-group input-group-static mb-4">
+                        <label class="ms-0">Número de VMs</label>
+                        <input type="number"
+                               class="form-control"
+                               id="templateVMCount"
+                               min="2"
+                               max="10"
+                               value="2"
+                               required>
+                    </div>
+
+                    <div class="input-group input-group-static mb-4">
+                        <label class="ms-0 mb-2">Imagen</label>
+                        <select class="form-control" id="templateImage" required>
+                            <option value="" selected disabled>Selecciona una imagen</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group input-group-static mb-4">
+                        <label class="ms-0 mb-2">Flavor</label>
+                        <select class="form-control" id="templateFlavor" required>
+                            <option value="" selected disabled>Selecciona un flavor</option>
+                        </select>
+                        <small class="form-text text-primary" id="templateFlavorDetails">
+                            RAM: - | vCPUs: - | Disco: -
+                        </small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-link" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn bg-gradient-primary" id="templateSubmitButton">Crear</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal - Sketch -->
+<div class="modal fade" id="saveSketchModal" tabindex="-1" aria-labelledby="saveSketchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-dark">
+                <h5 class="modal-title text-white d-flex align-items-center" id="saveSketchModalLabel">
+                    <i class="material-symbols-rounded me-2">save</i>
+                    Guardar Sketch
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body px-4 pt-4">
+                <form id="saveSketchForm" class="needs-validation" novalidate>
+                    <div class="input-group input-group-static mb-4">
+                        <label for="sketchName">Nombre</label>
+                        <input type="text" class="form-control" id="sketchName" required
+                               placeholder="Introduce un nombre para tu sketch">
+                        <div class="invalid-feedback">
+                            Por favor, introduce un nombre para el sketch
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="sketchDescription">Descripción (Opcional)</label>
+                        <textarea class="form-control" id="sketchDescription" rows="3"
+                                  placeholder="Introduce una descripción para tu sketch"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="saveSketch()">
+                    <i class="material-symbols-rounded me-2">save</i>
+                    Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- Font Awesome Icons -->
+<script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
+<!-- Material Icons -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+
+<!-- Topology Creator JS -->
+<script type="text/javascript" th:src="@{/slice/vis/vis-network.js}"></script>
+<script type="module" th:src="@{/slice/sketch/sketch-creator.js}"></script>
+<script type="module" th:src="@{/slice/sketch/classes.js}"></script>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Referencias de elementos DOM
+        const sidebar = document.querySelector('.sidebar');
+        const mainContent = document.querySelector('.main-content');
+        const sidebarToggle = document.querySelector('.sidebar-toggle');
+        const menuToggle = document.querySelector('.menu-toggle');
+        const pageTitle = document.querySelector('.page-title');
+        const sectionLinks = document.querySelectorAll('.sidebar-menu a[data-section]');
+        const modal = document.getElementById('createSliceModal');
+        const btnCreateSlice = document.getElementById('btnCreateSlice');
+        const modalClose = document.querySelector('.modal-close');
+        const cancelSlice = document.getElementById('cancelSlice');
+        const saveSlice = document.getElementById('saveSlice');
+        const cardTabs = document.querySelectorAll('.card-tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const searchInputs = document.querySelectorAll('input[id^="search-"]');
+
+        // Ocultar sidebar
+        function toggleSidebar() {
+            sidebar.classList.toggle('hidden');
+            mainContent.classList.toggle('full-width');
+        }
+
+        sidebarToggle.addEventListener('click', toggleSidebar);
+        menuToggle.addEventListener('click', toggleSidebar);
+    });
+</script>
+</body>
+</html>

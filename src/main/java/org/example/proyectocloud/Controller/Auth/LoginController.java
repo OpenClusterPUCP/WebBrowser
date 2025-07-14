@@ -45,6 +45,9 @@ public class LoginController {
             if (rol.equals("User")) {
                 return "redirect:/User/slice";
             }
+            if (rol.equals("Aws")) {
+                return "redirect:/Aws/slice";
+            }
         }
         return "AuthPages/login";
     }

@@ -4,23 +4,19 @@ import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.example.proyectocloud.Bean.UserInfo;
 import org.example.proyectocloud.DTO.Admin.ServerDashboard;
-import org.example.proyectocloud.DTO.Admin.Zones.GlobalResourceStatsDTO;
-import org.example.proyectocloud.DTO.Admin.Zones.ServerInfoDTO;
-import org.example.proyectocloud.DTO.Admin.Zones.ZoneDTO;
-import org.example.proyectocloud.DTO.Admin.Zones.ZoneDetailDTO;
+import org.example.proyectocloud.DTO.Admin.Zones.*;
 import org.example.proyectocloud.Service.Admin.PhysicalServerService;
 import org.example.proyectocloud.Service.Admin.ZoneService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Controlador para las vistas relacionadas con la gestión de zonas de disponibilidad.
@@ -64,6 +60,22 @@ public class AdminAvailabilityZonesController {
         System.out.println(stats.getTotalCpu());
 
         return "AdminPages/AvailabilityZones";
+    }
+
+    @GetMapping("/AllServers")
+    @ResponseBody
+    public ResponseEntity<Object>  allServers(HttpSession session){
+        UserInfo userInfo = (UserInfo) session.getAttribute("userInfo");
+        ArrayList<LinkedHashMap<String , Object >> physicalServers = physicalServerService.getAllServers(userInfo.getJwt());
+        return ResponseEntity.ok(physicalServers);
+    }
+
+
+    @GetMapping("/update/{idServer}/{idAz}")
+    @ResponseBody
+    public ResponseEntity<Object>  update( @PathVariable(value="idServer") Integer idServer ,  @PathVariable(value="idAz") Integer idAz  ,HttpSession session){
+        UserInfo userInfo = (UserInfo) session.getAttribute("userInfo");
+        return ResponseEntity.ok(physicalServerService.update(idServer , idAz , userInfo.getJwt()));
     }
 
 
