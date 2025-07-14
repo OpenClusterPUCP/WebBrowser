@@ -672,17 +672,25 @@ $(document).ready(async function() {
         const security_group_id = $('#securityGroup-data').data('slice-id');
         let from_port = null, to_port = null;
 
-        // Validar formato CIDR: A.B.C.D/E
-        function isValidCIDR(cidr) {
-            // Ejemplo: 192.168.1.0/24 o 0.0.0.0/0
-            return /^([0-9]{1,3}\.){3}[0-9]{1,3}\/([0-9]|[1-2][0-9]|3[0-2])$/.test(cidr);
+        // Validar formato CIDR: A.B.C.D/E o 2001:db8::/32
+        function isValidCIDR(cidr, etherType) {
+            if (etherType === 'ipv4') {
+                // IPv4: 0.0.0.0/0 o 192.168.1.0/24
+                return /^([0-9]{1,3}\.){3}[0-9]{1,3}\/([0-9]|[1-2][0-9]|3[0-2])$/.test(cidr);
+            } else if (etherType === 'ipv6') {
+                // IPv6: 2001:db8::/32 o similar
+                return /^([a-fA-F0-9:]+)\/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$/.test(cidr);
+            }
+            return false;
         }
 
-        if (!isValidCIDR(remote_cidr)) {
+        if (!isValidCIDR(remote_cidr, ether_type)) {
             Swal.fire({
                 icon: 'warning',
                 title: 'IP CIDR inválido',
-                text: 'El campo IP CIDR debe tener el formato A.B.C.D/E, por ejemplo: 0.0.0.0/0 o 192.168.1.0/24'
+                text: ether_type === 'ipv4'
+                    ? 'El campo IP CIDR debe tener el formato A.B.C.D/E, por ejemplo: 0.0.0.0/0 o 192.168.1.0/24'
+                    : 'El campo IP CIDR debe tener el formato IPv6 CIDR, por ejemplo: 2001:db8::/32'
             });
             return;
         }
@@ -798,13 +806,13 @@ $(document).ready(async function() {
         minimumResultsForSearch: Infinity
     });
 
-    // Fix: Evitar selección automática al abrir el select2 (bug de doble click accidental)
+    /* Fix: Evitar selección automática al abrir el select2 (bug de doble click accidental)
     $('#direction, #etherType, #protocol, #portType').on('select2:opening', function(e) {
         // Si el select2 ya está abierto, previene el evento (evita doble apertura/cierre)
         if ($(this).data('select2').isOpen()) {
             e.preventDefault();
         }
-    });
+    });*/
 
     // Estado inicial de campos
     updatePortFields();
@@ -885,120 +893,6 @@ $(document).ready(async function() {
     
     sidebarToggle.addEventListener('click', toggleSidebar);
     menuToggle.addEventListener('click', toggleSidebar);
-
-
-    // ==================
-    // DESPLIEGUE DE SLICE:
-    // ==================
-
-    $('#btnDeploySlice').click(async function() {
-        try {
-            console.log('Abriendo modal de despliegue...');
-            
-            // Limpiar el formulario
-            $('#deploySliceForm').trigger('reset');
-            $('#deploySliceForm').removeClass('was-validated');
-            $('#sketchPreview').addClass('d-none').removeClass('show');
-            
-            // Cargar los sketches y las zonas de disponibilidad
-            await Promise.all([
-                loadSketches(),
-                loadAvailabilityZones()
-            ]);
-            
-            // Mostrar el modal
-            $('#deploySliceModal').modal('show');
-        } catch (error) {
-            console.error('Error preparando el modal:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'No se pudieron cargar los recursos necesarios'
-            });
-        }
-    });
-
-    async function loadFlavors() {
-        try {
-            console.log('Cargando flavors disponibles...');
-            const response = await fetch('/User/api/sketch/resources/flavors');
-            const result = await response.json();
-            console.log('Respuesta de flavors:', result);
-
-            if (result.status === 'success') {
-                AVAILABLE_FLAVORS = result.content;
-                console.log('Flavors loaded:', AVAILABLE_FLAVORS);
-            } else {
-                throw new Error('Error cargando los flavors');
-            }
-        } catch (error) {
-            console.error('Error cargando los flavors:', error);
-            AVAILABLE_FLAVORS = [];
-        }
-    }
-
-    async function loadSketches() {
-        try {
-            await loadFlavors();
-            console.log('Cargando lista de sketches...');
-            const response = await fetch('/User/api/sketch/list');
-            const result = await response.json();
-            console.log('Respuesta de sketches:', result);
-            
-            if (result.status === 'success' && result.content) {
-                const select = $('#sketchSelect');
-                
-                // Inicializar Select2 si aún no está inicializado
-                if (!select.data('select2')) {
-                    select.select2({
-                        theme: 'bootstrap-5',
-                        placeholder: 'Busca y selecciona un sketch',
-                        allowClear: false,
-                        width: '100%',
-                        dropdownParent: $('#deploySliceModal'),
-                        minimumResultsForSearch: 0,
-                        templateResult: formatSketchOption,
-                        templateSelection: formatSketchSelection,
-                        escapeMarkup: function(markup) {
-                            return markup;
-                        }
-                    }).on('select2:open', function() {
-                        document.querySelector('.select2-search__field').focus();
-                    }).on('select2:clearing', function(e) {
-                        e.preventDefault();
-                        const self = $(this);
-                        setTimeout(() => {
-                            self.select2('close');
-                        }, 0);
-                    });
-                }
-    
-                // Limpiar y agregar la opción placeholder
-                select.empty().append('<option></option>');
-                
-                // Agregar las opciones
-                result.content.forEach(sketch => {
-                    const option = new Option(
-                        sketch.name,
-                        sketch.id,
-                        false,
-                        false
-                    );
-                    
-                    // Agregar datos adicionales al option
-                    $(option).data('description', sketch.description);
-                    $(option).data('vm-count', sketch.topology_info?.vms?.length || 0);
-                    
-                    select.append(option);
-                });
-                
-                select.trigger('change');
-            }
-        } catch (error) {
-            console.error('Error cargando sketches:', error);
-            throw error;
-        }
-    }
 
     // Manejo de mensajes de error:
 

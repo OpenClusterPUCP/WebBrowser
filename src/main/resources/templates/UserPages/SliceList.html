@@ -289,13 +289,23 @@
         }
 
 
+        /* Permite que el modal crezca y el scroll sea sobre el modal completo */
+        .modal-dialog {
+            max-width: 600px;
+            margin: 1.75rem auto;
+        }
+
         .modal-content {
-            height: auto; /* Ajusta la altura automáticamente */
+            max-height: 90vh;
+            overflow: visible;
+            display: flex;
+            flex-direction: column;
         }
 
         .modal-body {
-            max-height: none; /* Permite que el contenido crezca sin restricciones */
-            overflow: visible; /* Elimina el scroll interno */
+            overflow-y: auto;
+            flex: 1 1 auto;
+            /* Elimina max-height y overflow: visible */
         }
 
     </style>
@@ -889,7 +899,7 @@
     
     <!-- MODAL -->
     <div class="modal fade" id="deploySliceModal" tabindex="-1" aria-labelledby="deploySliceModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0">
                 <!-- Modal Header -->
                 <div class="modal-header bg-warning px-4">

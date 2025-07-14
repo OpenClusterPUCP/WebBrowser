@@ -2427,7 +2427,7 @@ window.removeSGFromInterface = async function(vmId, interfaceId, sgId) {
                     $('#interfaceSGModal').modal('hide');
                 } else {
                     Swal.close();
-                    showErrorAlert(result)
+                    showErrorAlert(data)
                     throw new Error(data.message || 'Error al remover');
                 }
             } catch (err) {
